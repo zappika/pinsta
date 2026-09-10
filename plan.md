@@ -75,16 +75,15 @@ working Google + Apple Maps links that open the right spot, plus the IG source l
 **Acceptance:** with places saved across two cities and categories, filtering to
 "restaurants in Barcelona" shows exactly the right subset.
 
-## Phase 3 — Multi-user ⬜ not started
+## Phase 3 — Accounts ⏸ deliberately not doing this
 
-**Goal:** real accounts and per-user lists.
+**Decision (2026-09-10):** a local, personal app asks nobody to create an
+account or log in. Data lives on the device; iCloud (CloudKit) backs it up
+invisibly once the Apple Developer membership exists. Accounts only appear
+if social features ever do — and then only for those features.
 
-- [ ] Add auth (Clerk or Supabase Auth)
-- [ ] Add `user_id` to `places`; scope all queries to the signed-in user
-- [ ] (Optional) shareable read-only lists
-
-**Acceptance:** two separate accounts see only their own places; a signed-out
-visitor cannot read either list.
+- [ ] Turn on CloudKit sync in the SwiftData container (needs paid developer account)
+- [ ] ~~Add auth~~ · ~~`user_id` on `places`~~ — dropped
 
 ## Phase 4 — Auto-extraction ("the magic") 🟡 tag-based done, caption reading deferred
 
@@ -105,13 +104,27 @@ fall back to the Phase 1 manual flow.
 **Verified 2026-09-10:** instagram.com/p/DafW4ZTNT-l (tagged "Bar Brutal") →
 thumbnail + 3 candidates in ~7s, saved without typing.
 
-## Phase 5 — Native iOS + Share Sheet ⬜ not started
+## Phase 5 — Native iOS 🟡 in progress (Simulator only for now)
 
-**Goal:** save directly from Instagram's share sheet.
+**Goal:** the full app native, local-first. The phone is the source of truth;
+the cloud does exactly one thing — read the Instagram post.
 
-- [ ] SwiftUI app + Share Extension that receives an IG URL
-- [ ] Share Extension opens the "save place" flow, calling the existing Next.js API
-- [ ] (Optional) push notifications / offline
+| Web | Native |
+|---|---|
+| Neon Postgres | SwiftData on device (CloudKit later) |
+| Google Places | MapKit `MKLocalSearch` — no key |
+| Vercel Blob | image stored with the record |
+| Apify scrape | stays on Vercel: `POST /api/extract` with `native: true` |
+
+The web app stays live until the native one is trusted.
+
+- [x] Xcode project (`ios/`, XcodeGen) · SwiftData `Place` · category buckets
+- [x] List with `City ▾ Type ▾` header menus · cards with photo · Apple/Google Maps · Post
+- [x] Add sheet: paste → read post → MapKit candidates from tag → tap to save; typing fallback
+- [x] One-shot import of the web database on first launch
+- [ ] Build + run in Simulator, verify end to end
+- [ ] Share Extension: Instagram → Share → Pinsta opens the save flow
+- [ ] Real device + CloudKit (needs Apple Developer Program)
 
 **Acceptance:** from inside Instagram, Share → Pinsta opens the save flow
-pre-loaded with the shared post and saves to the same list the web app shows.
+pre-loaded with the shared post and saves to the same list the app shows.

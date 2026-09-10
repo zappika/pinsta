@@ -19,7 +19,9 @@ export type ExtractResponse = {
 };
 
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => ({}))) as { instagramUrl?: string };
+  const body = (await req.json().catch(() => ({}))) as { instagramUrl?: string; native?: string | boolean };
+  // The iOS app resolves places with MapKit itself; skip the Google call for it.
+  const native = body.native === true || body.native === "true";
   const url = normalizeInstagramUrl(body.instagramUrl ?? "");
   if (!url) {
     return NextResponse.json({ error: "Not an Instagram post link" }, { status: 400 });
@@ -32,7 +34,7 @@ export async function POST(req: Request) {
     // Image copy and place search are independent — run together.
     const [imageUrl, candidates] = await Promise.all([
       post.imageUrl ? storeImage(post.imageUrl, shortcode) : Promise.resolve(null),
-      post.locationName ? searchPlaces(post.locationName).then((c) => c.slice(0, 5)) : Promise.resolve([]),
+      post.locationName && !native ? searchPlaces(post.locationName).then((c) => c.slice(0, 5)) : Promise.resolve([]),
     ]);
 
     const out: ExtractResponse = {

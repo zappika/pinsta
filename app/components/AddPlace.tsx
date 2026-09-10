@@ -54,7 +54,8 @@ export default function AddPlace({ onClose, onSaved }: Props) {
     setCandidates([]);
     setQuery("");
     setError(null);
-    (async () => {
+    // Debounce: every prefix of a URL being typed is itself a "valid" link.
+    const timer = setTimeout(async () => {
       try {
         const res = await fetch("/api/extract", {
           method: "POST",
@@ -76,8 +77,11 @@ export default function AddPlace({ onClose, onSaved }: Props) {
         setExtract({ status: "error", message: e instanceof Error ? e.message : "Could not read post" });
         queryRef.current?.focus();
       }
-    })();
-    return () => ctrl.abort();
+    }, 600);
+    return () => {
+      clearTimeout(timer);
+      ctrl.abort();
+    };
   }, [validUrl]);
 
   // Manual search (debounced) — overrides the extracted candidates while typing.

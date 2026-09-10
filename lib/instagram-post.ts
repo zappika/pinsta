@@ -45,7 +45,11 @@ export async function fetchInstagramPost(postUrl: string): Promise<InstagramPost
     body: JSON.stringify({ directUrls: [postUrl], resultsType: "posts", resultsLimit: 1 }),
   });
   if (!res.ok) {
-    throw new Error(`Apify failed: ${res.status} ${(await res.text()).slice(0, 200)}`);
+    console.error("Apify error", res.status, (await res.text()).slice(0, 300));
+    if (res.status === 402 || res.status === 429) {
+      throw new Error("the Instagram reader is busy — try again in a minute");
+    }
+    throw new Error("the Instagram reader failed");
   }
   const items = (await res.json()) as RawItem[];
   const it = items[0];
