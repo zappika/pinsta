@@ -46,31 +46,31 @@ populated/used for navigation from Phase 2 — no migration between phases.
 
 ---
 
-## Phase 1 — MVP ⬜ not started
+## Phase 1 — MVP 🟡 built, not deployed
 
 **Goal:** deployed page where you save a place from an IG link and see your list.
 
-- [ ] Scaffold Next.js + TS + Tailwind; init Drizzle + Neon; create `places` table
-- [ ] Server-side Google Places proxy: `POST /api/places/search` (Text Search)
-- [ ] Add flow on `app/page.tsx`: IG URL input + place search box → pick candidate
-- [ ] Save handler `POST /api/places`: re-fetch Place Details by `place_id`, insert row
-- [ ] List view: each place shows Google Maps + Apple Maps buttons, address, IG link
+- [x] Scaffold Next.js + TS + Tailwind; init Drizzle + Neon; create `places` table
+- [x] Server-side Google Places proxy: `POST /api/places/search` (Text Search)
+- [x] Add flow on `app/page.tsx`: IG URL input + place search box → pick candidate
+- [x] Save handler `POST /api/places`: re-fetch Place Details by `place_id`, insert row
+- [x] List view: each place shows Google Maps + Apple Maps buttons, address, IG link
 - [ ] Deploy to Vercel; set `GOOGLE_PLACES_API_KEY` + `DATABASE_URL`
 
 **Acceptance:** on the deployed URL, paste a real IG post, type a known place
 (e.g. "Septime Paris"), pick it, save → it persists and the list shows it with
 working Google + Apple Maps links that open the right spot, plus the IG source link.
 
-## Phase 2 — Organize & navigate ⬜ not started
+## Phase 2 — Organize & navigate ✅ done
 
 **Goal:** browse the list by location and category.
 
-- [ ] `lib/categories.ts`: map Google `primaryType` → ~10 buckets (Restaurant,
+- [x] `lib/categories.ts`: map Google `primaryType` → ~10 buckets (Restaurant,
       Cafe, Bar, Bakery, Hotel, Shop, Attraction, Museum, Nature/Park, Other);
       populate `category` on save
-- [ ] Parse `country` / `city` from Places `addressComponents`; populate on save
-- [ ] List view filters/grouping by country, city, category ("Hotels in Paris")
-- [ ] Instagram embed preview (public `embed.js`, no token) for context
+- [x] Parse `country` / `city` from Places `addressComponents`; populate on save
+- [x] List view filters/grouping by country, city, category ("Hotels in Paris")
+- [x] Instagram embed preview (public `embed.js`, no token) for context
 
 **Acceptance:** with places saved across two cities and categories, filtering to
 "restaurants in Barcelona" shows exactly the right subset.
