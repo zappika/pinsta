@@ -46,7 +46,7 @@ populated/used for navigation from Phase 2 — no migration between phases.
 
 ---
 
-## Phase 1 — MVP 🟡 built, not deployed
+## Phase 1 — MVP ✅ done — https://pinsta-two.vercel.app
 
 **Goal:** deployed page where you save a place from an IG link and see your list.
 
@@ -55,7 +55,7 @@ populated/used for navigation from Phase 2 — no migration between phases.
 - [x] Add flow on `app/page.tsx`: IG URL input + place search box → pick candidate
 - [x] Save handler `POST /api/places`: re-fetch Place Details by `place_id`, insert row
 - [x] List view: each place shows Google Maps + Apple Maps buttons, address, IG link
-- [ ] Deploy to Vercel; set `GOOGLE_PLACES_API_KEY` + `DATABASE_URL`
+- [x] Deploy to Vercel; set `GOOGLE_PLACES_API_KEY` + `DATABASE_URL`
 
 **Acceptance:** on the deployed URL, paste a real IG post, type a known place
 (e.g. "Septime Paris"), pick it, save → it persists and the list shows it with
