@@ -7,16 +7,28 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    CODE_SIGN_STYLE: Automatic
-    CODE_SIGN_IDENTITY: ""
-    CODE_SIGNING_REQUIRED: "NO"
-    CODE_SIGNING_ALLOWED: "NO"
+    # Ad-hoc signing: enough for the Simulator and embeds the entitlements
+    # (App Group). Swap for a real team when the developer account exists.
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGNING_REQUIRED: "YES"
+    CODE_SIGNING_ALLOWED: "YES"
+    DEVELOPMENT_TEAM: ""
+    TARGETED_DEVICE_FAMILY: "1"
 targets:
   Pinsta:
     type: application
     platform: iOS
     sources:
       - path: Pinsta
+        excludes: ["*.entitlements"]
+    dependencies:
+      - target: PinstaShare
+        embed: true
+    entitlements:
+      path: Pinsta/Pinsta.entitlements
+      properties:
+        com.apple.security.application-groups: [group.se.sarper.pinsta]
     info:
       path: Pinsta/Info.plist
       properties:
@@ -24,12 +36,40 @@ targets:
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         LSApplicationQueriesSchemes: [comgooglemaps]
-        NSAppTransportSecurity:
-          NSAllowsArbitraryLoads: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: se.sarper.pinsta
         GENERATE_INFOPLIST_FILE: "NO"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-        TARGETED_DEVICE_FAMILY: "1"
+
+  PinstaShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: PinstaShare
+        excludes: ["*.entitlements"]
+      # Shared with the app: model, services, and the save flow itself.
+      - path: Pinsta/Models
+      - path: Pinsta/Services
+      - path: Pinsta/Views/AddPlaceView.swift
+    entitlements:
+      path: PinstaShare/PinstaShare.entitlements
+      properties:
+        com.apple.security.application-groups: [group.se.sarper.pinsta]
+    info:
+      path: PinstaShare/Info.plist
+      properties:
+        CFBundleDisplayName: Pinsta
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsText: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: se.sarper.pinsta.share
+        GENERATE_INFOPLIST_FILE: "NO"
+        SKIP_INSTALL: "YES"

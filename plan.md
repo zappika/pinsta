@@ -104,7 +104,7 @@ fall back to the Phase 1 manual flow.
 **Verified 2026-09-10:** instagram.com/p/DafW4ZTNT-l (tagged "Bar Brutal") →
 thumbnail + 3 candidates in ~7s, saved without typing.
 
-## Phase 5 — Native iOS 🟡 in progress (Simulator only for now)
+## Phase 5 — Native iOS ✅ working in Simulator (real device pending developer account)
 
 **Goal:** the full app native, local-first. The phone is the source of truth;
 the cloud does exactly one thing — read the Instagram post.
@@ -122,8 +122,10 @@ The web app stays live until the native one is trusted.
 - [x] List with `City ▾ Type ▾` header menus · cards with photo · Apple/Google Maps · Post
 - [x] Add sheet: paste → read post → MapKit candidates from tag → tap to save; typing fallback
 - [x] One-shot import of the web database on first launch
-- [ ] Build + run in Simulator, verify end to end
-- [ ] Share Extension: Instagram → Share → Pinsta opens the save flow
+- [x] Build + run in Simulator, verify end to end
+- [x] Share Extension: Share → Pinsta opens the save flow, saves into the shared App Group store
+      (verified from Safari in the Simulator; Instagram itself needs a real device)
+- [ ] App icon (placeholder grid shows in the share sheet today)
 - [ ] Real device + CloudKit (needs Apple Developer Program)
 
 **Acceptance:** from inside Instagram, Share → Pinsta opens the save flow

@@ -1,7 +1,22 @@
 import SwiftUI
 import SwiftData
 
+/// Thin wrapper: re-runs the query whenever the app comes back to the
+/// foreground, so places saved by the share extension show up.
 struct PlacesListView: View {
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var refreshID = UUID()
+
+    var body: some View {
+        PlacesContent()
+            .id(refreshID)
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { refreshID = UUID() }
+            }
+    }
+}
+
+private struct PlacesContent: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \Place.createdAt, order: .reverse) private var places: [Place]
 

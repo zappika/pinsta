@@ -4,6 +4,13 @@ import SwiftData
 /// Paste a link → the post is read (cloud) → MapKit resolves the location tag
 /// (local) → tap a candidate to save. Typing is the fallback.
 struct AddPlaceView: View {
+    /// Pre-filled link (the share extension passes the shared URL).
+    var initialURL: String? = nil
+    /// Called when the sheet is done; the share extension completes its request here.
+    var onFinish: (() -> Void)? = nil
+    /// Extensions can't read the general pasteboard.
+    var allowsPasteboard = true
+
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
 
@@ -64,14 +71,20 @@ struct AddPlaceView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel") { finish() }
                 }
             }
         }
         .onAppear {
+            if let initialURL {
+                urlText = initialURL
+                return
+            }
             focus = .url
             // Pre-fill from the clipboard if it already holds an Instagram link.
-            if let s = UIPasteboard.general.string, InstagramURL.normalize(s) != nil { urlText = s }
+            if allowsPasteboard, let s = UIPasteboard.general.string, InstagramURL.normalize(s) != nil {
+                urlText = s
+            }
         }
         .task(id: validURL) { await readPost() }
         .task(id: query) { await manualSearch() }
@@ -94,7 +107,7 @@ struct AddPlaceView: View {
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(!urlText.isEmpty && validURL == nil ? Color.red.opacity(0.5) : Color.clear)
                     )
-                if urlText.isEmpty {
+                if urlText.isEmpty && allowsPasteboard {
                     Button("Paste") {
                         if let s = UIPasteboard.general.string { urlText = s }
                     }
@@ -244,8 +257,13 @@ struct AddPlaceView: View {
                 igLocationName: post?.locationName,
                 imageData: image
             ))
-            dismiss()
+            try? context.save()
+            finish()
         }
+    }
+
+    private func finish() {
+        if let onFinish { onFinish() } else { dismiss() }
     }
 }
 
