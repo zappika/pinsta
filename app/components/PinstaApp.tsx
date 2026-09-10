@@ -37,11 +37,6 @@ export default function PinstaApp() {
     );
   }, [places, city, category]);
 
-  const heading = useMemo(() => {
-    const what = category ? pluralize(category) : "Places";
-    return city ? `${what} in ${city}` : what;
-  }, [city, category]);
-
   function onSaved(p: Place) {
     setPlaces((prev) => [p, ...(prev ?? [])]);
     setAdding(false);
@@ -56,28 +51,24 @@ export default function PinstaApp() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col">
-      <header className="px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Pinsta</h1>
-      </header>
-
-      {places && places.length > 0 && (
+      {places && places.length > 0 ? (
         <Filters
           places={places}
           city={city}
           category={category}
-          onCity={setCity}
+          onCity={(c) => {
+            setCity(c);
+            setCategory(null);
+          }}
           onCategory={setCategory}
         />
+      ) : (
+        <header className="px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-4">
+          <h1 className="text-2xl font-semibold tracking-tight">Pinsta</h1>
+        </header>
       )}
 
       <section className="flex-1 px-5 pb-32">
-        {places && places.length > 0 && (
-          <div className="mt-4 mb-2 flex items-baseline justify-between">
-            <h2 className="text-sm font-medium text-stone-500">{heading}</h2>
-            <span className="text-sm tabular-nums text-stone-400">{visible.length}</span>
-          </div>
-        )}
-
         {error && (
           <p className="mt-6 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>
         )}
@@ -125,9 +116,4 @@ export default function PinstaApp() {
       {adding && <AddPlace onClose={() => setAdding(false)} onSaved={onSaved} />}
     </main>
   );
-}
-
-function pluralize(category: string) {
-  if (category === "Nature" || category === "Other") return category;
-  return category.endsWith("y") ? `${category.slice(0, -1)}ies` : `${category}s`;
 }
