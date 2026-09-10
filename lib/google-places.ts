@@ -83,7 +83,7 @@ export async function searchPlaces(query: string): Promise<PlaceCandidate[]> {
         .map((f) => `places.${f}`)
         .join(","),
     },
-    body: JSON.stringify({ textQuery: query, pageSize: 6 }),
+    body: JSON.stringify({ textQuery: query, pageSize: 6, languageCode: "en" }),
   });
   if (!res.ok) {
     throw new Error(`Places search failed: ${res.status} ${await res.text()}`);
@@ -94,7 +94,7 @@ export async function searchPlaces(query: string): Promise<PlaceCandidate[]> {
 
 export async function getPlace(placeId: string): Promise<PlaceCandidate> {
   const res = await fetch(
-    `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`,
+    `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?languageCode=en`,
     {
       headers: { "X-Goog-Api-Key": KEY(), "X-Goog-FieldMask": FIELDS },
     },
