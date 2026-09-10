@@ -12,6 +12,10 @@ export default function PlaceCard({ place, onDelete }: Props) {
 
   return (
     <li className="overflow-hidden rounded-2xl bg-white">
+      {place.imageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={place.imageUrl} alt="" className="h-44 w-full bg-stone-100 object-cover" />
+      )}
       <div className="px-4 pt-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

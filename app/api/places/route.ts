@@ -15,6 +15,10 @@ export async function POST(req: Request) {
     instagramUrl?: string;
     placeId?: string;
     note?: string;
+    imageUrl?: string | null;
+    caption?: string | null;
+    igLocationName?: string | null;
+    ownerUsername?: string | null;
   };
 
   const instagramUrl = normalizeInstagramUrl(body.instagramUrl ?? "");
@@ -45,6 +49,10 @@ export async function POST(req: Request) {
         primaryType: p.primaryType,
         category: p.category,
         note: body.note?.trim() || null,
+        imageUrl: body.imageUrl || null,
+        caption: body.caption || null,
+        igLocationName: body.igLocationName || null,
+        ownerUsername: body.ownerUsername || null,
       })
       .returning();
     return NextResponse.json({ place: row }, { status: 201 });

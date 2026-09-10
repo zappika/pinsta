@@ -86,17 +86,24 @@ working Google + Apple Maps links that open the right spot, plus the IG source l
 **Acceptance:** two separate accounts see only their own places; a signed-out
 visitor cannot read either list.
 
-## Phase 4 — Auto-extraction ("the magic") ⬜ not started
+## Phase 4 — Auto-extraction ("the magic") 🟡 tag-based done, caption reading deferred
 
 **Goal:** reduce manual typing by reading the post automatically.
 
-- [ ] Integrate a scraper API (e.g. Apify) to fetch caption + location tag
-- [ ] Use Claude to extract candidate place name(s) (captions often list several)
-- [ ] Pre-fill candidates; user confirms. Fall back to manual flow when uncertain
+- [x] Integrate a scraper API (Apify `instagram-scraper`) to fetch caption + location tag + image
+- [x] Copy the post image into Vercel Blob (IG CDN URLs expire) → thumbnail on every card
+- [x] Location tag present → Places search pre-fills up to 3 candidates; one tap saves
+- [x] No tag / scrape fails → falls back to the Phase 1 typing flow inside the same sheet
+- [ ] No tag → Claude reads the caption and proposes candidate place names
+      (deferred: decide after seeing how often tags are missing on real posts;
+      needs `ANTHROPIC_API_KEY`)
 
 **Acceptance:** pasting a location-tagged post pre-fills the correct place without
 typing; a caption listing 3 spots offers 3 candidates; ambiguous posts still
 fall back to the Phase 1 manual flow.
+
+**Verified 2026-09-10:** instagram.com/p/DafW4ZTNT-l (tagged "Bar Brutal") →
+thumbnail + 3 candidates in ~7s, saved without typing.
 
 ## Phase 5 — Native iOS + Share Sheet ⬜ not started
 

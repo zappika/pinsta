@@ -9,8 +9,23 @@ type Props = {
   onSaved: (place: Place) => void;
 };
 
+type PostInfo = {
+  url: string;
+  caption: string | null;
+  locationName: string | null;
+  imageUrl: string | null;
+  ownerUsername: string | null;
+};
+
+type Extract =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "done"; post: PostInfo }
+  | { status: "error"; message: string };
+
 export default function AddPlace({ onClose, onSaved }: Props) {
   const [url, setUrl] = useState("");
+  const [extract, setExtract] = useState<Extract>({ status: "idle" });
   const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState<PlaceCandidate[]>([]);
   const [searching, setSearching] = useState(false);
@@ -21,23 +36,54 @@ export default function AddPlace({ onClose, onSaved }: Props) {
 
   const validUrl = normalizeInstagramUrl(url);
   const urlTouched = url.trim().length > 0;
+  const post = extract.status === "done" ? extract.post : null;
 
   useEffect(() => {
     urlRef.current?.focus();
   }, []);
 
-  // Jump to the place field once a valid link is in.
+  // As soon as the link is valid, read the post: thumbnail + location tag → candidates.
   useEffect(() => {
-    if (validUrl) queryRef.current?.focus();
-  }, [validUrl]);
-
-  // Debounced place search.
-  useEffect(() => {
-    const q = query.trim();
-    if (q.length < 2) {
+    if (!validUrl) {
+      setExtract({ status: "idle" });
       setCandidates([]);
       return;
     }
+    const ctrl = new AbortController();
+    setExtract({ status: "loading" });
+    setCandidates([]);
+    setQuery("");
+    setError(null);
+    (async () => {
+      try {
+        const res = await fetch("/api/extract", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ instagramUrl: validUrl }),
+          signal: ctrl.signal,
+        });
+        const data = (await res.json()) as {
+          post?: PostInfo;
+          candidates?: PlaceCandidate[];
+          error?: string;
+        };
+        if (!res.ok || !data.post) throw new Error(data.error ?? "Could not read post");
+        setExtract({ status: "done", post: data.post });
+        setCandidates(data.candidates ?? []);
+        if (!data.candidates?.length) queryRef.current?.focus();
+      } catch (e) {
+        if ((e as Error).name === "AbortError") return;
+        setExtract({ status: "error", message: e instanceof Error ? e.message : "Could not read post" });
+        queryRef.current?.focus();
+      }
+    })();
+    return () => ctrl.abort();
+  }, [validUrl]);
+
+  // Manual search (debounced) — overrides the extracted candidates while typing.
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) return;
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       setSearching(true);
@@ -49,10 +95,7 @@ export default function AddPlace({ onClose, onSaved }: Props) {
           body: JSON.stringify({ query: q }),
           signal: ctrl.signal,
         });
-        const data = (await res.json()) as {
-          candidates?: PlaceCandidate[];
-          error?: string;
-        };
+        const data = (await res.json()) as { candidates?: PlaceCandidate[]; error?: string };
         if (!res.ok) throw new Error(data.error ?? "Search failed");
         setCandidates(data.candidates ?? []);
       } catch (e) {
@@ -77,7 +120,14 @@ export default function AddPlace({ onClose, onSaved }: Props) {
       const res = await fetch("/api/places", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instagramUrl: validUrl, placeId: c.placeId }),
+        body: JSON.stringify({
+          instagramUrl: validUrl,
+          placeId: c.placeId,
+          imageUrl: post?.imageUrl ?? null,
+          caption: post?.caption ?? null,
+          igLocationName: post?.locationName ?? null,
+          ownerUsername: post?.ownerUsername ?? null,
+        }),
       });
       const data = (await res.json()) as { place?: Place; error?: string };
       if (!res.ok || !data.place) throw new Error(data.error ?? "Could not save");
@@ -96,6 +146,9 @@ export default function AddPlace({ onClose, onSaved }: Props) {
       urlRef.current?.focus();
     }
   }
+
+  const manualMode =
+    extract.status === "error" || (extract.status === "done" && !extract.post.locationName);
 
   return (
     <div className="fixed inset-0 z-20 mx-auto flex max-w-md flex-col bg-stone-100">
@@ -143,25 +196,42 @@ export default function AddPlace({ onClose, onSaved }: Props) {
             )}
           </div>
           {urlTouched && !validUrl && (
-            <p className="mt-1.5 text-xs text-red-600">
-              Needs to be an Instagram post or reel link.
-            </p>
+            <p className="mt-1.5 text-xs text-red-600">Needs to be an Instagram post or reel link.</p>
           )}
         </label>
 
+        {extract.status === "loading" && (
+          <div className="mt-4 flex gap-3 rounded-2xl bg-white p-3">
+            <div className="h-16 w-16 shrink-0 animate-pulse rounded-xl bg-stone-100" />
+            <div className="flex-1 space-y-2 py-1">
+              <div className="h-3 w-1/3 animate-pulse rounded bg-stone-100" />
+              <div className="h-3 w-3/4 animate-pulse rounded bg-stone-100" />
+              <p className="pt-1 text-xs text-stone-400">Reading post…</p>
+            </div>
+          </div>
+        )}
+
+        {post && <PostPreview post={post} />}
+
+        {extract.status === "error" && (
+          <p className="mt-4 rounded-2xl bg-white px-4 py-3 text-sm text-stone-600">
+            Couldn&apos;t read that post ({extract.message}). Type the place below.
+          </p>
+        )}
+
         <label className="mt-5 block">
           <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">
-            Which place is it?
+            {post?.locationName && !manualMode ? "Not the right place? Search" : "Which place is it?"}
           </span>
           <input
             ref={queryRef}
             type="search"
             enterKeyHint="search"
             autoCorrect="off"
-            placeholder="e.g. Septime Paris"
+            placeholder={manualMode ? "e.g. Septime Paris" : "Search a different place"}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            disabled={!validUrl}
+            disabled={!validUrl || extract.status === "loading"}
             className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-base outline-none placeholder:text-stone-400 focus:border-stone-400 disabled:bg-stone-50 disabled:text-stone-400"
           />
         </label>
@@ -170,7 +240,13 @@ export default function AddPlace({ onClose, onSaved }: Props) {
           <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
         )}
 
-        <ul className="mt-4 divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white empty:hidden">
+        {candidates.length > 0 && post?.locationName && query.trim().length < 2 && (
+          <p className="mt-4 mb-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
+            Tagged “{post.locationName}” — tap to save
+          </p>
+        )}
+
+        <ul className="mt-2 divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white empty:hidden">
           {candidates.map((c) => {
             const busy = saving === c.placeId;
             return (
@@ -183,9 +259,7 @@ export default function AddPlace({ onClose, onSaved }: Props) {
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{c.name}</p>
-                    <p className="mt-0.5 truncate text-sm text-stone-500">
-                      {c.formattedAddress}
-                    </p>
+                    <p className="mt-0.5 truncate text-sm text-stone-500">{c.formattedAddress}</p>
                   </div>
                   <span className="shrink-0 rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600">
                     {busy ? "Saving…" : c.category}
@@ -201,6 +275,36 @@ export default function AddPlace({ onClose, onSaved }: Props) {
         )}
         {!searching && query.trim().length >= 2 && candidates.length === 0 && !error && (
           <p className="mt-4 text-center text-sm text-stone-400">No matches. Try adding the city.</p>
+        )}
+        {manualMode && extract.status === "done" && query.trim().length < 2 && (
+          <p className="mt-4 text-center text-sm text-stone-400">
+            No location tag on this post — type the place name.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PostPreview({ post }: { post: PostInfo }) {
+  return (
+    <div className="mt-4 flex gap-3 rounded-2xl bg-white p-3">
+      {post.imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={post.imageUrl}
+          alt=""
+          className="h-16 w-16 shrink-0 rounded-xl bg-stone-100 object-cover"
+        />
+      ) : (
+        <div className="h-16 w-16 shrink-0 rounded-xl bg-stone-100" />
+      )}
+      <div className="min-w-0 flex-1 py-0.5">
+        {post.ownerUsername && (
+          <p className="truncate text-xs font-medium text-stone-500">@{post.ownerUsername}</p>
+        )}
+        {post.caption && (
+          <p className="mt-0.5 line-clamp-2 text-sm leading-snug text-stone-700">{post.caption}</p>
         )}
       </div>
     </div>

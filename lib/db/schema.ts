@@ -25,6 +25,11 @@ export const places = pgTable("places", {
   primaryType: text("primary_type"),
   category: text("category"),
   note: text("note"),
+  // Phase 4: pulled from the post itself at save time
+  imageUrl: text("image_url"),
+  caption: text("caption"),
+  igLocationName: text("ig_location_name"),
+  ownerUsername: text("owner_username"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
