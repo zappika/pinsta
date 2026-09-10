@@ -92,7 +92,7 @@ visitor cannot read either list.
 
 - [x] Integrate a scraper API (Apify `instagram-scraper`) to fetch caption + location tag + image
 - [x] Copy the post image into Vercel Blob (IG CDN URLs expire) → thumbnail on every card
-- [x] Location tag present → Places search pre-fills up to 3 candidates; one tap saves
+- [x] Location tag present → Places search pre-fills up to 5 candidates ("Name — City", address only to break ties); one tap saves
 - [x] No tag / scrape fails → falls back to the Phase 1 typing flow inside the same sheet
 - [ ] No tag → Claude reads the caption and proposes candidate place names
       (deferred: decide after seeing how often tags are missing on real posts;

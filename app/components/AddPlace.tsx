@@ -147,6 +147,9 @@ export default function AddPlace({ onClose, onSaved }: Props) {
     }
   }
 
+  const showTaggedFirst =
+    candidates.length > 0 && !!post?.locationName && query.trim().length < 2;
+
   const manualMode =
     extract.status === "error" || (extract.status === "done" && !extract.post.locationName);
 
@@ -201,12 +204,11 @@ export default function AddPlace({ onClose, onSaved }: Props) {
         </label>
 
         {extract.status === "loading" && (
-          <div className="mt-4 flex gap-3 rounded-2xl bg-white p-3">
-            <div className="h-16 w-16 shrink-0 animate-pulse rounded-xl bg-stone-100" />
-            <div className="flex-1 space-y-2 py-1">
-              <div className="h-3 w-1/3 animate-pulse rounded bg-stone-100" />
+          <div className="mt-4 overflow-hidden rounded-2xl bg-white">
+            <div className="aspect-[4/3] w-full animate-pulse bg-stone-100" />
+            <div className="space-y-2 px-4 py-3">
               <div className="h-3 w-3/4 animate-pulse rounded bg-stone-100" />
-              <p className="pt-1 text-xs text-stone-400">Reading post…</p>
+              <p className="text-xs text-stone-400">Reading post…</p>
             </div>
           </div>
         )}
@@ -219,6 +221,15 @@ export default function AddPlace({ onClose, onSaved }: Props) {
           </p>
         )}
 
+        {showTaggedFirst && (
+          <>
+            <p className="mt-4 mb-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
+              Tagged “{post?.locationName}” — tap to save
+            </p>
+            <CandidateList candidates={candidates} saving={saving} onPick={save} />
+          </>
+        )}
+
         <label className="mt-5 block">
           <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">
             {post?.locationName && !manualMode ? "Not the right place? Search" : "Which place is it?"}
@@ -228,7 +239,13 @@ export default function AddPlace({ onClose, onSaved }: Props) {
             type="search"
             enterKeyHint="search"
             autoCorrect="off"
-            placeholder={manualMode ? "e.g. Septime Paris" : "Search a different place"}
+            placeholder={
+              extract.status === "loading"
+                ? "One moment…"
+                : manualMode
+                  ? "e.g. Septime Paris"
+                  : "Search a different place"
+            }
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             disabled={!validUrl || extract.status === "loading"}
@@ -240,35 +257,7 @@ export default function AddPlace({ onClose, onSaved }: Props) {
           <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
         )}
 
-        {candidates.length > 0 && post?.locationName && query.trim().length < 2 && (
-          <p className="mt-4 mb-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-            Tagged “{post.locationName}” — tap to save
-          </p>
-        )}
-
-        <ul className="mt-2 divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white empty:hidden">
-          {candidates.map((c) => {
-            const busy = saving === c.placeId;
-            return (
-              <li key={c.placeId}>
-                <button
-                  type="button"
-                  onClick={() => save(c)}
-                  disabled={saving !== null}
-                  className="flex w-full items-start gap-3 px-4 py-3.5 text-left active:bg-stone-50 disabled:opacity-60"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{c.name}</p>
-                    <p className="mt-0.5 truncate text-sm text-stone-500">{c.formattedAddress}</p>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600">
-                    {busy ? "Saving…" : c.category}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        {!showTaggedFirst && <CandidateList candidates={candidates} saving={saving} onPick={save} />}
 
         {searching && candidates.length === 0 && (
           <p className="mt-4 text-center text-sm text-stone-400">Searching…</p>
@@ -288,25 +277,88 @@ export default function AddPlace({ onClose, onSaved }: Props) {
 
 function PostPreview({ post }: { post: PostInfo }) {
   return (
-    <div className="mt-4 flex gap-3 rounded-2xl bg-white p-3">
+    <div className="mt-4 overflow-hidden rounded-2xl bg-white">
       {post.imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={post.imageUrl}
-          alt=""
-          className="h-16 w-16 shrink-0 rounded-xl bg-stone-100 object-cover"
-        />
+        <div className="relative">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={post.imageUrl}
+            alt=""
+            className="aspect-[4/3] w-full bg-stone-100 object-cover"
+          />
+          {post.ownerUsername && (
+            <span className="absolute bottom-2 left-2 rounded-full bg-black/55 px-2.5 py-1 text-xs font-medium text-white backdrop-blur">
+              @{post.ownerUsername}
+            </span>
+          )}
+        </div>
       ) : (
-        <div className="h-16 w-16 shrink-0 rounded-xl bg-stone-100" />
+        post.ownerUsername && (
+          <p className="px-4 pt-3 text-xs font-medium text-stone-500">@{post.ownerUsername}</p>
+        )
       )}
-      <div className="min-w-0 flex-1 py-0.5">
-        {post.ownerUsername && (
-          <p className="truncate text-xs font-medium text-stone-500">@{post.ownerUsername}</p>
-        )}
-        {post.caption && (
-          <p className="mt-0.5 line-clamp-2 text-sm leading-snug text-stone-700">{post.caption}</p>
-        )}
-      </div>
+      {post.caption && (
+        <div className="px-4 py-3">
+          <p className="line-clamp-2 text-sm leading-snug text-stone-600">{post.caption}</p>
+        </div>
+      )}
     </div>
+  );
+}
+
+/**
+ * Candidates read "Name — City". Country appears only when the list spans
+ * countries; the street address only when two rows would otherwise be identical.
+ */
+function CandidateList({
+  candidates,
+  saving,
+  onPick,
+}: {
+  candidates: PlaceCandidate[];
+  saving: string | null;
+  onPick: (c: PlaceCandidate) => void;
+}) {
+  if (candidates.length === 0) return null;
+  const countries = new Set(candidates.map((c) => c.country).filter(Boolean));
+  const multiCountry = countries.size > 1;
+  const keyOf = (c: PlaceCandidate) => `${c.name}|${c.city}`.toLowerCase();
+  const dupes = new Set(
+    candidates.map(keyOf).filter((k, i, arr) => arr.indexOf(k) !== i),
+  );
+
+  return (
+    <ul className="mt-2 divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white">
+      {candidates.map((c) => {
+        const busy = saving === c.placeId;
+        const where = [c.city, multiCountry ? c.country : null].filter(Boolean).join(", ");
+        const tieBreak = dupes.has(keyOf(c)) ? c.formattedAddress : null;
+        return (
+          <li key={c.placeId}>
+            <button
+              type="button"
+              onClick={() => onPick(c)}
+              disabled={saving !== null}
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-left active:bg-stone-50 disabled:opacity-60"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="flex min-w-0 items-baseline font-medium">
+                  <span className="truncate">{c.name}</span>
+                  {where && (
+                    <span className="shrink-0 font-normal text-stone-400">&nbsp;— {where}</span>
+                  )}
+                </p>
+                {tieBreak && (
+                  <p className="mt-0.5 truncate text-xs text-stone-400">{tieBreak}</p>
+                )}
+              </div>
+              <span className="shrink-0 rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600">
+                {busy ? "Saving…" : c.category}
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     // Image copy and place search are independent — run together.
     const [imageUrl, candidates] = await Promise.all([
       post.imageUrl ? storeImage(post.imageUrl, shortcode) : Promise.resolve(null),
-      post.locationName ? searchPlaces(post.locationName).then((c) => c.slice(0, 3)) : Promise.resolve([]),
+      post.locationName ? searchPlaces(post.locationName).then((c) => c.slice(0, 5)) : Promise.resolve([]),
     ]);
 
     const out: ExtractResponse = {
