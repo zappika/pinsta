@@ -6,6 +6,9 @@ import type { Place, PlaceCandidate } from "./types";
 
 type Props = {
   places: Place[];
+  /** Re-selecting the place behind an existing card: no link step, straight to search. */
+  editing?: Place | null;
+  onUpdated?: (place: Place) => void;
   onClose: () => void;
   /** The place is in the list from this moment; the sheet stays to show the receipt. */
   onSaved: (place: Place) => void;
@@ -29,17 +32,31 @@ type Extract =
   | { status: "done"; post: PostInfo; source: Source }
   | { status: "error"; message: string };
 
-type Saved = { place: Place; automatic: boolean; already: boolean };
+type Saved = { place: Place; automatic: boolean; already: boolean; changed?: boolean };
 
 /**
  * A small sheet at the bottom, sized like the "Where" picker. Paste a link →
  * the post is read → the tag becomes a place. One match saves itself; several
  * ask for a tap; none hands over to search.
  */
-export default function AddPlace({ places, onClose, onSaved, onRemoved }: Props) {
-  const [url, setUrl] = useState("");
-  const [extract, setExtract] = useState<Extract>({ status: "idle" });
-  const [query, setQuery] = useState("");
+export default function AddPlace({ places, editing = null, onUpdated, onClose, onSaved, onRemoved }: Props) {
+  const [url, setUrl] = useState(editing?.instagramUrl ?? "");
+  const [extract, setExtract] = useState<Extract>(
+    editing
+      ? {
+          status: "done",
+          source: null,
+          post: {
+            url: editing.instagramUrl,
+            caption: editing.caption,
+            locationName: editing.igLocationName,
+            imageUrl: editing.imageUrl,
+            ownerUsername: editing.ownerUsername,
+          },
+        }
+      : { status: "idle" },
+  );
+  const [query, setQuery] = useState(editing?.igLocationName ?? editing?.name ?? "");
   const [candidates, setCandidates] = useState<PlaceCandidate[]>([]);
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
@@ -54,8 +71,8 @@ export default function AddPlace({ places, onClose, onSaved, onRemoved }: Props)
   const post = extract.status === "done" ? extract.post : null;
 
   useEffect(() => {
-    urlRef.current?.focus();
-  }, []);
+    (editing ? queryRef : urlRef).current?.focus();
+  }, [editing]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -65,6 +82,7 @@ export default function AddPlace({ places, onClose, onSaved, onRemoved }: Props)
 
   // Link valid → read the post → tag → candidates → (one match) save.
   useEffect(() => {
+    if (editing) return; // the post is known; only the place changes
     if (!validUrl) {
       setExtract({ status: "idle" });
       setCandidates([]);
@@ -165,6 +183,18 @@ export default function AddPlace({ places, onClose, onSaved, onRemoved }: Props)
     setSaving(c.placeId);
     setError(null);
     try {
+      if (editing) {
+        const res = await fetch(`/api/places/${editing.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ placeId: c.placeId }),
+        });
+        const data = (await res.json()) as { place?: Place; error?: string };
+        if (!res.ok || !data.place) throw new Error(data.error ?? "Could not change place");
+        onUpdated?.(data.place);
+        setSaved({ place: data.place, automatic: false, already: false, changed: true });
+        return;
+      }
       const res = await fetch("/api/places", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -215,19 +245,21 @@ export default function AddPlace({ places, onClose, onSaved, onRemoved }: Props)
   return (
     <div className="fixed inset-0 z-20 mx-auto flex max-w-md flex-col justify-end" role="dialog" aria-label="Save a place">
       <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/30" />
-      <div className="relative m-3 mb-[calc(env(safe-area-inset-bottom)+0.75rem)] flex max-h-[80dvh] flex-col overflow-hidden rounded-2xl bg-white">
+      {/* Fixed height: the sheet never resizes as the post, candidates or receipt come in. */}
+      <div className="relative m-3 mb-[calc(env(safe-area-inset-bottom)+0.75rem)] flex h-[340px] flex-col overflow-hidden rounded-2xl bg-white">
         {saved ? (
           <Receipt saved={saved} onUndo={undo} onDone={onClose} />
         ) : (
           <>
             <div className="flex items-center justify-between px-4 pt-3 pb-1">
-              <p className="text-xs font-medium uppercase tracking-wide text-stone-400">Save a place</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-stone-400">{editing ? "Change place" : "Save a place"}</p>
               <button type="button" onClick={onClose} className="-mr-2 rounded-full px-2 py-1 text-sm font-medium text-stone-500 active:bg-stone-100">
                 Cancel
               </button>
             </div>
 
-            <div className="overflow-y-auto px-4 pb-4">
+            <div className="flex-1 overflow-y-auto px-4 pb-4">
+              {!editing && (
               <div className="flex gap-2">
                 <input
                   ref={urlRef}
@@ -249,7 +281,8 @@ export default function AddPlace({ places, onClose, onSaved, onRemoved }: Props)
                   </button>
                 )}
               </div>
-              {urlTouched && !validUrl && (
+              )}
+              {!editing && urlTouched && !validUrl && (
                 <p className="mt-1.5 text-xs text-red-600">Needs to be an Instagram post or reel link.</p>
               )}
 
@@ -290,7 +323,7 @@ export default function AddPlace({ places, onClose, onSaved, onRemoved }: Props)
                   type="search"
                   enterKeyHint="search"
                   autoCorrect="off"
-                  placeholder={manualMode ? "Which place is it? e.g. Septime Paris" : "Not the right place? Search"}
+                  placeholder={editing ? "Search the right place" : manualMode ? "Which place is it? e.g. Septime Paris" : "Not the right place? Search"}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   className="mt-3 w-full rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-base outline-none placeholder:text-stone-400 focus:border-stone-400"
@@ -307,7 +340,7 @@ export default function AddPlace({ places, onClose, onSaved, onRemoved }: Props)
               {!searching && query.trim().length >= 2 && candidates.length === 0 && !error && (
                 <p className="mt-3 text-center text-sm text-stone-400">No matches. Try adding the city.</p>
               )}
-              {manualMode && extract.status === "done" && query.trim().length < 2 && (
+              {!editing && manualMode && extract.status === "done" && query.trim().length < 2 && (
                 <p className="mt-2 text-xs text-stone-400">No location tag on this post, and the account didn&apos;t match a place.</p>
               )}
             </div>
@@ -320,11 +353,11 @@ export default function AddPlace({ places, onClose, onSaved, onRemoved }: Props)
 
 /** The moment after a save: what it is, where it went, and a way to say "not that one". */
 function Receipt({ saved, onUndo, onDone }: { saved: Saved; onUndo: () => void; onDone: () => void }) {
-  const { place, automatic, already } = saved;
+  const { place, automatic, already, changed } = saved;
   const where = [place.category, place.city ?? place.country].filter(Boolean).join(" · ");
   return (
-    <div className="px-4 pt-3 pb-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-stone-400">{already ? "Already saved" : "Saved"}</p>
+    <div className="flex flex-1 flex-col justify-center px-4 pt-3 pb-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-stone-400">{already ? "Already saved" : changed ? "Changed" : "Saved"}</p>
       <div className="mt-2 flex items-center gap-3">
         {place.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element

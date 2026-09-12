@@ -1,16 +1,67 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Place } from "./types";
 import AddPlace from "./AddPlace";
 import Filters from "./Filters";
 import PlaceCard from "./PlaceCard";
+import SwipeCard from "./SwipeCard";
 import { destinationLabels } from "@/lib/grouping";
 
 export default function PinstaApp() {
   const [places, setPlaces] = useState<Place[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<Place | null>(null);
+  const [openSwipe, setOpenSwipe] = useState<string | null>(null);
+  // Deletes are deferred a few seconds so "Undo" can pull them back. Only the
+  // latest removal is undoable; older pending ones commit when a new one starts.
+  const [toast, setToast] = useState<{ place: Place; index: number } | null>(null);
+  const pending = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const commitDelete = useCallback((id: string) => {
+    pending.current.delete(id);
+    fetch(`/api/places/${id}`, { method: "DELETE", keepalive: true }).catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    // Leaving the page commits whatever is still pending.
+    const flush = () => {
+      for (const [id, t] of pending.current) {
+        clearTimeout(t);
+        commitDelete(id);
+      }
+    };
+    window.addEventListener("pagehide", flush);
+    return () => window.removeEventListener("pagehide", flush);
+  }, [commitDelete]);
+
+  function remove(p: Place) {
+    const index = places?.findIndex((x) => x.id === p.id) ?? 0;
+    setPlaces((ps) => ps?.filter((x) => x.id !== p.id) ?? null);
+    setOpenSwipe(null);
+    pending.current.set(p.id, setTimeout(() => commitDelete(p.id), 5000));
+    setToast({ place: p, index });
+  }
+
+  function undo() {
+    if (!toast) return;
+    const t = pending.current.get(toast.place.id);
+    if (t) clearTimeout(t);
+    pending.current.delete(toast.place.id);
+    setPlaces((ps) => {
+      const next = [...(ps ?? [])];
+      next.splice(Math.min(toast.index, next.length), 0, toast.place);
+      return next;
+    });
+    setToast(null);
+  }
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(t);
+  }, [toast]);
   const [city, setCity] = useState<string | null>(null);
   const [category, setCategory] = useState<string | null>(null);
 
@@ -42,6 +93,10 @@ export default function PinstaApp() {
 
   function onSaved(p: Place) {
     setPlaces((prev) => [p, ...(prev ?? [])]);
+  }
+
+  function onUpdated(p: Place) {
+    setPlaces((prev) => prev?.map((x) => (x.id === p.id ? p : x)) ?? null);
   }
 
   return (
@@ -94,16 +149,38 @@ export default function PinstaApp() {
 
         <ul className="space-y-3">
           {visible.map((p) => (
-            <PlaceCard
+            <SwipeCard
               key={p.id}
-              place={p}
-              hideCategory={category !== null}
-              // A region row ("Halland") still wants the town on the card.
-              hideCity={city !== null && p.city === city}
-            />
+              open={openSwipe === p.id}
+              onOpen={() => setOpenSwipe(p.id)}
+              onClose={() => setOpenSwipe((o) => (o === p.id ? null : o))}
+              onEdit={() => {
+                setOpenSwipe(null);
+                setEditing(p);
+              }}
+              onDelete={() => remove(p)}
+            >
+              <PlaceCard
+                place={p}
+                hideCategory={category !== null}
+                // A region row ("Halland") still wants the town on the card.
+                hideCity={city !== null && p.city === city}
+              />
+            </SwipeCard>
           ))}
         </ul>
       </section>
+
+      {toast && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-10 mx-auto max-w-md px-5">
+          <div className="pointer-events-auto flex items-center justify-between gap-3 rounded-2xl bg-stone-800 px-4 py-3 text-sm text-white shadow-lg">
+            <span className="truncate">Removed {toast.place.name}</span>
+            <button type="button" onClick={undo} className="shrink-0 font-semibold text-amber-300 active:text-amber-200">
+              Undo
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="pointer-events-none fixed inset-x-0 bottom-0 mx-auto max-w-md px-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-6 bg-gradient-to-t from-stone-100 via-stone-100/90 to-transparent">
         <button
@@ -115,11 +192,16 @@ export default function PinstaApp() {
         </button>
       </div>
 
-      {adding && (
+      {(adding || editing) && (
         <AddPlace
           places={places ?? []}
-          onClose={() => setAdding(false)}
+          editing={editing}
+          onClose={() => {
+            setAdding(false);
+            setEditing(null);
+          }}
           onSaved={onSaved}
+          onUpdated={onUpdated}
           onRemoved={(id) => setPlaces((ps) => ps?.filter((p) => p.id !== id) ?? null)}
         />
       )}

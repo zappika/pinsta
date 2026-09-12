@@ -18,10 +18,10 @@ export default function PlaceCard({ place, hideCategory, hideCity }: Props) {
     .join(" · ");
 
   return (
-    <li className="overflow-hidden rounded-2xl bg-white">
+    <>
       {place.imageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={place.imageUrl} alt="" className="h-44 w-full bg-stone-100 object-cover" />
+        <img src={place.imageUrl} alt="" draggable={false} className="h-44 w-full bg-stone-100 object-cover" />
       )}
       <div className="px-4 pt-4">
         <h3 className="truncate text-base font-semibold">{place.name}</h3>
@@ -55,7 +55,7 @@ export default function PlaceCard({ place, hideCategory, hideCity }: Props) {
       </div>
 
       {showPost && <InstagramEmbed url={place.instagramUrl} />}
-    </li>
+    </>
   );
 }
 
