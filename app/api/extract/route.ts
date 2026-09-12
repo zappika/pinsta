@@ -14,6 +14,8 @@ export type ExtractResponse = {
     locationName: string | null;
     imageUrl: string | null;
     ownerUsername: string | null;
+    ownerFullName: string | null;
+    hashtags: string[];
   };
   candidates: PlaceCandidate[];
   /** Where the candidates came from: the post's location tag, or the posting account. */
@@ -62,6 +64,8 @@ export async function POST(req: Request) {
         locationName: post.locationName,
         imageUrl,
         ownerUsername: post.ownerUsername,
+        ownerFullName: post.ownerFullName,
+        hashtags: post.hashtags,
       },
       candidates,
       source: candidates.length ? source : null,
