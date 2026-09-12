@@ -5,6 +5,7 @@ import type { Place } from "./types";
 import AddPlace from "./AddPlace";
 import Filters from "./Filters";
 import PlaceCard from "./PlaceCard";
+import { destinationLabels } from "@/lib/grouping";
 
 export default function PinstaApp() {
   const [places, setPlaces] = useState<Place[] | null>(null);
@@ -28,18 +29,19 @@ export default function PinstaApp() {
     load();
   }, [load]);
 
+  const labels = useMemo(() => destinationLabels(places ?? []), [places]);
+
   const visible = useMemo(() => {
     if (!places) return [];
     return places.filter(
       (p) =>
-        (city === null || p.city === city) &&
+        (city === null || labels.get(p.id) === city) &&
         (category === null || p.category === category),
     );
-  }, [places, city, category]);
+  }, [places, labels, city, category]);
 
   function onSaved(p: Place) {
     setPlaces((prev) => [p, ...(prev ?? [])]);
-    setAdding(false);
   }
 
   async function onDelete(id: string) {
@@ -54,6 +56,7 @@ export default function PinstaApp() {
       {places && places.length > 0 ? (
         <Filters
           places={places}
+          labels={labels}
           city={city}
           category={category}
           onCity={(c) => {
@@ -113,7 +116,14 @@ export default function PinstaApp() {
         </button>
       </div>
 
-      {adding && <AddPlace onClose={() => setAdding(false)} onSaved={onSaved} />}
+      {adding && (
+        <AddPlace
+          places={places ?? []}
+          onClose={() => setAdding(false)}
+          onSaved={onSaved}
+          onRemoved={(id) => setPlaces((ps) => ps?.filter((p) => p.id !== id) ?? null)}
+        />
+      )}
     </main>
   );
 }

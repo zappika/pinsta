@@ -6,6 +6,8 @@ import type { Place } from "./types";
 
 type Props = {
   places: Place[];
+  /** Destination label per place id (see lib/grouping). */
+  labels: Map<string, string>;
   city: string | null;
   category: string | null;
   onCity: (c: string | null) => void;
@@ -18,22 +20,25 @@ type Option = { value: string | null; label: string; count: number };
  * The header *is* the filter: "Barcelona ▾  Everything ▾".
  * Each half opens an action-sheet picker with counts.
  */
-export default function Filters({ places, city, category, onCity, onCategory }: Props) {
+export default function Filters({ places, labels, city, category, onCity, onCategory }: Props) {
   const [open, setOpen] = useState<"city" | "category" | null>(null);
 
   const cityOptions = useMemo<Option[]>(() => {
     const counts = new Map<string, number>();
-    for (const p of places) if (p.city) counts.set(p.city, (counts.get(p.city) ?? 0) + 1);
+    for (const p of places) {
+      const l = labels.get(p.id);
+      if (l) counts.set(l, (counts.get(l) ?? 0) + 1);
+    }
     const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
     return [
       { value: null, label: "Everywhere", count: places.length },
       ...sorted.map(([c, n]) => ({ value: c, label: c, count: n })),
     ];
-  }, [places]);
+  }, [places, labels]);
 
   const categoryOptions = useMemo<Option[]>(() => {
-    // Counts respect the chosen city so the picker never offers an empty result.
-    const scoped = city ? places.filter((p) => p.city === city) : places;
+    // Counts respect the chosen destination so the picker never offers an empty result.
+    const scoped = city ? places.filter((p) => labels.get(p.id) === city) : places;
     const counts = new Map<string, number>();
     for (const p of scoped) if (p.category) counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
     return [
@@ -44,7 +49,7 @@ export default function Filters({ places, city, category, onCity, onCategory }: 
         count: counts.get(c)!,
       })),
     ];
-  }, [places, city]);
+  }, [places, labels, city]);
 
   return (
     <>

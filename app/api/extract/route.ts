@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { fetchInstagramPost } from "@/lib/instagram-post";
 import { normalizeInstagramUrl } from "@/lib/instagram";
-import { searchPlaces, type PlaceCandidate } from "@/lib/google-places";
+import { resolveTag, type PlaceCandidate } from "@/lib/google-places";
 import { storeImage } from "@/lib/blob";
 
 // Apify runs take 5–30s; give the function room.
@@ -19,7 +19,12 @@ export type ExtractResponse = {
 };
 
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => ({}))) as { instagramUrl?: string; native?: string | boolean };
+  const body = (await req.json().catch(() => ({}))) as {
+    instagramUrl?: string;
+    native?: string | boolean;
+    /** Cities the caller already knows (its saved places) — used to read #hashtags as city hints. */
+    cityHints?: string[];
+  };
   // The iOS app resolves places with MapKit itself; skip the Google call for it.
   const native = body.native === true || body.native === "true";
   const url = normalizeInstagramUrl(body.instagramUrl ?? "");
@@ -34,7 +39,15 @@ export async function POST(req: Request) {
     // Image copy and place search are independent — run together.
     const [imageUrl, candidates] = await Promise.all([
       post.imageUrl ? storeImage(post.imageUrl, shortcode) : Promise.resolve(null),
-      post.locationName && !native ? searchPlaces(post.locationName).then((c) => c.slice(0, 5)) : Promise.resolve([]),
+      post.locationName && !native
+        ? resolveTag({
+            tag: post.locationName,
+            ownerFullName: post.ownerFullName,
+            caption: post.caption,
+            hashtags: post.hashtags,
+            cityHints: Array.isArray(body.cityHints) ? body.cityHints.slice(0, 50) : [],
+          }).then((c) => c.slice(0, 5))
+        : Promise.resolve([]),
     ]);
 
     const out: ExtractResponse = {

@@ -22,6 +22,8 @@ export const places = pgTable("places", {
   formattedAddress: text("formatted_address"),
   country: text("country"),
   city: text("city"),
+  // State / county / län. Used to group places whose town is too small to stand alone.
+  region: text("region"),
   primaryType: text("primary_type"),
   category: text("category"),
   note: text("note"),

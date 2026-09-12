@@ -46,6 +46,7 @@ export async function POST(req: Request) {
         formattedAddress: p.formattedAddress,
         country: p.country,
         city: p.city,
+        region: p.region,
         primaryType: p.primaryType,
         category: p.category,
         note: body.note?.trim() || null,
