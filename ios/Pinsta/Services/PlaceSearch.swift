@@ -9,6 +9,8 @@ struct PlaceCandidate: Identifiable, Hashable {
     let longitude: Double
     let address: String?
     let city: String?
+    /// State / county / län — what a traveler names when the town is too small to.
+    let region: String?
     let country: String?
     let category: PlaceCategory
 
@@ -43,6 +45,7 @@ extension PlaceCandidate {
             longitude: coordinate.longitude,
             address: placemark.title,
             city: placemark.locality ?? placemark.subAdministrativeArea ?? placemark.administrativeArea,
+            region: placemark.administrativeArea,
             country: placemark.country,
             category: PlaceCategory.from(item.pointOfInterestCategory, name: name)
         )

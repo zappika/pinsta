@@ -2,7 +2,8 @@ import SwiftUI
 import SwiftData
 
 /// Paste a link → the post is read (cloud) → MapKit resolves the location tag
-/// (local) → tap a candidate to save. Typing is the fallback.
+/// (local). One match: saved on the spot, with a moment to say "wrong place".
+/// Several: tap one. None: type.
 struct AddPlaceView: View {
     /// Pre-filled link (the share extension passes the shared URL).
     var initialURL: String? = nil
@@ -20,6 +21,12 @@ struct AddPlaceView: View {
     @State private var candidates: [PlaceCandidate] = []
     @State private var searching = false
     @State private var saving: String?
+    @State private var saved: Place?
+    @State private var savedAutomatically = false
+    /// The post was already in the list; nothing new was written.
+    @State private var alreadySaved = false
+    /// Set after an undo so the same single match isn't re-saved behind the user's back.
+    @State private var autoSaveDeclined = false
     @State private var error: String?
     @FocusState private var focus: Field?
 
@@ -47,6 +54,19 @@ struct AddPlaceView: View {
 
     var body: some View {
         NavigationStack {
+            if let saved {
+                SavedView(place: saved, automatic: savedAutomatically, already: alreadySaved, onUndo: undo, onDone: finish)
+                    .navigationTitle("Save a place")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .task(id: saved.id) {
+                        // "Already saved" waits for Done — it's news, not a receipt.
+                        guard !alreadySaved else { return }
+                        // Long enough to read it and tap "Wrong place?"; short enough to feel done.
+                        try? await Task.sleep(for: .seconds(savedAutomatically ? 3 : 1.5))
+                        guard !Task.isCancelled else { return }
+                        finish()
+                    }
+            } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     urlField
@@ -73,6 +93,7 @@ struct AddPlaceView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { finish() }
                 }
+            }
             }
         }
         .onAppear {
@@ -169,7 +190,7 @@ struct AddPlaceView: View {
     }
 
     private var candidateList: some View {
-        CandidateList(candidates: candidates, saving: saving, onPick: save)
+        CandidateList(candidates: candidates, saving: saving) { save($0) }
     }
 
     @ViewBuilder
@@ -206,6 +227,12 @@ struct AddPlaceView: View {
         // link. Only the one that survives 700ms of silence gets read.
         try? await Task.sleep(for: .milliseconds(700))
         guard !Task.isCancelled else { return }
+        if let existing = existingPlace(for: validURL) {
+            reading = .idle
+            alreadySaved = true
+            withAnimation(.snappy) { saved = existing }
+            return
+        }
         do {
             let post = try await PostReader.read(validURL)
             guard !Task.isCancelled else { return }
@@ -213,7 +240,13 @@ struct AddPlaceView: View {
             if let tag = post.locationName {
                 candidates = (try? await PlaceSearch.search(tag)) ?? []
             }
-            if candidates.isEmpty { focus = .query }
+            guard !Task.isCancelled else { return }
+            if candidates.count == 1, !autoSaveDeclined {
+                // Exactly one place carries that tag: no tap needed.
+                save(candidates[0], automatically: true)
+            } else if candidates.isEmpty {
+                focus = .query
+            }
         } catch {
             guard !Task.isCancelled else { return }
             reading = .failed(error.localizedDescription)
@@ -238,28 +271,48 @@ struct AddPlaceView: View {
         }
     }
 
-    private func save(_ c: PlaceCandidate) {
+    private func save(_ c: PlaceCandidate, automatically: Bool = false) {
         guard let validURL, saving == nil else { return }
         saving = c.id
         Task {
             let image = await ImageLoader.data(from: post?.imageURL)
-            context.insert(Place(
+            let place = Place(
                 instagramURL: validURL,
                 name: c.name,
                 latitude: c.latitude,
                 longitude: c.longitude,
                 address: c.address,
                 city: c.city,
+                region: c.region,
                 country: c.country,
                 category: c.category,
                 caption: post?.caption,
                 ownerUsername: post?.ownerUsername,
                 igLocationName: post?.locationName,
                 imageData: image
-            ))
+            )
+            context.insert(place)
             try? context.save()
-            finish()
+            saving = nil
+            savedAutomatically = automatically
+            withAnimation(.snappy) { saved = place }
         }
+    }
+
+    private func existingPlace(for url: String) -> Place? {
+        var d = FetchDescriptor<Place>(predicate: #Predicate { $0.instagramURL == url })
+        d.fetchLimit = 1
+        return try? context.fetch(d).first
+    }
+
+    /// "Wrong place?" — take the save back and hand control to the user.
+    private func undo() {
+        guard let saved else { return }
+        context.delete(saved)
+        try? context.save()
+        autoSaveDeclined = true
+        withAnimation(.snappy) { self.saved = nil }
+        focus = .query
     }
 
     private func finish() {
@@ -268,6 +321,60 @@ struct AddPlaceView: View {
 }
 
 // MARK: - Pieces
+
+/// The moment after a save. Shows what was saved, where it went, and — when the
+/// app picked the place itself — a way to say it got it wrong.
+private struct SavedView: View {
+    let place: Place
+    let automatic: Bool
+    let already: Bool
+    let onUndo: () -> Void
+    let onDone: () -> Void
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Spacer(minLength: 0)
+            Image(systemName: already ? "bookmark.circle.fill" : "checkmark.circle.fill")
+                .font(.system(size: 56))
+                .foregroundStyle(already ? Color.secondary : Color.green)
+                .symbolEffect(.bounce, value: place.id)
+            VStack(spacing: 6) {
+                Text(already ? "Already saved" : "Saved").font(.title2.weight(.semibold))
+                Text([place.category.rawValue, place.city ?? place.country].compactMap { $0 }.joined(separator: " · "))
+                    .font(.subheadline).foregroundStyle(.secondary)
+            }
+            HStack(spacing: 14) {
+                if let data = place.imageData, let image = UIImage(data: data) {
+                    Image(uiImage: image).resizable().scaledToFill()
+                        .frame(width: 64, height: 64).clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(place.name).font(.body.weight(.medium)).lineLimit(1)
+                    if let address = place.address {
+                        Text(address).font(.caption).foregroundStyle(.tertiary).lineLimit(2)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(14)
+            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+            Spacer(minLength: 0)
+            if automatic {
+                Button("Wrong place?", action: onUndo)
+                    .font(.subheadline.weight(.medium))
+                    .buttonStyle(.bordered)
+            }
+            Button("Done", action: onDone)
+                .font(.body.weight(.semibold))
+                .frame(maxWidth: .infinity).padding(.vertical, 14)
+                .background(.black, in: RoundedRectangle(cornerRadius: 14))
+                .foregroundStyle(.white)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemGroupedBackground))
+    }
+}
 
 private struct PostPreview: View {
     let post: InstagramPost

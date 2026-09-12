@@ -13,6 +13,7 @@ final class Place {
     var longitude: Double
     var address: String?
     var city: String?
+    var region: String?
     var country: String?
     var categoryRaw: String
     var caption: String?
@@ -32,6 +33,7 @@ final class Place {
         longitude: Double,
         address: String?,
         city: String?,
+        region: String? = nil,
         country: String?,
         category: PlaceCategory,
         caption: String? = nil,
@@ -48,6 +50,7 @@ final class Place {
         self.longitude = longitude
         self.address = address
         self.city = city
+        self.region = region
         self.country = country
         self.categoryRaw = category.rawValue
         self.caption = caption
