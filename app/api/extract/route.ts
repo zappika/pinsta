@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { fetchInstagramPost } from "@/lib/instagram-post";
 import { normalizeInstagramUrl } from "@/lib/instagram";
-import { resolveTag, type PlaceCandidate } from "@/lib/google-places";
+import { resolveAccount, resolveTag, type PlaceCandidate } from "@/lib/google-places";
 import { storeImage } from "@/lib/blob";
 
 // Apify runs take 5–30s; give the function room.
@@ -16,6 +16,8 @@ export type ExtractResponse = {
     ownerUsername: string | null;
   };
   candidates: PlaceCandidate[];
+  /** Where the candidates came from: the post's location tag, or the posting account. */
+  source: "tag" | "account" | null;
 };
 
 export async function POST(req: Request) {
@@ -37,17 +39,20 @@ export async function POST(req: Request) {
     const shortcode = url.split("/").filter(Boolean).pop() ?? "post";
 
     // Image copy and place search are independent — run together.
+    const source = native ? null : post.locationName ? "tag" : "account";
     const [imageUrl, candidates] = await Promise.all([
       post.imageUrl ? storeImage(post.imageUrl, shortcode) : Promise.resolve(null),
-      post.locationName && !native
+      source === "tag"
         ? resolveTag({
-            tag: post.locationName,
+            tag: post.locationName!,
             ownerFullName: post.ownerFullName,
             caption: post.caption,
             hashtags: post.hashtags,
             cityHints: Array.isArray(body.cityHints) ? body.cityHints.slice(0, 50) : [],
           }).then((c) => c.slice(0, 5))
-        : Promise.resolve([]),
+        : source === "account"
+          ? resolveAccount({ ownerFullName: post.ownerFullName, ownerUsername: post.ownerUsername }).then((c) => c.slice(0, 3))
+          : Promise.resolve([]),
     ]);
 
     const out: ExtractResponse = {
@@ -59,6 +64,7 @@ export async function POST(req: Request) {
         ownerUsername: post.ownerUsername,
       },
       candidates,
+      source: candidates.length ? source : null,
     };
     return NextResponse.json(out);
   } catch (e) {

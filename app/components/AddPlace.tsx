@@ -21,10 +21,12 @@ type PostInfo = {
   ownerUsername: string | null;
 };
 
+type Source = "tag" | "account" | null;
+
 type Extract =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "done"; post: PostInfo }
+  | { status: "done"; post: PostInfo; source: Source }
   | { status: "error"; message: string };
 
 type Saved = { place: Place; automatic: boolean; already: boolean };
@@ -93,13 +95,15 @@ export default function AddPlace({ places, onClose, onSaved, onRemoved }: Props)
         const data = (await res.json()) as {
           post?: PostInfo;
           candidates?: PlaceCandidate[];
+          source?: Source;
           error?: string;
         };
         if (!res.ok || !data.post) throw new Error(data.error ?? "Could not read post");
         const found = data.candidates ?? [];
-        setExtract({ status: "done", post: data.post });
+        setExtract({ status: "done", post: data.post, source: data.source ?? null });
         setCandidates(found);
-        if (found.length === 1 && !autoSaveDeclined) {
+        // Only a location tag is trusted enough to save without a tap.
+        if (found.length === 1 && data.source === "tag" && !autoSaveDeclined) {
           void save(found[0], data.post, true);
         } else if (found.length === 0) {
           queryRef.current?.focus();
@@ -203,10 +207,10 @@ export default function AddPlace({ places, onClose, onSaved, onRemoved }: Props)
     }
   }
 
-  const showTaggedFirst =
-    candidates.length > 0 && !!post?.locationName && query.trim().length < 2;
+  const source = extract.status === "done" ? extract.source : null;
+  const showTaggedFirst = candidates.length > 0 && source !== null && query.trim().length < 2;
   const manualMode =
-    extract.status === "error" || (extract.status === "done" && !extract.post.locationName);
+    extract.status === "error" || (extract.status === "done" && extract.source === null);
 
   return (
     <div className="fixed inset-0 z-20 mx-auto flex max-w-md flex-col justify-end" role="dialog" aria-label="Save a place">
@@ -272,7 +276,9 @@ export default function AddPlace({ places, onClose, onSaved, onRemoved }: Props)
               {showTaggedFirst && !saving && (
                 <>
                   <p className="mt-3 mb-1 text-xs font-medium uppercase tracking-wide text-stone-400">
-                    Tagged “{post?.locationName}” — {candidates.length > 1 ? "which one?" : "tap to save"}
+                    {source === "account"
+                      ? `No location tag — is it @${post?.ownerUsername}'s place?`
+                      : `Tagged “${post?.locationName}” — ${candidates.length > 1 ? "which one?" : "tap to save"}`}
                   </p>
                   <CandidateList candidates={candidates} saving={saving} onPick={(c) => save(c)} />
                 </>
@@ -302,7 +308,7 @@ export default function AddPlace({ places, onClose, onSaved, onRemoved }: Props)
                 <p className="mt-3 text-center text-sm text-stone-400">No matches. Try adding the city.</p>
               )}
               {manualMode && extract.status === "done" && query.trim().length < 2 && (
-                <p className="mt-2 text-xs text-stone-400">No location tag on this post.</p>
+                <p className="mt-2 text-xs text-stone-400">No location tag on this post, and the account didn&apos;t match a place.</p>
               )}
             </div>
           </>

@@ -171,6 +171,40 @@ export async function resolveTag(input: {
   return merged.sort((a, b) => score(a) - score(b));
 }
 
+/**
+ * No location tag: fall back to the account that posted. A venue's own account
+ * is named like the venue ("Les Œillets", @lesoeillets.paris) — a blogger's is
+ * not, so these are suggestions to tap, never to auto-save.
+ */
+export async function resolveAccount(input: {
+  ownerFullName?: string | null;
+  ownerUsername?: string | null;
+}): Promise<PlaceCandidate[]> {
+  const queries = new Set<string>();
+  const full = input.ownerFullName?.trim();
+  if (full && full.length > 2) queries.add(full);
+  const handle = input.ownerUsername?.replace(/[._-]+/g, " ").trim();
+  if (handle && handle.length > 2) queries.add(handle);
+  if (queries.size === 0) return [];
+
+  const results = await Promise.all(
+    [...queries].map((q) => searchPlaces(q).catch(() => [] as PlaceCandidate[])),
+  );
+  const seen = new Set<string>();
+  const merged: PlaceCandidate[] = [];
+  for (const list of results) {
+    for (const c of list) {
+      if (!seen.has(c.placeId)) {
+        seen.add(c.placeId);
+        merged.push(c);
+      }
+    }
+  }
+  const nameWords = words(full ?? "");
+  const score = (c: PlaceCandidate) => (overlaps(words(c.name), nameWords) ? 0 : 1);
+  return merged.sort((a, b) => score(a) - score(b));
+}
+
 const CATEGORY_WORDS = [
   "restaurant", "ristorante", "restaurang", "bistro", "brasserie", "trattoria", "osteria", "taverna",
   "bar", "cocktail", "wine bar", "vinbar", "pub",
