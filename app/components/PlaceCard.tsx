@@ -4,11 +4,18 @@ import { useEffect, useState } from "react";
 import { appleMapsUrl, googleMapsUrl } from "@/lib/maps";
 import type { Place } from "./types";
 
-type Props = { place: Place; onDelete: () => void };
+type Props = {
+  place: Place;
+  /** Active filters: what the header already says isn't repeated on the card. */
+  hideCategory?: boolean;
+  hideCity?: boolean;
+};
 
-export default function PlaceCard({ place, onDelete }: Props) {
+export default function PlaceCard({ place, hideCategory, hideCity }: Props) {
   const [showPost, setShowPost] = useState(false);
-  const meta = [place.category, place.city].filter(Boolean).join(" · ");
+  const meta = [hideCategory ? null : place.category, hideCity ? null : place.city]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <li className="overflow-hidden rounded-2xl bg-white">
@@ -17,27 +24,8 @@ export default function PlaceCard({ place, onDelete }: Props) {
         <img src={place.imageUrl} alt="" className="h-44 w-full bg-stone-100 object-cover" />
       )}
       <div className="px-4 pt-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="truncate text-base font-semibold">{place.name}</h3>
-            {meta && <p className="mt-0.5 text-sm text-stone-500">{meta}</p>}
-          </div>
-          <button
-            type="button"
-            aria-label="Remove"
-            onClick={() => {
-              if (confirm(`Remove ${place.name}?`)) onDelete();
-            }}
-            className="-mr-2 -mt-1 rounded-full p-2 text-stone-300 active:bg-stone-100 active:text-stone-500"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
-              <path d="M4 4l8 8M12 4l-8 8" />
-            </svg>
-          </button>
-        </div>
-        {place.formattedAddress && (
-          <p className="mt-2 text-sm leading-snug text-stone-600">{place.formattedAddress}</p>
-        )}
+        <h3 className="truncate text-base font-semibold">{place.name}</h3>
+        {meta && <p className="mt-0.5 text-sm text-stone-500">{meta}</p>}
       </div>
 
       <div className="mt-3 grid grid-cols-3 divide-x divide-stone-100 border-t border-stone-100 text-sm font-medium">

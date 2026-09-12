@@ -19,7 +19,7 @@ const FIELDS = [
   "addressComponents",
 ].join(",");
 
-type AddressComponent = { longText: string; types: string[] };
+type AddressComponent = { longText?: string; types?: string[] };
 
 type RawPlace = {
   id: string;
@@ -46,8 +46,8 @@ export type PlaceCandidate = {
 function pick(components: AddressComponent[] | undefined, ...types: string[]) {
   if (!components) return null;
   for (const t of types) {
-    const c = components.find((x) => x.types.includes(t));
-    if (c) return c.longText;
+    const c = components.find((x) => x.types?.includes(t));
+    if (c?.longText) return c.longText;
   }
   return null;
 }

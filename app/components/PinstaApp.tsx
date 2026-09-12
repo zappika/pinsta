@@ -44,13 +44,6 @@ export default function PinstaApp() {
     setPlaces((prev) => [p, ...(prev ?? [])]);
   }
 
-  async function onDelete(id: string) {
-    const prev = places;
-    setPlaces((ps) => ps?.filter((p) => p.id !== id) ?? null);
-    const res = await fetch(`/api/places/${id}`, { method: "DELETE" });
-    if (!res.ok) setPlaces(prev);
-  }
-
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col">
       {places && places.length > 0 ? (
@@ -101,7 +94,13 @@ export default function PinstaApp() {
 
         <ul className="space-y-3">
           {visible.map((p) => (
-            <PlaceCard key={p.id} place={p} onDelete={() => onDelete(p.id)} />
+            <PlaceCard
+              key={p.id}
+              place={p}
+              hideCategory={category !== null}
+              // A region row ("Halland") still wants the town on the card.
+              hideCity={city !== null && p.city === city}
+            />
           ))}
         </ul>
       </section>
