@@ -1,12 +1,17 @@
 import SwiftUI
 import SwiftData
 
-/// Paste a link → the post is read (cloud) → MapKit resolves the location tag
-/// (local). One match: saved on the spot, with a moment to say "wrong place".
-/// Several: tap one. None: type.
+/// A small, fixed-height sheet. Paste a link → the post is read (cloud) → the
+/// tag becomes a place (MapKit, on device). One match saves itself; several ask
+/// for a tap; none falls back to the account that posted, then to search.
+/// In edit mode the post is known and only the place changes.
 struct AddPlaceView: View {
+    static let sheetHeight: CGFloat = 360
+
     /// Pre-filled link (the share extension passes the shared URL).
     var initialURL: String? = nil
+    /// Re-selecting the place behind an existing card.
+    var editing: Place? = nil
     /// Called when the sheet is done; the share extension completes its request here.
     var onFinish: (() -> Void)? = nil
     /// Extensions can't read the general pasteboard.
@@ -17,20 +22,19 @@ struct AddPlaceView: View {
 
     @State private var urlText = ""
     @State private var reading: Reading = .idle
+    @State private var source: Source? = nil
     @State private var query = ""
     @State private var candidates: [PlaceCandidate] = []
     @State private var searching = false
     @State private var saving: String?
-    @State private var saved: Place?
-    @State private var savedAutomatically = false
-    /// The post was already in the list; nothing new was written.
-    @State private var alreadySaved = false
-    /// Set after an undo so the same single match isn't re-saved behind the user's back.
+    @State private var saved: Saved?
     @State private var autoSaveDeclined = false
     @State private var error: String?
     @FocusState private var focus: Field?
 
     private enum Field { case url, query }
+    private enum Source { case tag, account }
+    fileprivate struct Saved { let place: Place; let automatic: Bool; let already: Bool; let changed: Bool }
     private enum Reading: Equatable {
         case idle, loading, done(InstagramPost), failed(String)
         static func == (a: Reading, b: Reading) -> Bool {
@@ -43,60 +47,65 @@ struct AddPlaceView: View {
         }
     }
 
-    private var validURL: String? { InstagramURL.normalize(urlText) }
+    private var validURL: String? { editing?.instagramURL ?? InstagramURL.normalize(urlText) }
     private var post: InstagramPost? { if case .done(let p) = reading { return p } else { return nil } }
-    private var showTaggedFirst: Bool { !candidates.isEmpty && post?.locationName != nil && query.trimmed.count < 2 }
+    private var showSuggestedFirst: Bool { !candidates.isEmpty && source != nil && query.trimmed.count < 2 }
     private var manualMode: Bool {
         if case .failed = reading { return true }
-        if let post, post.locationName == nil { return true }
+        if case .done = reading, source == nil { return true }
         return false
     }
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
             if let saved {
-                SavedView(place: saved, automatic: savedAutomatically, already: alreadySaved, onUndo: undo, onDone: finish)
-                    .navigationTitle("Save a place")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .task(id: saved.id) {
+                Receipt(saved: saved, onUndo: undo, onDone: finish)
+                    .task(id: saved.place.id) {
                         // "Already saved" waits for Done — it's news, not a receipt.
-                        guard !alreadySaved else { return }
-                        // Long enough to read it and tap "Wrong place?"; short enough to feel done.
-                        try? await Task.sleep(for: .seconds(savedAutomatically ? 3 : 1.5))
+                        guard !saved.already else { return }
+                        try? await Task.sleep(for: .seconds(saved.automatic ? 3 : 1.5))
                         guard !Task.isCancelled else { return }
                         finish()
                     }
             } else {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    urlField
-                    postSection
-                    if showTaggedFirst { taggedCandidates }
-                    queryField
-                    if let error {
-                        Text(error)
-                            .font(.subheadline)
-                            .foregroundStyle(.red)
-                            .padding(12)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-                    }
-                    if !showTaggedFirst { candidateList }
-                    footnotes
-                }
-                .padding(20)
-            }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle("Save a place")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                HStack {
+                    sectionLabel(editing != nil ? "Change place" : "Save a place")
+                    Spacer()
                     Button("Cancel") { finish() }
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
                 }
-            }
+                .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 8)
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if editing == nil { urlField }
+                        postSection
+                        if showSuggestedFirst && saving == nil { suggested }
+                        if validURL != nil, reading != .loading, reading != .idle, saving == nil { queryField }
+                        if let error {
+                            Text(error).font(.subheadline).foregroundStyle(.red)
+                        }
+                        if !showSuggestedFirst { candidateList }
+                        footnotes
+                    }
+                    .padding(.horizontal, 16).padding(.bottom, 16)
+                }
+                .scrollDismissesKeyboard(.interactively)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemBackground))
         .onAppear {
+            if let editing {
+                reading = .done(InstagramPost(
+                    url: editing.instagramURL, caption: editing.caption, locationName: editing.igLocationName,
+                    imageURL: nil, ownerUsername: editing.ownerUsername, ownerFullName: nil, hashtags: []
+                ))
+                query = editing.igLocationName ?? editing.name
+                focus = .query
+                return
+            }
             if let initialURL {
                 urlText = initialURL
                 return
@@ -107,7 +116,7 @@ struct AddPlaceView: View {
                 urlText = s
             }
         }
-        .task(id: validURL) { await readPost() }
+        .task(id: validURL) { if editing == nil { await readPost() } }
         .task(id: query) { await manualSearch() }
     }
 
@@ -115,15 +124,14 @@ struct AddPlaceView: View {
 
     private var urlField: some View {
         VStack(alignment: .leading, spacing: 6) {
-            sectionLabel("Instagram post")
             HStack(spacing: 8) {
-                TextField("https://www.instagram.com/p/…", text: $urlText)
+                TextField("Paste an Instagram link", text: $urlText)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)
                     .focused($focus, equals: .url)
-                    .padding(.horizontal, 16).padding(.vertical, 12)
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(!urlText.isEmpty && validURL == nil ? Color.red.opacity(0.5) : Color.clear)
@@ -133,13 +141,12 @@ struct AddPlaceView: View {
                         if let s = UIPasteboard.general.string { urlText = s }
                     }
                     .font(.subheadline.weight(.medium))
-                    .padding(.horizontal, 16).padding(.vertical, 12)
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.separator)))
                 }
             }
             if !urlText.isEmpty && validURL == nil {
-                Text("Needs to be an Instagram post or reel link.")
-                    .font(.caption).foregroundStyle(.red)
+                Text("Needs to be an Instagram post or reel link.").font(.caption).foregroundStyle(.red)
             }
         }
     }
@@ -148,45 +155,41 @@ struct AddPlaceView: View {
     private var postSection: some View {
         switch reading {
         case .loading:
-            VStack(alignment: .leading, spacing: 8) {
-                RoundedRectangle(cornerRadius: 0).fill(Color(.tertiarySystemFill)).aspectRatio(4/3, contentMode: .fit)
-                Text("Reading post…").font(.caption).foregroundStyle(.secondary).padding([.horizontal, .bottom], 16)
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 10).fill(Color(.tertiarySystemFill)).frame(width: 48, height: 48)
+                Text("Reading post…").font(.caption).foregroundStyle(.secondary)
             }
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
         case .done(let post):
-            PostPreview(post: post)
+            PostRow(post: post, fallbackImage: editing?.imageData)
         case .failed(let message):
             Text("Couldn't read that post (\(message)). Type the place below.")
                 .font(.subheadline).foregroundStyle(.secondary)
-                .padding(16).frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
         case .idle:
             EmptyView()
         }
     }
 
-    private var taggedCandidates: some View {
+    private var suggested: some View {
         VStack(alignment: .leading, spacing: 6) {
-            sectionLabel("Tagged “\(post?.locationName ?? "")” — tap to save")
+            if source == .account {
+                sectionLabel("No location tag — is it @\(post?.ownerUsername ?? "")'s place?")
+            } else {
+                sectionLabel("Tagged “\(post?.locationName ?? "")” — \(candidates.count > 1 ? "which one?" : "tap to save")")
+            }
             candidateList
         }
     }
 
     private var queryField: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            sectionLabel(post?.locationName != nil && !manualMode ? "Not the right place? Search" : "Which place is it?")
-            TextField(
-                reading == .loading ? "One moment…" : (manualMode ? "e.g. Septime Paris" : "Search a different place"),
-                text: $query
-            )
-            .autocorrectionDisabled()
-            .submitLabel(.search)
-            .focused($focus, equals: .query)
-            .disabled(validURL == nil || reading == .loading)
-            .padding(.horizontal, 16).padding(.vertical, 12)
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
-        }
+        TextField(
+            editing != nil ? "Search the right place" : (manualMode ? "Which place is it? e.g. Septime Paris" : "Not the right place? Search"),
+            text: $query
+        )
+        .autocorrectionDisabled()
+        .submitLabel(.search)
+        .focused($focus, equals: .query)
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private var candidateList: some View {
@@ -195,13 +198,15 @@ struct AddPlaceView: View {
 
     @ViewBuilder
     private var footnotes: some View {
-        if searching && candidates.isEmpty {
+        if let saving, showSuggestedFirst, let c = candidates.first(where: { $0.id == saving }) {
+            Text("Saving \(c.name)…").font(.subheadline).foregroundStyle(.secondary)
+        } else if searching && candidates.isEmpty {
             Text("Searching…").font(.subheadline).foregroundStyle(.tertiary).frame(maxWidth: .infinity)
         } else if !searching && query.trimmed.count >= 2 && candidates.isEmpty && error == nil {
             Text("No matches. Try adding the city.").font(.subheadline).foregroundStyle(.tertiary).frame(maxWidth: .infinity)
-        } else if manualMode, case .done = reading, query.trimmed.count < 2 {
-            Text("No location tag on this post — type the place name.")
-                .font(.subheadline).foregroundStyle(.tertiary).frame(maxWidth: .infinity)
+        } else if editing == nil, manualMode, case .done = reading, query.trimmed.count < 2 {
+            Text("No location tag on this post, and the account didn't match a place.")
+                .font(.caption).foregroundStyle(.tertiary)
         }
     }
 
@@ -209,6 +214,7 @@ struct AddPlaceView: View {
         Text(text.uppercased())
             .font(.caption.weight(.medium))
             .foregroundStyle(.secondary)
+            .lineLimit(1)
     }
 
     // MARK: Actions
@@ -220,6 +226,7 @@ struct AddPlaceView: View {
             return
         }
         reading = .loading
+        source = nil
         candidates = []
         query = ""
         error = nil
@@ -229,20 +236,29 @@ struct AddPlaceView: View {
         guard !Task.isCancelled else { return }
         if let existing = existingPlace(for: validURL) {
             reading = .idle
-            alreadySaved = true
-            withAnimation(.snappy) { saved = existing }
+            withAnimation(.snappy) { saved = Saved(place: existing, automatic: false, already: true, changed: false) }
             return
         }
         do {
             let post = try await PostReader.read(validURL)
             guard !Task.isCancelled else { return }
             reading = .done(post)
+            let cityHints = Set((try? context.fetch(FetchDescriptor<Place>()))?.compactMap(\.city) ?? [])
             if let tag = post.locationName {
-                candidates = (try? await PlaceSearch.search(tag)) ?? []
+                candidates = Array(await PlaceSearch.resolveTag(
+                    tag, ownerFullName: post.ownerFullName, caption: post.caption,
+                    hashtags: post.hashtags ?? [], cityHints: Array(cityHints)
+                ).prefix(5))
+                source = candidates.isEmpty ? nil : .tag
+            } else {
+                candidates = Array(await PlaceSearch.resolveAccount(
+                    ownerFullName: post.ownerFullName, ownerUsername: post.ownerUsername
+                ).prefix(3))
+                source = candidates.isEmpty ? nil : .account
             }
             guard !Task.isCancelled else { return }
-            if candidates.count == 1, !autoSaveDeclined {
-                // Exactly one place carries that tag: no tap needed.
+            // Only a location tag is trusted enough to save without a tap.
+            if candidates.count == 1, source == .tag, !autoSaveDeclined {
                 save(candidates[0], automatically: true)
             } else if candidates.isEmpty {
                 focus = .query
@@ -275,6 +291,21 @@ struct AddPlaceView: View {
         guard let validURL, saving == nil else { return }
         saving = c.id
         Task {
+            if let editing {
+                editing.name = c.name
+                editing.latitude = c.latitude
+                editing.longitude = c.longitude
+                editing.address = c.address
+                editing.city = c.city
+                editing.region = c.region
+                editing.country = c.country
+                editing.categoryRaw = c.category.rawValue
+                editing.googlePlaceID = nil
+                try? context.save()
+                saving = nil
+                withAnimation(.snappy) { saved = Saved(place: editing, automatic: false, already: false, changed: true) }
+                return
+            }
             let image = await ImageLoader.data(from: post?.imageURL)
             let place = Place(
                 instagramURL: validURL,
@@ -294,8 +325,7 @@ struct AddPlaceView: View {
             context.insert(place)
             try? context.save()
             saving = nil
-            savedAutomatically = automatically
-            withAnimation(.snappy) { saved = place }
+            withAnimation(.snappy) { saved = Saved(place: place, automatic: automatically, already: false, changed: false) }
         }
     }
 
@@ -308,7 +338,7 @@ struct AddPlaceView: View {
     /// "Wrong place?" — take the save back and hand control to the user.
     private func undo() {
         guard let saved else { return }
-        context.delete(saved)
+        context.delete(saved.place)
         try? context.save()
         autoSaveDeclined = true
         withAnimation(.snappy) { self.saved = nil }
@@ -322,96 +352,83 @@ struct AddPlaceView: View {
 
 // MARK: - Pieces
 
-/// The moment after a save. Shows what was saved, where it went, and — when the
-/// app picked the place itself — a way to say it got it wrong.
-private struct SavedView: View {
-    let place: Place
-    let automatic: Bool
-    let already: Bool
+/// The moment after a save: what it is, where it went, and — when the app
+/// picked the place itself — a way to say it got it wrong.
+private struct Receipt: View {
+    let saved: AddPlaceView.Saved
     let onUndo: () -> Void
     let onDone: () -> Void
 
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer(minLength: 0)
-            Image(systemName: already ? "bookmark.circle.fill" : "checkmark.circle.fill")
-                .font(.system(size: 56))
-                .foregroundStyle(already ? Color.secondary : Color.green)
-                .symbolEffect(.bounce, value: place.id)
-            VStack(spacing: 6) {
-                Text(already ? "Already saved" : "Saved").font(.title2.weight(.semibold))
-                Text([place.category.rawValue, place.city ?? place.country].compactMap { $0 }.joined(separator: " · "))
-                    .font(.subheadline).foregroundStyle(.secondary)
-            }
+        let place = saved.place
+        VStack(alignment: .leading, spacing: 14) {
+            Text((saved.already ? "Already saved" : saved.changed ? "Changed" : "Saved").uppercased())
+                .font(.caption.weight(.medium)).foregroundStyle(.secondary)
             HStack(spacing: 14) {
                 if let data = place.imageData, let image = UIImage(data: data) {
                     Image(uiImage: image).resizable().scaledToFill()
-                        .frame(width: 64, height: 64).clipShape(RoundedRectangle(cornerRadius: 12))
+                        .frame(width: 56, height: 56).clipShape(RoundedRectangle(cornerRadius: 12))
+                } else {
+                    RoundedRectangle(cornerRadius: 12).fill(Color(.tertiarySystemFill)).frame(width: 56, height: 56)
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(place.name).font(.body.weight(.medium)).lineLimit(1)
-                    if let address = place.address {
-                        Text(address).font(.caption).foregroundStyle(.tertiary).lineLimit(2)
-                    }
+                    Text([place.category.rawValue, place.city ?? place.country].compactMap { $0 }.joined(separator: " · "))
+                        .font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
                 }
                 Spacer(minLength: 0)
+                if !saved.already {
+                    Image(systemName: "checkmark").font(.title3.weight(.semibold)).foregroundStyle(.green)
+                }
             }
-            .padding(14)
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
-            Spacer(minLength: 0)
-            if automatic {
-                Button("Wrong place?", action: onUndo)
-                    .font(.subheadline.weight(.medium))
-                    .buttonStyle(.bordered)
+            HStack(spacing: 10) {
+                if saved.automatic {
+                    Button("Wrong place?", action: onUndo)
+                        .font(.subheadline.weight(.medium))
+                        .frame(maxWidth: .infinity).padding(.vertical, 11)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.separator)))
+                }
+                Button("Done", action: onDone)
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity).padding(.vertical, 11)
+                    .background(Color.primary, in: RoundedRectangle(cornerRadius: 12))
+                    .foregroundStyle(Color(.systemBackground))
             }
-            Button("Done", action: onDone)
-                .font(.body.weight(.semibold))
-                .frame(maxWidth: .infinity).padding(.vertical, 14)
-                .background(.black, in: RoundedRectangle(cornerRadius: 14))
-                .foregroundStyle(.white)
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemGroupedBackground))
+        .buttonStyle(.plain)
+        .padding(16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 }
 
-private struct PostPreview: View {
+private struct PostRow: View {
     let post: InstagramPost
+    var fallbackImage: Data? = nil
     @State private var image: UIImage?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ZStack(alignment: .bottomLeading) {
-                Group {
-                    if let image {
-                        Image(uiImage: image).resizable().scaledToFill()
-                    } else {
-                        Color(.tertiarySystemFill)
-                    }
+        HStack(spacing: 12) {
+            Group {
+                if let image {
+                    Image(uiImage: image).resizable().scaledToFill()
+                } else {
+                    Color(.tertiarySystemFill)
                 }
-                .aspectRatio(4/3, contentMode: .fit)
-                .clipped()
+            }
+            .frame(width: 48, height: 48)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            VStack(alignment: .leading, spacing: 2) {
                 if let owner = post.ownerUsername {
-                    Text("@\(owner)")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 10).padding(.vertical, 5)
-                        .background(.black.opacity(0.55), in: Capsule())
-                        .padding(8)
+                    Text("@\(owner)").font(.caption.weight(.medium)).foregroundStyle(.secondary).lineLimit(1)
+                }
+                if let caption = post.caption {
+                    Text(caption).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
                 }
             }
-            if let caption = post.caption {
-                Text(caption)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                    .padding(16)
-            }
+            Spacer(minLength: 0)
         }
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
         .task(id: post.imageURL) {
+            if let fallbackImage { image = UIImage(data: fallbackImage) }
             if let data = await ImageLoader.data(from: post.imageURL) { image = UIImage(data: data) }
         }
     }
@@ -441,10 +458,10 @@ private struct CandidateList: View {
                     Button { onPick(c) } label: { row(c) }
                         .buttonStyle(.plain)
                         .disabled(saving != nil)
-                    if index < candidates.count - 1 { Divider().padding(.leading, 16) }
+                    if index < candidates.count - 1 { Divider().padding(.leading, 14) }
                 }
             }
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.separator).opacity(0.5)))
         }
     }
 
@@ -470,7 +487,7 @@ private struct CandidateList: View {
                 .padding(.horizontal, 8).padding(.vertical, 3)
                 .background(Color(.tertiarySystemFill), in: Capsule())
         }
-        .padding(.horizontal, 16).padding(.vertical, 14)
+        .padding(.horizontal, 14).padding(.vertical, 12)
         .contentShape(Rectangle())
     }
 }

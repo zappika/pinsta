@@ -23,11 +23,25 @@ private struct PlacesContent: View {
     @State private var city: String?
     @State private var category: PlaceCategory?
     @State private var adding = false
+    @State private var editing: Place?
     @State private var importing = false
+    @State private var openSwipe: UUID?
+
+    // Removal is deferred behind an "Undo" toast; the row hides at once and
+    // is deleted for real when the toast expires.
+    @State private var hidden: Set<UUID> = []
+    // Bumped on undo so the card comes back as a fresh view, not the one that flew off.
+    @State private var generation: [UUID: Int] = [:]
+    @State private var toast: Place?
+    @State private var toastTask: Task<Void, Never>?
+
+    private var labels: [UUID: String] { Grouping.destinationLabels(places) }
+    private var shown: [Place] { places.filter { !hidden.contains($0.id) } }
 
     private var visible: [Place] {
-        places.filter { p in
-            (city == nil || p.city == city) && (category == nil || p.category == category)
+        let labels = labels
+        return shown.filter { p in
+            (city == nil || labels[p.id] == city) && (category == nil || p.category == category)
         }
     }
 
@@ -44,7 +58,7 @@ private struct PlacesContent: View {
                                 .fill(Color(.secondarySystemGroupedBackground))
                                 .frame(height: 112)
                         }
-                    } else if places.isEmpty {
+                    } else if shown.isEmpty {
                         emptyState
                     } else if visible.isEmpty {
                         Text("No places match.")
@@ -55,20 +69,47 @@ private struct PlacesContent: View {
                     }
 
                     ForEach(visible) { place in
-                        PlaceCardView(place: place) {
-                            context.delete(place)
+                        SwipeCard(
+                            isOpen: openSwipe == place.id,
+                            onOpen: { openSwipe = place.id },
+                            onClose: { if openSwipe == place.id { openSwipe = nil } },
+                            onEdit: { openSwipe = nil; editing = place },
+                            onDelete: { remove(place) }
+                        ) {
+                            PlaceCardView(
+                                place: place,
+                                hideCategory: category != nil,
+                                // A region row ("Halland") still wants the town on the card.
+                                hideCity: city != nil && place.city == city
+                            )
                         }
+                        .id("\(place.id)-\(generation[place.id] ?? 0)")
                     }
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 120)
             }
             .background(Color(.systemGroupedBackground))
+            .scrollDismissesKeyboard(.interactively)
 
-            saveButton
+            VStack(spacing: 10) {
+                if let toast {
+                    undoToast(toast)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                saveButton
+            }
+            .animation(.snappy, value: toast?.id)
         }
         .sheet(isPresented: $adding) {
             AddPlaceView()
+                .presentationDetents([.height(AddPlaceView.sheetHeight)])
+                .presentationDragIndicator(.hidden)
+        }
+        .sheet(item: $editing) { place in
+            AddPlaceView(editing: place)
+                .presentationDetents([.height(AddPlaceView.sheetHeight)])
+                .presentationDragIndicator(.hidden)
         }
         .task {
             importing = true
@@ -76,18 +117,72 @@ private struct PlacesContent: View {
             importing = false
         }
         .onChange(of: city) { _, _ in category = nil }
+        .onDisappear { commitPending() }
+    }
+
+    // MARK: - Remove / undo
+
+    private func remove(_ place: Place) {
+        commitPending()
+        hidden.insert(place.id)
+        openSwipe = nil
+        toast = place
+        toastTask = Task {
+            try? await Task.sleep(for: .seconds(5))
+            guard !Task.isCancelled else { return }
+            commit(place)
+        }
+    }
+
+    private func undo() {
+        guard let place = toast else { return }
+        toastTask?.cancel()
+        toastTask = nil
+        hidden.remove(place.id)
+        generation[place.id, default: 0] += 1
+        toast = nil
+    }
+
+    private func commit(_ place: Place) {
+        context.delete(place)
+        try? context.save()
+        hidden.remove(place.id)
+        if toast?.id == place.id { toast = nil }
+    }
+
+    private func commitPending() {
+        guard let place = toast else { return }
+        toastTask?.cancel()
+        commit(place)
+    }
+
+    private func undoToast(_ place: Place) -> some View {
+        HStack(spacing: 12) {
+            Text("Removed \(place.name)").lineLimit(1)
+            Spacer(minLength: 0)
+            Button("Undo", action: undo)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color(red: 1, green: 0.8, blue: 0.3))
+        }
+        .font(.subheadline)
+        .foregroundStyle(.white)
+        .padding(.horizontal, 16).padding(.vertical, 12)
+        .background(Color(white: 0.15), in: RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal, 20)
     }
 
     // MARK: - Header: "Barcelona ▾  Restaurants ▾"
 
-    private var cities: [(String, Int)] {
+    private var destinations: [(String, Int)] {
+        let labels = labels
         var counts: [String: Int] = [:]
-        for p in places { if let c = p.city { counts[c, default: 0] += 1 } }
+        for p in shown { if let l = labels[p.id] { counts[l, default: 0] += 1 } }
         return counts.sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }
     }
 
     private var categories: [(PlaceCategory, Int)] {
-        let scoped = city == nil ? places : places.filter { $0.city == city }
+        let labels = labels
+        let scoped = city == nil ? shown : shown.filter { labels[$0.id] == city }
         var counts: [PlaceCategory: Int] = [:]
         for p in scoped { counts[p.category, default: 0] += 1 }
         return PlaceCategory.allCases.compactMap { c in counts[c].map { (c, $0) } }
@@ -95,7 +190,7 @@ private struct PlacesContent: View {
 
     @ViewBuilder
     private var header: some View {
-        if places.isEmpty {
+        if shown.isEmpty {
             Text("Pinsta")
                 .font(.title.weight(.semibold))
                 .padding(.top, 12)
@@ -103,8 +198,8 @@ private struct PlacesContent: View {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Menu {
                     Picker("Where", selection: $city) {
-                        Label("Everywhere · \(places.count)", systemImage: "globe").tag(String?.none)
-                        ForEach(cities, id: \.0) { name, count in
+                        Label("Everywhere · \(shown.count)", systemImage: "globe").tag(String?.none)
+                        ForEach(destinations, id: \.0) { name, count in
                             Text("\(name) · \(count)").tag(String?.some(name))
                         }
                     }

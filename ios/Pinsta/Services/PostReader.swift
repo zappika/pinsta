@@ -9,9 +9,11 @@ struct InstagramPost: Decodable {
     let locationName: String?
     let imageURL: String?
     let ownerUsername: String?
+    let ownerFullName: String?
+    let hashtags: [String]?
 
     enum CodingKeys: String, CodingKey {
-        case url, caption, locationName, ownerUsername
+        case url, caption, locationName, ownerUsername, ownerFullName, hashtags
         case imageURL = "imageUrl"
     }
 }

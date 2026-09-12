@@ -1,12 +1,13 @@
 import Foundation
 import MapKit
 
-/// The ten buckets the list filters by. Same set as the web app's
+/// The eleven buckets the list filters by. Same set as the web app's
 /// `lib/categories.ts` so imported rows map 1:1.
 enum PlaceCategory: String, CaseIterable, Identifiable {
     case restaurant = "Restaurant"
     case cafe = "Cafe"
     case bar = "Bar"
+    case vineyard = "Vineyard"
     case bakery = "Bakery"
     case hotel = "Hotel"
     case shop = "Shop"
@@ -34,7 +35,8 @@ enum PlaceCategory: String, CaseIterable, Identifiable {
             case .restaurant: return .restaurant
             case .cafe: return .cafe
             case .bakery: return .bakery
-            case .brewery, .winery, .nightlife: return .bar
+            case .winery: return .vineyard
+            case .brewery, .nightlife: return .bar
             case .hotel: return .hotel
             case .store, .foodMarket: return .shop
             case .museum: return .museum
@@ -50,6 +52,7 @@ enum PlaceCategory: String, CaseIterable, Identifiable {
                 if raw.contains("bakery") { return .bakery }
             }
         }
+        if lower.contains("vingård") || lower.contains("vineyard") || lower.contains("winery") || lower.contains("vinyard") { return .vineyard }
         if lower.contains("bar ") || lower.hasSuffix(" bar") || lower.contains("cocktail") || lower.contains("pub") { return .bar }
         if lower.contains("bakery") || lower.contains("bageri") || lower.contains("boulangerie") || lower.contains("pastisseria") { return .bakery }
         if lower.contains("hotel") || lower.contains("hostel") { return .hotel }

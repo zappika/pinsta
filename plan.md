@@ -125,7 +125,20 @@ The web app stays live until the native one is trusted.
 - [x] Build + run in Simulator, verify end to end
 - [x] Share Extension: Share → Pinsta opens the save flow, saves into the shared App Group store
       (verified from Safari in the Simulator; Instagram itself needs a real device)
-- [ ] App icon (placeholder grid shows in the share sheet today)
+- [ ] App icon (Sarper is designing it in Claude Design; drop the 1024px PNG in)
+- [x] Parity with web (2026-09-12): compact fixed-height sheet, zero-tap save +
+      receipt + undo, MapKit tag cascade + account fallback, destination
+      grouping, Vineyard, card rules, swipe edit/delete with undo toast
+
+## Decisions log
+- **Grouping is a pure count heuristic, no LLM** (2026-09-12). A town needs 2+
+  saved places for its own row; a 1-place town folds into its region only if the
+  region then bundles 2+ places. Labels shift as the list grows — accepted.
+  Sarper: "we don't need to throw tech at everything."
+- **Paid APIs only when unavoidable.** Apify (post read) and Google Places (web)
+  are the only ones. iOS resolves places with MapKit for free.
+- **Delete has no confirm; it has Undo** (5s toast, deferred delete).
+- **Auto-save only from a location tag.** Account-derived suggestions always need a tap.
 - [ ] Real device + CloudKit (needs Apple Developer Program)
 
 **Acceptance:** from inside Instagram, Share → Pinsta opens the save flow

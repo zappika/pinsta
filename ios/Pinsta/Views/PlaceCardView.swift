@@ -1,10 +1,18 @@
 import SwiftUI
 import MapKit
 
+/// The card says only what the header doesn't: under a city row the town
+/// goes, under a type the category goes. No address — the maps buttons are it.
 struct PlaceCardView: View {
     let place: Place
-    let onDelete: () -> Void
-    @State private var confirmDelete = false
+    var hideCategory = false
+    var hideCity = false
+
+    private var meta: String {
+        [hideCategory ? nil : place.category.rawValue, hideCity ? nil : place.city]
+            .compactMap { $0 }
+            .joined(separator: " · ")
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -17,31 +25,10 @@ struct PlaceCardView: View {
                     .clipped()
             }
 
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(place.name).font(.headline).lineLimit(1)
-                        Text([place.category.rawValue, place.city].compactMap { $0 }.joined(separator: " · "))
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    Button {
-                        confirmDelete = true
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                            .padding(8)
-                    }
-                    .buttonStyle(.plain)
-                    .offset(x: 8, y: -6)
-                }
-                if let address = place.address {
-                    Text(address)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(place.name).font(.headline).lineLimit(1)
+                if !meta.isEmpty {
+                    Text(meta).font(.subheadline).foregroundStyle(.secondary)
                 }
             }
             .padding(.horizontal, 16)
@@ -58,10 +45,7 @@ struct PlaceCardView: View {
                 actionButton("Post") { openPost() }
             }
         }
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
-        .confirmationDialog("Remove \(place.name)?", isPresented: $confirmDelete, titleVisibility: .visible) {
-            Button("Remove", role: .destructive, action: onDelete)
-        }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
     private func actionButton(_ title: String, action: @escaping () -> Void) -> some View {

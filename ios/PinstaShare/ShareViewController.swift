@@ -8,8 +8,14 @@ import UniformTypeIdentifiers
 final class ShareViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemGroupedBackground
+        // The system already dims the host app; we draw only a small card at the bottom.
+        view.backgroundColor = .clear
+        view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(cancel)))
         Task { await present(url: await sharedURL()) }
+    }
+
+    @objc private func cancel() {
+        extensionContext?.cancelRequest(withError: NSError(domain: "se.sarper.pinsta", code: 0))
     }
 
     private func sharedURL() async -> String? {
@@ -43,9 +49,17 @@ final class ShareViewController: UIViewController {
 
         let host = UIHostingController(rootView: root)
         addChild(host)
-        host.view.frame = view.bounds
-        host.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        host.view.layer.cornerRadius = 20
+        host.view.layer.cornerCurve = .continuous
+        host.view.clipsToBounds = true
+        host.view.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(host.view)
+        NSLayoutConstraint.activate([
+            host.view.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
+            host.view.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
+            host.view.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor, constant: -12),
+            host.view.heightAnchor.constraint(equalToConstant: AddPlaceView.sheetHeight),
+        ])
         host.didMove(toParent: self)
     }
 }
