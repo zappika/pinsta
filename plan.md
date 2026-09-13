@@ -1,14 +1,22 @@
 # Pinsta — Plan
 
-## Last session — 2026-09-12
-- What we built: web got the compact save sheet, zero-tap save with receipt + undo, tag cascade + account fallback, destination grouping, Vineyard, swipe edit/delete; then the whole set was ported to iOS and verified on the simulator.
-- Where we stopped: iOS and web at parity, pushed as `d7fb89c`. Skills retrofitted with what this project taught.
+## Last session — 2026-09-13
+- What we built: web and iOS at parity (compact sheet, zero-tap save + receipt + undo, tag cascade + account fallback, destination grouping, Vineyard, swipe edit/delete). Continuation notes added: project `CLAUDE.md`, dated decisions log, this block. Skills (`~/Skills/commands`) retrofitted around hygiene over ritual.
+- Where we stopped: everything committed and pushed to `main` (GitHub default branch; the old `claude/…` branch is fast-forwarded to the same commit). Simulator has the latest build installed.
 - Next action: wire the app icon into both iOS targets when Sarp's Claude Design PNG arrives.
 
+## Next steps
+1. App icon → `ios/Pinsta/Resources/Assets.xcassets/AppIcon.appiconset` (1024×1024 PNG, both targets). Removes the placeholder grid in the share sheet.
+2. Apple Developer Program → sign with the real team, install on Sarp's iPhone, test Share from inside Instagram itself, then add CloudKit (`cloudKitDatabase: .automatic`) for backup — still no accounts.
+3. Decide the web app's fate now that iOS has parity: keep live, or freeze.
+4. Sarp to skim `CLAUDE.md` (project) for factual errors and confirm the lighter sub-chunk gate in `~/Skills/commands/s-build.md` ("state, then go").
+5. Real-device only: swipe thresholds (half opens, 60 % removes) and the 5 s undo were tuned with a mouse and automation — recheck by thumb.
+
 ## Waiting on Sarp
-- App icon (1024×1024 PNG) — unblocks the share-sheet placeholder and home-screen icon
-- Apple Developer Program membership — unblocks real-device install and iCloud backup
-- Whether the web app stays live now that iOS has parity, or freezes at this state
+- App icon (1024×1024 PNG) — unblocks next step 1
+- Apple Developer Program membership — unblocks next step 2
+- Web app: stay live or freeze — next step 3
+- Review of `CLAUDE.md` and the s-build gate change — next step 4
 
 ## What it is
 
