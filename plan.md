@@ -1,5 +1,15 @@
 # Pinsta — Plan
 
+## Last session — 2026-09-12
+- What we built: web got the compact save sheet, zero-tap save with receipt + undo, tag cascade + account fallback, destination grouping, Vineyard, swipe edit/delete; then the whole set was ported to iOS and verified on the simulator.
+- Where we stopped: iOS and web at parity, pushed as `d7fb89c`. Skills retrofitted with what this project taught.
+- Next action: wire the app icon into both iOS targets when Sarp's Claude Design PNG arrives.
+
+## Waiting on Sarp
+- App icon (1024×1024 PNG) — unblocks the share-sheet placeholder and home-screen icon
+- Apple Developer Program membership — unblocks real-device install and iCloud backup
+- Whether the web app stays live now that iOS has parity, or freezes at this state
+
 ## What it is
 
 Paste an Instagram post link, identify the place it shows, and save it to a
@@ -23,7 +33,7 @@ third-party scraper (ToS gray area, per-call cost) + an LLM reading the caption 
 fragile. So the MVP uses **manual-assist**: you paste the link and confirm the
 place; automatic extraction is deferred to a later phase.
 
-## Decisions
+## Decisions (founding — why the design is what it is)
 
 - **Extraction:** manual-assist for the MVP (paste link → type place → pick from
   Google Places → save). Auto-extraction is Phase 4.
@@ -130,8 +140,8 @@ The web app stays live until the native one is trusted.
       receipt + undo, MapKit tag cascade + account fallback, destination
       grouping, Vineyard, card rules, swipe edit/delete with undo toast
 
-## Decisions log
-- **Grouping is a pure count heuristic, no LLM** (2026-09-12). A town needs 2+
+## Decisions log (dated)
+- **2026-09-12 — Grouping is a pure count heuristic, no LLM** (2026-09-12). A town needs 2+
   saved places for its own row; a 1-place town folds into its region only if the
   region then bundles 2+ places. Labels shift as the list grows — accepted.
   Sarper: "we don't need to throw tech at everything."
