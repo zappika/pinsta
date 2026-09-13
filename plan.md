@@ -140,16 +140,21 @@ The web app stays live until the native one is trusted.
       receipt + undo, MapKit tag cascade + account fallback, destination
       grouping, Vineyard, card rules, swipe edit/delete with undo toast
 
-## Decisions log (dated)
-- **2026-09-12 — Grouping is a pure count heuristic, no LLM** (2026-09-12). A town needs 2+
-  saved places for its own row; a 1-place town folds into its region only if the
-  region then bundles 2+ places. Labels shift as the list grows — accepted.
-  Sarper: "we don't need to throw tech at everything."
-- **Paid APIs only when unavoidable.** Apify (post read) and Google Places (web)
-  are the only ones. iOS resolves places with MapKit for free.
-- **Delete has no confirm; it has Undo** (5s toast, deferred delete).
-- **Auto-save only from a location tag.** Account-derived suggestions always need a tap.
 - [ ] Real device + CloudKit (needs Apple Developer Program)
 
 **Acceptance:** from inside Instagram, Share → Pinsta opens the save flow
 pre-loaded with the shared post and saves to the same list the app shows.
+
+## Decisions log (dated)
+- **2026-09-12 — Grouping is a pure count heuristic, no LLM.** A town needs 2+
+  saved places for its own row; a 1-place town folds into its region only if the
+  region then bundles 2+ places. Labels shift as the list grows — accepted.
+  Sarper: "we don't need to throw tech at everything."
+- **2026-09-12 — Paid APIs only when unavoidable.** Apify (post read) and Google Places (web)
+  are the only ones. iOS resolves places with MapKit for free.
+- **2026-09-12 — Delete has no confirm; it has Undo** (5s toast, deferred delete).
+- **2026-09-12 — Auto-save only from a location tag.** Account-derived suggestions always need a tap.
+- **2026-09-12 — Swipe for edit/delete, round icon buttons, full swipe deletes** (Sarp's design, not Sander's).
+- **2026-09-12 — Save sheet is a fixed-height bottom card**, sized like the Where picker; no jumping.
+- **2026-09-12 — Vineyard is a category**; vineyards were "Other".
+- **2026-09-13 — Process: hygiene over ritual.** plan.md + CLAUDE.md stay current at every stopping point whether or not a command was typed.
