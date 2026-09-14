@@ -144,7 +144,15 @@ export default function PinstaApp() {
         </header>
       )}
 
-      <section className={view === "map" && places && places.length > 0 ? "relative flex-1" : "flex-1 px-5 pb-40"}>
+      <section
+        className={
+          view === "map" && places && places.length > 0
+            ? "relative flex-1"
+            : view === "tiles"
+              ? "flex-1 pb-40" // the grid bleeds to the edges
+              : "flex-1 px-5 pb-40"
+        }
+      >
         {error && (
           <p className="mt-6 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>
         )}

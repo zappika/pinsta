@@ -9,33 +9,31 @@ type Props = {
   onSelect: (p: Place) => void;
 };
 
-/** Photo grid, two across. Tap a tile → PeekCard. */
+/**
+ * The Instagram profile grid: three across, edge to edge, portrait crops,
+ * hairline gaps, no words. The name lives in the PeekCard a tap opens.
+ * No photo → a quiet tile with the category glyph.
+ */
 export default function PlaceTiles({ places, selected, onSelect }: Props) {
   return (
-    <ul className="grid grid-cols-2 gap-3">
+    <ul className="grid grid-cols-3 gap-0.5">
       {places.map((p) => {
         const active = selected === p.id;
         return (
-          <li key={p.id}>
+          <li key={p.id} className="relative aspect-[3/4]">
             <button
               type="button"
+              aria-label={p.name}
               onClick={() => onSelect(p)}
-              className={`block w-full overflow-hidden rounded-2xl bg-white text-left shadow-sm ring-2 transition-[box-shadow] ${
-                active ? "ring-stone-900" : "ring-transparent"
-              }`}
+              className="block h-full w-full overflow-hidden bg-stone-200"
             >
               {p.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.imageUrl} alt="" draggable={false} className="aspect-square w-full bg-stone-100 object-cover" />
+                <img src={p.imageUrl} alt="" draggable={false} className="h-full w-full object-cover" />
               ) : (
-                <div className="flex aspect-square w-full items-center justify-center bg-stone-100 text-4xl">
-                  {emojiFor(p.category)}
-                </div>
+                <span className="flex h-full w-full items-center justify-center text-3xl">{emojiFor(p.category)}</span>
               )}
-              <div className="px-3 py-2.5">
-                <h3 className="truncate text-sm font-semibold">{p.name}</h3>
-                <p className="truncate text-xs text-stone-500">{[p.category, p.city].filter(Boolean).join(" · ")}</p>
-              </div>
+              {active && <span className="pointer-events-none absolute inset-0 ring-2 ring-inset ring-stone-900" />}
             </button>
           </li>
         );
