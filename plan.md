@@ -1,10 +1,10 @@
 # Pinsta — Plan
 
-## Last session — 2026-09-15 (night of the 14th)
-- What we built: **web** — Map / Cards / Tiles pill under the Where·What header (MapLibre + OpenFreeMap, Instagram-style 3-across grid, PeekCard), and *a place never goes without a photo* (`lib/photo.ts`: post image, else Google photo; old rows backfilled). All pushed and live. **iOS** — the same three views ported: Liquid Glass pill (`ViewSwitch.swift`), `PlaceTilesView`, `PlacesMapView` (MapKit, photo pins, framed to the selection), `PeekCardView`, and `PhotoRetry` (re-reads photo-less posts on launch; no Google on iOS, by Sarp's call). App icon in place and verified on the Simulator home screen. Header is now fixed above the content in all views.
-- Where we stopped: iOS work committed, verified in the Simulator with the 12 imported places. **Not yet pushed** (iOS-only commits; nothing to deploy, but push anyway next time).
-- Gotcha met: Vercel's automatic DDoS mitigation challenged this Mac's IP for ~10 min after my deploy-check polling (69 requests) — the Simulator shares that IP, so the import silently found nothing. Check deploys with `npx vercel` instead of curl loops.
-- Next action: push; then decide whether the bottom stack (pill + Save button) stays two rows or becomes pill-left / round `+` right — Sander's question.
+## Last session — 2026-09-15, ~00:30
+- What we built: web + iOS at parity again — Map / Cards / Tiles pill (Liquid Glass on iOS), Instagram-style grid, photos guaranteed (web: post → Google fallback; iOS: `PhotoRetry` on launch), app icon in. Then **the iOS save sheet was brought back in line with the web's** (`ec7af50`): no clipboard pre-fill (it raised the system paste prompt and skipped the link step), system `PasteButton`, floating 12pt card with dimmed backdrop and tap-outside-to-close instead of an edge-to-edge system sheet, solid Done button.
+- Where we stopped: all pushed. Simulator has the latest build with the 12 places.
+- **OPEN ISSUE — Sarp saw the iOS add sheet misbehave vs the fine-tuned web one.** Four visible divergences were fixed (above), but the post-paste flow — read post → tag → candidates → one-match auto-save → receipt (3 s auto / 1.5 s tap) → "Wrong place?" — could not be exercised: every known link is already saved. **Tomorrow: Sarp names what he saw, or gives an unsaved post link, and we run the real flow side by side on web and Simulator.** Suspects if it's in that part: search-field focus after a failed read, the auto-save timing, keyboard pushing the fixed-height card, `Menu`-based Where/What pickers vs the web's action sheets.
+- Next action: that side-by-side. Then Sander on the two-row bottom stack (pill + Save).
 
 ## Next steps
 1. ~~App icon into the asset catalog~~ done 2026-09-14 — **verify on the Simulator** once Xcode builds again. If the light icon's off-white corners show under the mask, ask Claude Design for a full-bleed pink export.
@@ -15,6 +15,7 @@
 6. Real-device only: swipe thresholds (half opens, 60 % removes) and the 5 s undo were tuned with a mouse and automation — recheck by thumb.
 
 ## Waiting on Sarp
+- **What exactly looked wrong in the iOS add sheet** (or an unsaved post link to test with) — the open issue above
 - Xcode first-launch fix (sudo, see above) — unblocks iOS builds
 - Verdict on the Map/Cards/Tiles switch — unblocks the push and the iOS port
 - Apple ID added in Xcode (free personal team) — unblocks next step 3; paid membership later for CloudKit
