@@ -86,3 +86,22 @@ export function categorize(primaryType: string | null | undefined): Category {
   if (t.endsWith("_park")) return "Nature";
   return "Other";
 }
+
+/** One glyph per bucket — map pins and photo-less tiles. Mirrored in `PlaceCategory.swift`. */
+export const CATEGORY_EMOJI: Record<Category, string> = {
+  Restaurant: "🍽️",
+  Cafe: "☕️",
+  Bar: "🍷",
+  Vineyard: "🍇",
+  Bakery: "🥐",
+  Hotel: "🛏️",
+  Shop: "🛍️",
+  Attraction: "📍",
+  Museum: "🏛️",
+  Nature: "🌲",
+  Other: "📍",
+};
+
+export function emojiFor(category: string | null | undefined): string {
+  return CATEGORY_EMOJI[(category ?? "Other") as Category] ?? "📍";
+}

@@ -9,9 +9,11 @@ type Props = {
   /** Active filters: what the header already says isn't repeated on the card. */
   hideCategory?: boolean;
   hideCity?: boolean;
+  /** Shorter photo — for the PeekCard floating over map or tiles. */
+  compact?: boolean;
 };
 
-export default function PlaceCard({ place, hideCategory, hideCity }: Props) {
+export default function PlaceCard({ place, hideCategory, hideCity, compact }: Props) {
   const [showPost, setShowPost] = useState(false);
   const meta = [hideCategory ? null : place.category, hideCity ? null : place.city]
     .filter(Boolean)
@@ -21,7 +23,7 @@ export default function PlaceCard({ place, hideCategory, hideCity }: Props) {
     <>
       {place.imageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={place.imageUrl} alt="" draggable={false} className="h-44 w-full bg-stone-100 object-cover" />
+        <img src={place.imageUrl} alt="" draggable={false} className={`${compact ? "h-32" : "h-44"} w-full bg-stone-100 object-cover`} />
       )}
       <div className="px-4 pt-4">
         <h3 className="truncate text-base font-semibold">{place.name}</h3>

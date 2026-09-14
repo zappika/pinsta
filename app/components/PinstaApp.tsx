@@ -6,6 +6,10 @@ import AddPlace from "./AddPlace";
 import Filters from "./Filters";
 import PlaceCard from "./PlaceCard";
 import SwipeCard from "./SwipeCard";
+import PlacesMap from "./PlacesMap";
+import PlaceTiles from "./PlaceTiles";
+import PeekCard from "./PeekCard";
+import ViewSwitch, { type View } from "./ViewSwitch";
 import { destinationLabels } from "@/lib/grouping";
 
 export default function PinstaApp() {
@@ -65,6 +69,23 @@ export default function PinstaApp() {
   const [city, setCity] = useState<string | null>(null);
   const [category, setCategory] = useState<string | null>(null);
 
+  // How the selection is shown. Remembered across visits; the filters are not.
+  const [view, setViewState] = useState<View>("cards");
+  const [peek, setPeek] = useState<Place | null>(null);
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem("pinsta.view");
+      if (v === "map" || v === "cards" || v === "tiles") setViewState(v);
+    } catch {}
+  }, []);
+  function setView(v: View) {
+    setViewState(v);
+    setPeek(null);
+    try {
+      localStorage.setItem("pinsta.view", v);
+    } catch {}
+  }
+
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/places", { cache: "no-store" });
@@ -110,8 +131,12 @@ export default function PinstaApp() {
           onCity={(c) => {
             setCity(c);
             setCategory(null);
+            setPeek(null);
           }}
-          onCategory={setCategory}
+          onCategory={(c) => {
+            setCategory(c);
+            setPeek(null);
+          }}
         />
       ) : (
         <header className="px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-4">
@@ -119,7 +144,7 @@ export default function PinstaApp() {
         </header>
       )}
 
-      <section className="flex-1 px-5 pb-32">
+      <section className={view === "map" && places && places.length > 0 ? "relative flex-1" : "flex-1 px-5 pb-40"}>
         {error && (
           <p className="mt-6 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>
         )}
@@ -141,13 +166,21 @@ export default function PinstaApp() {
           </div>
         )}
 
-        {places && places.length > 0 && visible.length === 0 && (
+        {places && places.length > 0 && visible.length === 0 && view !== "map" && (
           <p className="mt-12 text-center text-sm text-stone-500">
             No places match these filters.
           </p>
         )}
 
-        <ul className="space-y-3">
+        {places && places.length > 0 && view === "map" && (
+          <PlacesMap places={visible} selected={peek?.id ?? null} onSelect={setPeek} />
+        )}
+
+        {view === "tiles" && (
+          <PlaceTiles places={visible} selected={peek?.id ?? null} onSelect={(p) => setPeek((c) => (c?.id === p.id ? null : p))} />
+        )}
+
+        <ul className={view === "cards" ? "space-y-3" : "hidden"}>
           {visible.map((p) => (
             <SwipeCard
               key={p.id}
@@ -171,6 +204,8 @@ export default function PinstaApp() {
         </ul>
       </section>
 
+      {peek && view !== "cards" && <PeekCard place={peek} onClose={() => setPeek(null)} />}
+
       {toast && (
         <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-10 mx-auto max-w-md px-5">
           <div className="pointer-events-auto flex items-center justify-between gap-3 rounded-2xl bg-stone-800 px-4 py-3 text-sm text-white shadow-lg">
@@ -182,7 +217,14 @@ export default function PinstaApp() {
         </div>
       )}
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 mx-auto max-w-md px-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-6 bg-gradient-to-t from-stone-100 via-stone-100/90 to-transparent">
+      <div className={`pointer-events-none fixed inset-x-0 bottom-0 mx-auto max-w-md px-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-6 ${
+        view === "map" ? "" : "bg-gradient-to-t from-stone-100 via-stone-100/90 to-transparent"
+      }`}>
+        {places && places.length > 0 && (
+          <div className="mb-3">
+            <ViewSwitch view={view} onChange={setView} />
+          </div>
+        )}
         <button
           type="button"
           onClick={() => setAdding(true)}
