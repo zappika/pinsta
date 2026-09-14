@@ -20,7 +20,7 @@ Secrets live in `.env.local` (Apify, Google Places, Neon, Blob). Pushing to
 
 **iOS** (SwiftUI + SwiftData, Simulator only until the developer account exists)
 ```bash
-cd ios && xcodegen generate    # ALWAYS after adding/removing Swift files
+cd ios && xcodegen generate    # ALWAYS after adding/removing Swift files (brew install xcodegen if missing)
 xcodebuild -project Pinsta.xcodeproj -scheme Pinsta -sdk iphonesimulator \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath DerivedData build
 xcrun simctl install "iPhone 17 Pro" DerivedData/Build/Products/Debug-iphonesimulator/Pinsta.app
@@ -61,6 +61,12 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   so typing a link doesn't launch a run per keystroke.
 - **Google address components can lack `types`.** The parser tolerates it; an
   earlier crash there looked like "search found nothing".
+- **Xcode updates break the CLI.** After an Xcode update, `xcodebuild` may report "CoreSimulator is
+  out of date" / a missing iOS platform, and `xcode-select` may point at CommandLineTools. Fix (sudo):
+  `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer && sudo xcodebuild -runFirstLaunch && xcodebuild -downloadPlatform iOS`.
+  Without sudo, `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` in front of a command gets partway.
+- **Map on web:** MapLibre needs its worker served from `public/maplibre/` (Turbopack breaks the
+  `import.meta.url` lookup) — `scripts/copy-maplibre-worker.sh` runs on postinstall.
 - **Disk:** Xcode + Simulator eat space; the Mac ran out once mid-build. Keep 10 GB free.
 - **Testing deletes:** never on real rows. The Undo window is 5 s and tool latency
   is often longer — a test once deleted a real place. Restore via read+save.

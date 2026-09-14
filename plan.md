@@ -1,22 +1,25 @@
 # Pinsta — Plan
 
-## Last session — 2026-09-13
-- What we built: web and iOS at parity (compact sheet, zero-tap save + receipt + undo, tag cascade + account fallback, destination grouping, Vineyard, swipe edit/delete). Continuation notes added: project `CLAUDE.md`, dated decisions log, this block. Skills (`~/Skills/commands`) retrofitted around hygiene over ritual.
-- Where we stopped: everything committed and pushed to `main` (GitHub default branch; the old `claude/…` branch is fast-forwarded to the same commit). Simulator has the latest build installed.
-- Next action: wire the app icon into both iOS targets when Sarp's Claude Design PNG arrives.
+## Last session — 2026-09-14
+- What we built: **web view switch** — a `Map · Cards · Tiles` pill under the Where·What header. Map = the current selection on a MapLibre map (OpenFreeMap tiles, no key), framed to fit; pins are the post photo or category glyph; tap a pin or tile → PeekCard. Tiles = two-across photo grid. Cards = the list as before. Committed, **not pushed** — Sarp to try it at `localhost:3010` first. Sketch of the "map as home with a drag sheet" pattern was built and rejected (Europe-wide map isn't useful; Where/What stays).
+- App icon: Sarp's Claude Design package (light + dark 1024 PNGs, single-size Contents.json) is in `ios/Pinsta/Resources/Assets.xcassets/AppIcon.appiconset/`. The share extension inherits the host app's icon, so one catalog is enough.
+- Where we stopped: **iOS build blocked by the Mac's Xcode setup** — `xcode-select` points at CommandLineTools and the newly updated Xcode 26.6 needs its first-launch step + iOS 26.5 platform. `xcodegen` had to be reinstalled (`brew install xcodegen`). Fix (needs Sarp's password):
+  `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer && sudo xcodebuild -runFirstLaunch && xcodebuild -downloadPlatform iOS`
+- Next action: after the Xcode fix, build + install in the Simulator, look at the icon on the home screen and in the share sheet (check the off-white corners of the light icon under the system mask), then push the web commit if the view switch feels right.
 
 ## Next steps
-1. App icon → `ios/Pinsta/Resources/Assets.xcassets/AppIcon.appiconset` (1024×1024 PNG, both targets). Removes the placeholder grid in the share sheet.
-2. Apple Developer Program → sign with the real team, install on Sarp's iPhone, test Share from inside Instagram itself, then add CloudKit (`cloudKitDatabase: .automatic`) for backup — still no accounts.
-3. Decide the web app's fate now that iOS has parity: keep live, or freeze.
-4. Sarp to skim `CLAUDE.md` (project) for factual errors and confirm the lighter sub-chunk gate in `~/Skills/commands/s-build.md` ("state, then go").
-5. Real-device only: swipe thresholds (half opens, 60 % removes) and the 5 s undo were tuned with a mouse and automation — recheck by thumb.
+1. ~~App icon into the asset catalog~~ done 2026-09-14 — **verify on the Simulator** once Xcode builds again. If the light icon's off-white corners show under the mask, ask Claude Design for a full-bleed pink export.
+2. Decide on the web view switch after using it: keep all three? Then port to iOS (SwiftUI `Map` + the same pill; MapKit, no tiles needed).
+3. On Sarp's iPhone via cable first, **free personal team** (no paid membership yet): Apple ID in Xcode → `DEVELOPMENT_TEAM` + automatic signing in `project.yml` → Developer Mode on the phone → run. Test Share from inside Instagram. Builds expire after 7 days on a free team; CloudKit still needs the paid program.
+4. ~~Decide the web app's fate~~ → **keep live** (2026-09-14): it's Sarp's prototyping surface.
+5. Sarp to skim `CLAUDE.md` (project) for factual errors and confirm the lighter sub-chunk gate in `~/Skills/commands/s-build.md` ("state, then go").
+6. Real-device only: swipe thresholds (half opens, 60 % removes) and the 5 s undo were tuned with a mouse and automation — recheck by thumb.
 
 ## Waiting on Sarp
-- App icon (1024×1024 PNG) — unblocks next step 1
-- Apple Developer Program membership — unblocks next step 2
-- Web app: stay live or freeze — next step 3
-- Review of `CLAUDE.md` and the s-build gate change — next step 4
+- Xcode first-launch fix (sudo, see above) — unblocks iOS builds
+- Verdict on the Map/Cards/Tiles switch — unblocks the push and the iOS port
+- Apple ID added in Xcode (free personal team) — unblocks next step 3; paid membership later for CloudKit
+- Review of `CLAUDE.md` and the s-build gate change — next step 5
 
 ## What it is
 
@@ -143,7 +146,7 @@ The web app stays live until the native one is trusted.
 - [x] Build + run in Simulator, verify end to end
 - [x] Share Extension: Share → Pinsta opens the save flow, saves into the shared App Group store
       (verified from Safari in the Simulator; Instagram itself needs a real device)
-- [ ] App icon (Sarper is designing it in Claude Design; drop the 1024px PNG in)
+- [x] App icon in the asset catalog (2026-09-14; light + dark) — verify on the Simulator
 - [x] Parity with web (2026-09-12): compact fixed-height sheet, zero-tap save +
       receipt + undo, MapKit tag cascade + account fallback, destination
       grouping, Vineyard, card rules, swipe edit/delete with undo toast
@@ -165,4 +168,6 @@ pre-loaded with the shared post and saves to the same list the app shows.
 - **2026-09-12 — Swipe for edit/delete, round icon buttons, full swipe deletes** (Sarp's design, not Sander's).
 - **2026-09-12 — Save sheet is a fixed-height bottom card**, sized like the Where picker; no jumping.
 - **2026-09-12 — Vineyard is a category**; vineyards were "Other".
+- **2026-09-14 — Map is a view, not the home.** Where·What stays the way in; a bottom pill switches Map / Cards / Tiles for the chosen set. A Europe-wide map is wallpaper; Helsinki with one pin is information. MapLibre + OpenFreeMap on web (free, no key); MapKit on iOS.
+- **2026-09-14 — Web app stays live.** It's the fastest place to prototype; iOS follows once an idea sticks.
 - **2026-09-13 — Process: hygiene over ritual.** plan.md + CLAUDE.md stay current at every stopping point whether or not a command was typed.
