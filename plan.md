@@ -1,7 +1,7 @@
 # Pinsta — Plan
 
 ## Last session — 2026-09-14
-- What we built: **web view switch** — a `Map · Cards · Tiles` pill under the Where·What header. Map = the current selection on a MapLibre map (OpenFreeMap tiles, no key), framed to fit; pins are the post photo or category glyph; tap a pin or tile → PeekCard. Tiles = two-across photo grid. Cards = the list as before. Committed, **not pushed** — Sarp to try it at `localhost:3010` first. Sketch of the "map as home with a drag sheet" pattern was built and rejected (Europe-wide map isn't useful; Where/What stays).
+- What we built: **photos guaranteed** — `POST /api/places` finds one when the client has none (post → Google fallback); the 5 old rows backfilled (4 via Google: their post links were Phase-1 test URLs). **Web view switch** — a `Map · Cards · Tiles` pill under the Where·What header. Map = the current selection on a MapLibre map (OpenFreeMap tiles, no key), framed to fit; pins are the post photo or category glyph; tap a pin or tile → PeekCard. Tiles = two-across photo grid. Cards = the list as before. Committed, **not pushed** — Sarp to try it at `localhost:3010` first. Sketch of the "map as home with a drag sheet" pattern was built and rejected (Europe-wide map isn't useful; Where/What stays).
 - App icon: Sarp's Claude Design package (light + dark 1024 PNGs, single-size Contents.json) is in `ios/Pinsta/Resources/Assets.xcassets/AppIcon.appiconset/`. The share extension inherits the host app's icon, so one catalog is enough.
 - Where we stopped: **iOS build blocked by the Mac's Xcode setup** — `xcode-select` points at CommandLineTools and the newly updated Xcode 26.6 needs its first-launch step + iOS 26.5 platform. `xcodegen` had to be reinstalled (`brew install xcodegen`). Fix (needs Sarp's password):
   `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer && sudo xcodebuild -runFirstLaunch && xcodebuild -downloadPlatform iOS`
@@ -169,5 +169,6 @@ pre-loaded with the shared post and saves to the same list the app shows.
 - **2026-09-12 — Save sheet is a fixed-height bottom card**, sized like the Where picker; no jumping.
 - **2026-09-12 — Vineyard is a category**; vineyards were "Other".
 - **2026-09-14 — Map is a view, not the home.** Where·What stays the way in; a bottom pill switches Map / Cards / Tiles for the chosen set. A Europe-wide map is wallpaper; Helsinki with one pin is information. MapLibre + OpenFreeMap on web (free, no key); MapKit on iOS.
+- **2026-09-14 — A place never goes without a photo.** The post's image first; if the post can't be read, the place's Google photo (`lib/photo.ts`, on save and via `scripts/backfill-images`). Photo-less tiles read as holes in the grid.
 - **2026-09-14 — Web app stays live.** It's the fastest place to prototype; iOS follows once an idea sticks.
 - **2026-09-13 — Process: hygiene over ritual.** plan.md + CLAUDE.md stay current at every stopping point whether or not a command was typed.

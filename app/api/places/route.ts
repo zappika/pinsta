@@ -4,6 +4,10 @@ import { getDb } from "@/lib/db";
 import { places } from "@/lib/db/schema";
 import { getPlace } from "@/lib/google-places";
 import { normalizeInstagramUrl } from "@/lib/instagram";
+import { findPhoto } from "@/lib/photo";
+
+// Finding a missing photo may mean re-reading the post (5–30 s).
+export const maxDuration = 60;
 
 export async function GET() {
   const rows = await getDb().select().from(places).orderBy(desc(places.createdAt));
@@ -34,7 +38,12 @@ export async function POST(req: Request) {
 
   try {
     // Re-fetch by id so the stored row reflects Google's data, not the client's.
-    const p = await getPlace(body.placeId);
+    // The photo is normally found by /api/extract; when the client has none
+    // (post unreadable, manual flow), find one here so no place goes without.
+    const [p, imageUrl] = await Promise.all([
+      getPlace(body.placeId),
+      body.imageUrl ? Promise.resolve(body.imageUrl) : findPhoto(instagramUrl, body.placeId),
+    ]);
     const [row] = await getDb()
       .insert(places)
       .values({
@@ -50,7 +59,7 @@ export async function POST(req: Request) {
         primaryType: p.primaryType,
         category: p.category,
         note: body.note?.trim() || null,
-        imageUrl: body.imageUrl || null,
+        imageUrl,
         caption: body.caption || null,
         igLocationName: body.igLocationName || null,
         ownerUsername: body.ownerUsername || null,

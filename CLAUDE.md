@@ -74,7 +74,7 @@ Pinsta. Instagram itself can't be installed in the Simulator.
 ## Data operations
 - Schema: `lib/db/schema.ts` → `npx drizzle-kit push` (needs `.env.local` sourced).
 - One-off scripts in `scripts/*.mts`, run with `set -a; source .env.local; set +a; npx tsx scripts/<name>.mts`
-  (`.mts` because top-level await). Existing: `backfill-region`, `fix-rows`.
+  (`.mts` because top-level await). Existing: `backfill-region`, `backfill-images`, `fix-rows`.
 - Inspect prod data: `curl -s https://pinsta-two.vercel.app/api/places`.
 
 ## Conventions
