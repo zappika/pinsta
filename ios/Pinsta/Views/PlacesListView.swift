@@ -75,16 +75,22 @@ private struct PlacesContent: View {
             .animation(.snappy, value: toast?.id)
             .animation(.snappy, value: peek?.id)
         }
-        .sheet(isPresented: $adding) {
-            AddPlaceView()
-                .presentationDetents([.height(AddPlaceView.sheetHeight)])
-                .presentationDragIndicator(.hidden)
+        .overlay {
+            // Presented like the web (and the share extension): a dimmed backdrop
+            // and a fixed-height card floating 12pt off the edges. Not a system
+            // sheet — that one is edge to edge and adds its own chrome.
+            if adding || editing != nil {
+                FloatingSheet(onClose: { adding = false; editing = nil }) {
+                    if let place = editing {
+                        AddPlaceView(editing: place, onFinish: { editing = nil })
+                    } else {
+                        AddPlaceView(onFinish: { adding = false })
+                    }
+                }
+            }
         }
-        .sheet(item: $editing) { place in
-            AddPlaceView(editing: place)
-                .presentationDetents([.height(AddPlaceView.sheetHeight)])
-                .presentationDragIndicator(.hidden)
-        }
+        .animation(.snappy(duration: 0.3), value: adding)
+        .animation(.snappy(duration: 0.3), value: editing?.id)
         .task {
             importing = true
             await WebImporter.runIfEmpty(in: context)
@@ -310,5 +316,27 @@ private struct PlacesContent: View {
             .opacity(view == .map ? 0 : 1),
             alignment: .top
         )
+    }
+}
+
+/// The save sheet as the web has it: dimmed backdrop, tap outside to close,
+/// a fixed-height card 12pt off the edges that rides up with the keyboard.
+private struct FloatingSheet<Content: View>: View {
+    let onClose: () -> Void
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color.black.opacity(0.3)
+                .ignoresSafeArea()
+                .onTapGesture(perform: onClose)
+                .transition(.opacity)
+            content()
+                .frame(height: AddPlaceView.sheetHeight)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .padding(.horizontal, 12)
+                .padding(.bottom, 12)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
     }
 }

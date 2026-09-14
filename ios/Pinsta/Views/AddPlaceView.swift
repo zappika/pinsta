@@ -110,11 +110,9 @@ struct AddPlaceView: View {
                 urlText = initialURL
                 return
             }
+            // Same as the web: the field starts empty and Paste is a deliberate tap.
+            // (Reading the pasteboard here would also raise the system paste prompt.)
             focus = .url
-            // Pre-fill from the clipboard if it already holds an Instagram link.
-            if allowsPasteboard, let s = UIPasteboard.general.string, InstagramURL.normalize(s) != nil {
-                urlText = s
-            }
         }
         .task(id: validURL) { if editing == nil { await readPost() } }
         .task(id: query) { await manualSearch() }
@@ -137,9 +135,13 @@ struct AddPlaceView: View {
                             .stroke(!urlText.isEmpty && validURL == nil ? Color.red.opacity(0.5) : Color.clear)
                     )
                 if urlText.isEmpty && allowsPasteboard {
-                    Button("Paste") {
-                        if let s = UIPasteboard.general.string { urlText = s }
+                    // The system paste control reads the pasteboard without the permission prompt.
+                    PasteButton(payloadType: String.self) { strings in
+                        if let s = strings.first { urlText = s }
                     }
+                    .labelStyle(.titleOnly)
+                    .buttonStyle(.borderless)
+                    .tint(.primary)
                     .font(.subheadline.weight(.medium))
                     .padding(.horizontal, 14).padding(.vertical, 10)
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.separator)))
@@ -383,16 +385,21 @@ private struct Receipt: View {
             }
             HStack(spacing: 10) {
                 if saved.automatic {
-                    Button("Wrong place?", action: onUndo)
-                        .font(.subheadline.weight(.medium))
-                        .frame(maxWidth: .infinity).padding(.vertical, 11)
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.separator)))
+                    Button(action: onUndo) {
+                        Text("Wrong place?")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.primary)
+                            .frame(maxWidth: .infinity).padding(.vertical, 11)
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.separator)))
+                    }
                 }
-                Button("Done", action: onDone)
-                    .font(.subheadline.weight(.semibold))
-                    .frame(maxWidth: .infinity).padding(.vertical, 11)
-                    .background(Color.primary, in: RoundedRectangle(cornerRadius: 12))
-                    .foregroundStyle(Color(.systemBackground))
+                Button(action: onDone) {
+                    Text("Done")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color(.systemBackground))
+                        .frame(maxWidth: .infinity).padding(.vertical, 11)
+                        .background(Color(.label), in: RoundedRectangle(cornerRadius: 12))
+                }
             }
         }
         .buttonStyle(.plain)
