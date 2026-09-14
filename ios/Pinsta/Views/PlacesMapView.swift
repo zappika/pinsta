@@ -46,12 +46,12 @@ struct PlacesMapView: View {
         guard !places.isEmpty else { return }
         let lats = places.map(\.latitude), lngs = places.map(\.longitude)
         let minLat = lats.min()!, maxLat = lats.max()!, minLng = lngs.min()!, maxLng = lngs.max()!
-        let latDelta = max((maxLat - minLat) * 1.6, 0.012)
-        let lngDelta = max((maxLng - minLng) * 1.4, 0.012)
+        let latDelta = max((maxLat - minLat) * 1.35, 0.012)
+        let lngDelta = max((maxLng - minLng) * 1.25, 0.012)
         let region = MKCoordinateRegion(
             center: CLLocationCoordinate2D(
                 // Bias south a little: the bottom ~30 % is under the pill and button.
-                latitude: (minLat + maxLat) / 2 - latDelta * 0.12,
+                latitude: (minLat + maxLat) / 2 - latDelta * 0.08,
                 longitude: (minLng + maxLng) / 2
             ),
             span: MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: lngDelta)

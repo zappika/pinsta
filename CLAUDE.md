@@ -42,6 +42,11 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   "Where" menu label per place. Town with 2+ places = own row; 1-place town folds
   into its region only if the region then bundles 2+. Same comments both sides —
   change one, change the other.
+- **Views** (`ViewSwitch.tsx` ↔ `ViewSwitch.swift`): the bottom pill picks Map / Cards / Tiles for the
+  current Where·What selection. Map: MapLibre + OpenFreeMap on web, MapKit on iOS, framed to fit the
+  selection. Tiles: Instagram profile grid. Pin/tile tap → `PeekCard`. Choice persisted, filters not.
+- **Photos:** a place never goes without one. Web: `lib/photo.ts` (post image → Google photo) on save.
+  iOS: `PhotoRetry` re-reads photo-less posts on launch; no Google there.
 - **Save flow** (`app/components/AddPlace.tsx` ↔ `ios/Pinsta/Views/AddPlaceView.swift`):
   fixed-height bottom sheet; one tag match saves itself → receipt with
   "Wrong place?"; several → tap; none → account suggestions → search. Same link
@@ -67,6 +72,10 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   Without sudo, `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` in front of a command gets partway.
 - **Map on web:** MapLibre needs its worker served from `public/maplibre/` (Turbopack breaks the
   `import.meta.url` lookup) — `scripts/copy-maplibre-worker.sh` runs on postinstall.
+- **Never poll production in a loop.** Vercel's automatic mitigation challenged this Mac's IP after
+  ~70 curl requests in ten minutes; the Simulator shares the IP, so the app's import/extract calls
+  failed silently too. Check a deploy with `npx vercel ls` / `npx vercel inspect`, one request at a time.
+  `npx vercel firewall persistent-actions list` shows an active challenge; it expires by itself (~10 min).
 - **Disk:** Xcode + Simulator eat space; the Mac ran out once mid-build. Keep 10 GB free.
 - **Testing deletes:** never on real rows. The Undo window is 5 s and tool latency
   is often longer — a test once deleted a real place. Restore via read+save.

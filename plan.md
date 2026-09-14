@@ -1,15 +1,14 @@
 # Pinsta — Plan
 
-## Last session — 2026-09-14
-- What we built: **photos guaranteed** — `POST /api/places` finds one when the client has none (post → Google fallback); the 5 old rows backfilled (4 via Google: their post links were Phase-1 test URLs). **Web view switch** — a `Map · Cards · Tiles` pill under the Where·What header. Map = the current selection on a MapLibre map (OpenFreeMap tiles, no key), framed to fit; pins are the post photo or category glyph; tap a pin or tile → PeekCard. Tiles = two-across photo grid. Cards = the list as before. Committed, **not pushed** — Sarp to try it at `localhost:3010` first. Sketch of the "map as home with a drag sheet" pattern was built and rejected (Europe-wide map isn't useful; Where/What stays).
-- App icon: Sarp's Claude Design package (light + dark 1024 PNGs, single-size Contents.json) is in `ios/Pinsta/Resources/Assets.xcassets/AppIcon.appiconset/`. The share extension inherits the host app's icon, so one catalog is enough.
-- Where we stopped: **iOS build blocked by the Mac's Xcode setup** — `xcode-select` points at CommandLineTools and the newly updated Xcode 26.6 needs its first-launch step + iOS 26.5 platform. `xcodegen` had to be reinstalled (`brew install xcodegen`). Fix (needs Sarp's password):
-  `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer && sudo xcodebuild -runFirstLaunch && xcodebuild -downloadPlatform iOS`
-- Next action: after the Xcode fix, build + install in the Simulator, look at the icon on the home screen and in the share sheet (check the off-white corners of the light icon under the system mask), then push the web commit if the view switch feels right.
+## Last session — 2026-09-15 (night of the 14th)
+- What we built: **web** — Map / Cards / Tiles pill under the Where·What header (MapLibre + OpenFreeMap, Instagram-style 3-across grid, PeekCard), and *a place never goes without a photo* (`lib/photo.ts`: post image, else Google photo; old rows backfilled). All pushed and live. **iOS** — the same three views ported: Liquid Glass pill (`ViewSwitch.swift`), `PlaceTilesView`, `PlacesMapView` (MapKit, photo pins, framed to the selection), `PeekCardView`, and `PhotoRetry` (re-reads photo-less posts on launch; no Google on iOS, by Sarp's call). App icon in place and verified on the Simulator home screen. Header is now fixed above the content in all views.
+- Where we stopped: iOS work committed, verified in the Simulator with the 12 imported places. **Not yet pushed** (iOS-only commits; nothing to deploy, but push anyway next time).
+- Gotcha met: Vercel's automatic DDoS mitigation challenged this Mac's IP for ~10 min after my deploy-check polling (69 requests) — the Simulator shares that IP, so the import silently found nothing. Check deploys with `npx vercel` instead of curl loops.
+- Next action: push; then decide whether the bottom stack (pill + Save button) stays two rows or becomes pill-left / round `+` right — Sander's question.
 
 ## Next steps
 1. ~~App icon into the asset catalog~~ done 2026-09-14 — **verify on the Simulator** once Xcode builds again. If the light icon's off-white corners show under the mask, ask Claude Design for a full-bleed pink export.
-2. Decide on the web view switch after using it: keep all three? Then port to iOS (SwiftUI `Map` + the same pill; MapKit, no tiles needed).
+2. ~~Port the view switch to iOS~~ done 2026-09-15. Open: bottom stack layout (pill + Save = two rows) → ask Sander.
 3. On Sarp's iPhone via cable first, **free personal team** (no paid membership yet): Apple ID in Xcode → `DEVELOPMENT_TEAM` + automatic signing in `project.yml` → Developer Mode on the phone → run. Test Share from inside Instagram. Builds expire after 7 days on a free team; CloudKit still needs the paid program.
 4. ~~Decide the web app's fate~~ → **keep live** (2026-09-14): it's Sarp's prototyping surface.
 5. Sarp to skim `CLAUDE.md` (project) for factual errors and confirm the lighter sub-chunk gate in `~/Skills/commands/s-build.md` ("state, then go").
