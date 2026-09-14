@@ -7,6 +7,8 @@ struct PlaceCardView: View {
     let place: Place
     var hideCategory = false
     var hideCity = false
+    /// Shorter photo — for the PeekCard floating over the map or the grid.
+    var compact = false
 
     private var meta: String {
         [hideCategory ? nil : place.category.rawValue, hideCity ? nil : place.city]
@@ -20,7 +22,7 @@ struct PlaceCardView: View {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
-                    .frame(height: 176)
+                    .frame(height: compact ? 128 : 176)
                     .frame(maxWidth: .infinity)
                     .clipped()
             }

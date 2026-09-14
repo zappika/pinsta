@@ -27,6 +27,10 @@ private struct PlacesContent: View {
     @State private var importing = false
     @State private var openSwipe: UUID?
 
+    // How the selection is shown; the filters reset per launch, this doesn't.
+    @AppStorage("pinsta.view") private var view: PlacesView = .cards
+    @State private var peek: Place?
+
     // Removal is deferred behind an "Undo" toast; the row hides at once and
     // is deleted for real when the toast expires.
     @State private var hidden: Set<UUID> = []
@@ -47,59 +51,29 @@ private struct PlacesContent: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 12) {
-                    header
-                        .padding(.bottom, 4)
-
-                    if importing && places.isEmpty {
-                        ForEach(0..<3, id: \.self) { _ in
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(Color(.secondarySystemGroupedBackground))
-                                .frame(height: 112)
-                        }
-                    } else if shown.isEmpty {
-                        emptyState
-                    } else if visible.isEmpty {
-                        Text("No places match.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 48)
-                    }
-
-                    ForEach(visible) { place in
-                        SwipeCard(
-                            isOpen: openSwipe == place.id,
-                            onOpen: { openSwipe = place.id },
-                            onClose: { if openSwipe == place.id { openSwipe = nil } },
-                            onEdit: { openSwipe = nil; editing = place },
-                            onDelete: { remove(place) }
-                        ) {
-                            PlaceCardView(
-                                place: place,
-                                hideCategory: category != nil,
-                                // A region row ("Halland") still wants the town on the card.
-                                hideCity: city != nil && place.city == city
-                            )
-                        }
-                        .id("\(place.id)-\(generation[place.id] ?? 0)")
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 120)
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 12)
+                content
             }
             .background(Color(.systemGroupedBackground))
-            .scrollDismissesKeyboard(.interactively)
 
             VStack(spacing: 10) {
+                if let peek, view != .cards {
+                    PeekCardView(place: peek) { withAnimation(.snappy) { self.peek = nil } }
+                }
                 if let toast {
                     undoToast(toast)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
+                if !shown.isEmpty {
+                    ViewSwitch(view: $view)
+                }
                 saveButton
             }
             .animation(.snappy, value: toast?.id)
+            .animation(.snappy, value: peek?.id)
         }
         .sheet(isPresented: $adding) {
             AddPlaceView()
@@ -115,9 +89,76 @@ private struct PlacesContent: View {
             importing = true
             await WebImporter.runIfEmpty(in: context)
             importing = false
+            await PhotoRetry.run(in: context)
         }
-        .onChange(of: city) { _, _ in category = nil }
+        .onChange(of: city) { _, _ in category = nil; peek = nil }
+        .onChange(of: category) { _, _ in peek = nil }
+        .onChange(of: view) { _, _ in peek = nil }
         .onDisappear { commitPending() }
+    }
+
+    // MARK: - Content: map, cards, or tiles
+
+    @ViewBuilder
+    private var content: some View {
+        if importing && places.isEmpty {
+            ScrollView {
+                VStack(spacing: 12) {
+                    ForEach(0..<3, id: \.self) { _ in
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(.secondarySystemGroupedBackground))
+                            .frame(height: 112)
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+        } else if shown.isEmpty {
+            ScrollView { emptyState }
+        } else if view == .map {
+            PlacesMapView(places: visible, selected: $peek)
+                .ignoresSafeArea(edges: .bottom)
+        } else if visible.isEmpty {
+            Text("No places match.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 48)
+            Spacer()
+        } else if view == .tiles {
+            ScrollView {
+                PlaceTilesView(places: visible, selected: $peek)
+                    .padding(.bottom, 160)
+            }
+        } else {
+            cards
+        }
+    }
+
+    private var cards: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 12) {
+                ForEach(visible) { place in
+                    SwipeCard(
+                        isOpen: openSwipe == place.id,
+                        onOpen: { openSwipe = place.id },
+                        onClose: { if openSwipe == place.id { openSwipe = nil } },
+                        onEdit: { openSwipe = nil; editing = place },
+                        onDelete: { remove(place) }
+                    ) {
+                        PlaceCardView(
+                            place: place,
+                            hideCategory: category != nil,
+                            // A region row ("Halland") still wants the town on the card.
+                            hideCity: city != nil && place.city == city
+                        )
+                    }
+                    .id("\(place.id)-\(generation[place.id] ?? 0)")
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 160)
+        }
+        .scrollDismissesKeyboard(.interactively)
     }
 
     // MARK: - Remove / undo
@@ -265,7 +306,8 @@ private struct PlacesContent: View {
                 startPoint: .top, endPoint: .bottom
             )
             .frame(height: 96)
-            .offset(y: -8),
+            .offset(y: -8)
+            .opacity(view == .map ? 0 : 1),
             alignment: .top
         )
     }

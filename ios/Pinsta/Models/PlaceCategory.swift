@@ -18,6 +18,23 @@ enum PlaceCategory: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// One glyph per bucket — map pins and photo-less tiles. Mirrors `CATEGORY_EMOJI` on the web.
+    var emoji: String {
+        switch self {
+        case .restaurant: return "🍽️"
+        case .cafe: return "☕️"
+        case .bar: return "🍷"
+        case .vineyard: return "🍇"
+        case .bakery: return "🥐"
+        case .hotel: return "🛏️"
+        case .shop: return "🛍️"
+        case .attraction: return "📍"
+        case .museum: return "🏛️"
+        case .nature: return "🌲"
+        case .other: return "📍"
+        }
+    }
+
     var plural: String {
         switch self {
         case .nature, .other: return rawValue
