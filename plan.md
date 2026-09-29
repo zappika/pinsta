@@ -33,6 +33,28 @@ Known limits for the beta (tell friends):
 - The list lives only on the phone. Deleting the app deletes it; TestFlight updates keep it. iCloud backup comes after the paid account.
 - Every friend's save runs on Sarp's Apify account. The free plan allows 5 reads at a time; busy shows "try again in a minute". Check Apify usage after the first weekend.
 
+## Before friends get it (agreed 2026-09-29)
+- [ ] Group nearby map pins into a tinted count circle that splits on zoom
+- [ ] One place, many posts: saving a place already in the list adds the post to that card instead of a duplicate
+- [ ] Directions: one button; first tap asks Apple Maps or Google Maps and remembers; change it in the buddy menu (recommended — Sarp to confirm)
+
+## After the beta: design
+- Type tints everywhere (photo-less tiles and list rows, a tinted dot beside the type)
+- Icon buttons on cards instead of the "Google Maps · Apple Maps · Post" text row
+- Place preview as a pull-up sheet, Apple Maps style
+- Dark mode
+
+## Expansion: Social (after the beta)
+- Send a place to a friend: name, Maps link, the Instagram post
+- Later: see what friends saved. Needs to know who people are — accounts come back here.
+
+## Expansion: Check-ins (after the beta)
+- "Been there" / "Want to go" on every place, with a filter for each
+- Check in at a place
+- Meets Social: "Nika wants to go here"
+
+**Open architecture question for CTO, before either expansion:** how to know who people are without building logins. Low-tech candidate: iCloud sharing via Apple IDs (CloudKit shared zones).
+
 ## Next steps
 1. Sarp: add `PINSTA_OWNER_KEY` in Vercel (value in `.env.local`), production + preview, then redeploy. Enter the same key once in the web app.
 2. Sarp: enroll in the Apple Developer Program today; approval can take up to ~2 days and gates everything after.
