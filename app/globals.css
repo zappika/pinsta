@@ -26,9 +26,9 @@ body {
   width: 44px;
   height: 44px;
   border-radius: 9999px;
-  background: #fff center / cover;
-  border: 2px solid #fff;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 0.18);
+  background-color: #ececec; /* per-category tint set inline */
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.2);
   display: flex;
   align-items: center;
   justify-content: center;

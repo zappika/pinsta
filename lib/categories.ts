@@ -102,6 +102,25 @@ export const CATEGORY_EMOJI: Record<Category, string> = {
   Other: "📍",
 };
 
+/** Soft fills behind the emoji on map pins: quiet enough for the map, distinct enough to tell apart. */
+export const CATEGORY_TINT: Record<Category, string> = {
+  Restaurant: "#fde2d4",
+  Cafe: "#f3e3cf",
+  Bar: "#ecdcf5",
+  Vineyard: "#e3dcf7",
+  Bakery: "#fbeccb",
+  Hotel: "#d8e8f7",
+  Shop: "#f9dce6",
+  Attraction: "#fde0dc",
+  Museum: "#e2e4ea",
+  Nature: "#d9efdd",
+  Other: "#ececec",
+};
+
+export function tintFor(category: string | null | undefined): string {
+  return CATEGORY_TINT[(category ?? "Other") as Category] ?? CATEGORY_TINT.Other;
+}
+
 export function emojiFor(category: string | null | undefined): string {
   return CATEGORY_EMOJI[(category ?? "Other") as Category] ?? "📍";
 }

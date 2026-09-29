@@ -197,8 +197,8 @@ export default function PinstaApp() {
           view === "map" && places && places.length > 0
             ? "relative flex-1"
             : view === "tiles"
-              ? "flex-1 pb-40" // the grid bleeds to the edges
-              : "flex-1 px-5 pb-40"
+              ? "flex-1 pb-28" // the grid bleeds to the edges
+              : "flex-1 px-5 pb-28"
         }
       >
         {locError && <p className="mb-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">{locError}</p>}
@@ -277,18 +277,20 @@ export default function PinstaApp() {
       <div className={`pointer-events-none fixed inset-x-0 bottom-0 mx-auto max-w-md px-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-6 ${
         view === "map" ? "" : "bg-gradient-to-t from-stone-100 via-stone-100/90 to-transparent"
       }`}>
-        {places && places.length > 0 && (
-          <div className="mb-3">
-            <ViewSwitch view={view} onChange={setView} />
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={() => setAdding(true)}
-          className="pointer-events-auto w-full rounded-2xl bg-stone-900 py-4 text-base font-medium text-white shadow-lg shadow-stone-900/10 active:scale-[0.98] transition-transform"
-        >
-          Save a place
-        </button>
+        {/* One row: the view pill centered, a round + at the right edge. */}
+        <div className="relative flex h-14 items-center justify-center">
+          {places && places.length > 0 && <ViewSwitch view={view} onChange={setView} />}
+          <button
+            type="button"
+            aria-label="Save a place"
+            onClick={() => setAdding(true)}
+            className="pointer-events-auto absolute right-0 flex h-14 w-14 items-center justify-center rounded-full bg-stone-900 text-white shadow-lg shadow-stone-900/20 transition-transform active:scale-95"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {(adding || editing) && (

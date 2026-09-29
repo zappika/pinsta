@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import type * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { emojiFor } from "@/lib/categories";
+import { emojiFor, tintFor } from "@/lib/categories";
 import type { Place } from "./types";
 
 // OpenFreeMap: vector tiles, no key, no quota. Positron is the quiet grey style.
@@ -75,6 +75,7 @@ export default function PlacesMap({ places, selected, onSelect }: Props) {
       pin.className = "pinsta-pin";
       // Emoji only: a photo shrunk to 44px is unreadable; the type glyph reads at a glance.
       pin.textContent = emojiFor(p.category);
+      pin.style.backgroundColor = tintFor(p.category);
       const label = document.createElement("div");
       label.className = "pinsta-pin-label";
       label.textContent = p.name;
