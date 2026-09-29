@@ -59,3 +59,23 @@ body {
   font-size: 9px;
   opacity: 0.6;
 }
+
+/* The + : a springy press. */
+.pinsta-fab {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.pinsta-fab:active {
+  transform: scale(0.9);
+}
+/* The save sheet rises from the bottom-right, where the + is. */
+@keyframes pinsta-rise {
+  from { opacity: 0; transform: translateY(24px) scale(0.96); transform-origin: 90% 100%; }
+  to   { opacity: 1; transform: none; transform-origin: 90% 100%; }
+}
+.pinsta-rise { animation: pinsta-rise 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes pinsta-fade { from { opacity: 0; } to { opacity: 1; } }
+.pinsta-fade { animation: pinsta-fade 0.2s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .pinsta-rise, .pinsta-fade { animation: none; }
+  .pinsta-fab { transition: none; }
+}

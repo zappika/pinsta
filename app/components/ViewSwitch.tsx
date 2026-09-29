@@ -1,9 +1,10 @@
 "use client";
 
-export type View = "map" | "cards" | "tiles";
+export type View = "map" | "list" | "cards" | "tiles";
 
 const VIEWS: { value: View; label: string }[] = [
   { value: "map", label: "Map" },
+  { value: "list", label: "List" },
   { value: "cards", label: "Cards" },
   { value: "tiles", label: "Tiles" },
 ];
@@ -21,7 +22,7 @@ export default function ViewSwitch({ view, onChange }: { view: View; onChange: (
             aria-selected={active}
             type="button"
             onClick={() => onChange(v.value)}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
               active ? "bg-stone-900 text-white" : "text-stone-600 active:bg-stone-100"
             }`}
           >

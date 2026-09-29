@@ -245,9 +245,10 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
 
   return (
     <div className="fixed inset-0 z-20 mx-auto flex max-w-md flex-col justify-end" role="dialog" aria-label="Save a place">
-      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/30" />
-      {/* Fixed height: the sheet never resizes as the post, candidates or receipt come in. */}
-      <div className="relative m-3 mb-[calc(env(safe-area-inset-bottom)+0.75rem)] flex h-[340px] flex-col overflow-hidden rounded-2xl bg-white">
+      <button type="button" aria-label="Close" onClick={onClose} className="pinsta-fade absolute inset-0 bg-black/30" />
+      {/* Fixed height: the sheet never resizes as the post, candidates or receipt come in.
+          Sits above the + (which becomes ×) and rises out of it. */}
+      <div className="pinsta-rise relative m-3 mb-[calc(env(safe-area-inset-bottom)+5.25rem)] flex h-[340px] flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
         {saved ? (
           <Receipt saved={saved} onUndo={undo} onDone={onClose} />
         ) : (

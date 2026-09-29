@@ -10,6 +10,7 @@ import SwipeCard from "./SwipeCard";
 import PlacesMap from "./PlacesMap";
 import PlaceTiles from "./PlaceTiles";
 import PeekCard from "./PeekCard";
+import PlaceList from "./PlaceList";
 import ViewSwitch, { type View } from "./ViewSwitch";
 import { destinationLabels } from "@/lib/grouping";
 import { NEAR, NEAR_KM, currentPosition, kmBetween } from "@/lib/geo";
@@ -79,7 +80,7 @@ export default function PinstaApp() {
   useEffect(() => {
     try {
       const v = localStorage.getItem("pinsta.view");
-      if (v === "map" || v === "cards" || v === "tiles") setViewState(v);
+      if (v === "map" || v === "list" || v === "cards" || v === "tiles") setViewState(v);
     } catch {}
   }, []);
   function setView(v: View) {
@@ -237,6 +238,17 @@ export default function PinstaApp() {
           <PlaceTiles places={visible} selected={peek?.id ?? null} onSelect={(p) => setPeek((c) => (c?.id === p.id ? null : p))} />
         )}
 
+        {view === "list" && (
+          <PlaceList
+            places={visible}
+            selected={peek?.id ?? null}
+            onSelect={(p) => setPeek((c) => (c?.id === p.id ? null : p))}
+            here={here}
+            hideCategory={category !== null}
+            hideCity={(p) => city !== null && p.city === city}
+          />
+        )}
+
         <ul className={view === "cards" ? "space-y-3" : "hidden"}>
           {visible.map((p) => (
             <SwipeCard
@@ -274,19 +286,25 @@ export default function PinstaApp() {
         </div>
       )}
 
-      <div className={`pointer-events-none fixed inset-x-0 bottom-0 mx-auto max-w-md px-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-6 ${
-        view === "map" ? "" : "bg-gradient-to-t from-stone-100 via-stone-100/90 to-transparent"
+      <div className={`pointer-events-none fixed inset-x-0 bottom-0 mx-auto max-w-md ${adding ? "z-30" : ""} px-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-6 ${
+        view === "map" || adding ? "" : "bg-gradient-to-t from-stone-100 via-stone-100/90 to-transparent"
       }`}>
         {/* One row: the view pill centered, a round + at the right edge. */}
-        <div className="relative flex h-14 items-center justify-center">
-          {places && places.length > 0 && <ViewSwitch view={view} onChange={setView} />}
+        <div className="relative flex h-14 items-center justify-center pr-16">
+          {places && places.length > 0 && (
+            <div className={`transition-opacity duration-200 ${adding ? "pointer-events-none opacity-0" : "opacity-100"}`}>
+              <ViewSwitch view={view} onChange={setView} />
+            </div>
+          )}
           <button
             type="button"
-            aria-label="Save a place"
-            onClick={() => setAdding(true)}
-            className="pointer-events-auto absolute right-0 flex h-14 w-14 items-center justify-center rounded-full bg-stone-900 text-white shadow-lg shadow-stone-900/20 transition-transform active:scale-95"
+            aria-label={adding ? "Close" : "Save a place"}
+            onClick={() => setAdding((o) => !o)}
+            className="pinsta-fab pointer-events-auto absolute right-0 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-stone-900 text-white shadow-lg shadow-stone-900/20"
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden
+              className="transition-transform duration-300 [transition-timing-function:cubic-bezier(.34,1.56,.64,1)]"
+              style={{ transform: adding ? "rotate(135deg)" : "rotate(0deg)" }}>
               <path d="M12 5v14M5 12h14" />
             </svg>
           </button>

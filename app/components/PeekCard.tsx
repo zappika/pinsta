@@ -9,7 +9,7 @@ import type { Place } from "./types";
  */
 export default function PeekCard({ place, onClose }: { place: Place; onClose: () => void }) {
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+8.5rem)] z-10 mx-auto max-w-md px-5">
+    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-10 mx-auto max-w-md px-5">
       <div className="pointer-events-auto relative overflow-hidden rounded-2xl bg-white shadow-xl shadow-stone-900/15">
         <button
           type="button"
