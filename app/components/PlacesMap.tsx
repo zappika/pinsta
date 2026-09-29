@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import type * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { emojiFor, tintFor } from "@/lib/categories";
+import { isDark } from "@/lib/theme";
 import type { Place } from "./types";
 
 // OpenFreeMap: vector tiles, no key, no quota. Positron is the quiet grey style; "dark" its night twin.
@@ -29,6 +30,7 @@ export default function PlacesMap({ places, selected, onSelect }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markers = useRef<Map<string, { marker: maplibregl.Marker; pin: HTMLDivElement }>>(new Map());
+  const unsubscribe = useRef<() => void>(() => {});
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
 
@@ -42,7 +44,7 @@ export default function PlacesMap({ places, selected, onSelect }: Props) {
       lib.setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
       const m = new lib.Map({
         container: container.current,
-        style: matchMedia("(prefers-color-scheme: dark)").matches ? STYLE_DARK : STYLE_LIGHT,
+        style: isDark() ? STYLE_DARK : STYLE_LIGHT,
         center: [10, 50],
         zoom: 3,
         attributionControl: { compact: true },
@@ -53,10 +55,20 @@ export default function PlacesMap({ places, selected, onSelect }: Props) {
       m.on("zoom", labels);
       labels();
       map.current = m;
+      // Appearance changed (menu or system): swap the base map; DOM pins stay put.
+      const restyle = () => m.setStyle(isDark() ? STYLE_DARK : STYLE_LIGHT);
+      const mq = matchMedia("(prefers-color-scheme: dark)");
+      window.addEventListener("pinsta:theme", restyle);
+      mq.addEventListener("change", restyle);
+      unsubscribe.current = () => {
+        window.removeEventListener("pinsta:theme", restyle);
+        mq.removeEventListener("change", restyle);
+      };
       m.once("load", () => setPlaces(lib, m));
     })();
     return () => {
       cancelled = true;
+      unsubscribe.current();
       map.current?.remove();
       map.current = null;
       markers.current.clear();

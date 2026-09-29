@@ -42,7 +42,7 @@ Known limits for the beta (tell friends):
 ## After the beta: design
 - [x] Type colors everywhere (web): soft tint behind photo-less tiles and list rows; a full-strength dot beside the type in List and Cards (`CATEGORY_DOT`)
 - [x] Place preview as a pull-up sheet (web): opens short, drag or tap the handle for the full card (big photo, posts open), drag down to go back or away; the map stays live behind it
-- [x] Dark mode (web): follows the phone setting; the stone palette is flipped once in `globals.css`, the map uses OpenFreeMap "dark"
+- [x] Dark mode (web): System / Light / Dark under the buddy menu (System follows the phone); the stone palette is flipped once in `globals.css`, the map uses OpenFreeMap "dark"
 
 ## Expansion: Social (after the beta)
 - Send a place to a friend: name, Maps link, the Instagram post
@@ -60,7 +60,7 @@ Known limits for the beta (tell friends):
 2. Sarp: enroll in the Apple Developer Program today; approval can take up to ~2 days and gates everything after.
 3. Sarp: confirm the add-sheet findings in Phase 6 are what he saw (or name what else).
 4. Then: build → internal TestFlight on Sarp's phone → external review → public link.
-5. Port to iOS — everything from the 2026-09-29 web pass: tinted emoji pins + grouping, placeholder tiles, Near me, buddy menu, round + (→ × morph), List view, glyph view pill, card icon actions, Directions (ask once, remember, confirm), one place many posts, type colors, pull-up sheet, dark mode.
+5. Port to iOS — everything from the 2026-09-29 web pass: tinted emoji pins + grouping, placeholder tiles, Near me, buddy menu, round + (→ × morph), List view, glyph view pill, card icon actions, Directions (ask once, remember, confirm), Appearance setting, one place many posts, type colors, pull-up sheet, dark mode.
 6. Later: iCloud backup via CloudKit.
 
 ## Waiting on Sarp

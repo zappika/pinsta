@@ -10,8 +10,12 @@
  * classes everywhere. White (cards) becomes the raised dark surface; the page
  * (stone-100) the deepest one; stone-900 buttons turn light with dark text.
  */
-@media (prefers-color-scheme: dark) {
-  :root {
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* Pinned dark from the buddy menu. */
+:root[data-theme="dark"] {
     color-scheme: dark;
     --color-white: #1f1c1a;
     --color-stone-50: #181614;
@@ -31,17 +35,51 @@
     --color-amber-50: #3a2a0d;
     --color-amber-800: #fcd34d;
   }
-  .pinsta-pin {
+:root[data-theme="dark"] .pinsta-pin {
     border-color: #2a2623;
     box-shadow: 0 2px 10px rgb(0 0 0 / 0.5);
   }
-  .pinsta-pin.active {
+:root[data-theme="dark"] .pinsta-pin.active {
     border-color: #f5f5f4;
   }
-  .pinsta-pin-label {
+:root[data-theme="dark"] .pinsta-pin-label {
     color: #f5f5f4;
     text-shadow: 0 0 3px #000, 0 0 3px #000, 0 0 3px #000;
   }
+
+/* System dark, unless pinned light. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --color-white: #1f1c1a;
+      --color-stone-50: #181614;
+      --color-stone-100: #121110;
+      --color-stone-200: #2e2a27;
+      --color-stone-300: #44403c;
+      --color-stone-400: #8a847f;
+      --color-stone-500: #a8a29e;
+      --color-stone-600: #c4bfbb;
+      --color-stone-700: #d6d3d1;
+      --color-stone-800: #e7e5e4;
+      --color-stone-900: #f5f5f4;
+      --color-stone-950: #fafaf9;
+      --color-red-50: #3b1515;
+      --color-red-600: #f87171;
+      --color-red-700: #fca5a5;
+      --color-amber-50: #3a2a0d;
+      --color-amber-800: #fcd34d;
+    }
+  :root:not([data-theme="light"]) .pinsta-pin {
+      border-color: #2a2623;
+      box-shadow: 0 2px 10px rgb(0 0 0 / 0.5);
+    }
+  :root:not([data-theme="light"]) .pinsta-pin.active {
+      border-color: #f5f5f4;
+    }
+  :root:not([data-theme="light"]) .pinsta-pin-label {
+      color: #f5f5f4;
+      text-shadow: 0 0 3px #000, 0 0 3px #000, 0 0 3px #000;
+    }
 }
 
 html {

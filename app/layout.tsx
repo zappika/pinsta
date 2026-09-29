@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { THEME_BOOT } from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: "Pinsta",
@@ -18,7 +19,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
+      </head>
       <body className="min-h-dvh">{children}</body>
     </html>
   );

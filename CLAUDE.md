@@ -59,7 +59,7 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   refetches on foreground because SwiftData doesn't see the extension's writes.
 
 ## Dark mode
-No `dark:` classes. `globals.css` flips Tailwind's stone palette variables (and white, red, amber) under `prefers-color-scheme: dark`, so any stone/white class works in both themes. New colours outside that palette need an entry there. The map switches to OpenFreeMap `dark`.
+No `dark:` classes. `globals.css` flips Tailwind's stone palette variables (and white, red, amber) when `<html data-theme="dark">`, or on a dark system unless `data-theme="light"`. The buddy menu sets it (`lib/theme.ts`); an inline script in `layout.tsx` applies it before first paint. The rule blocks exist twice (pinned and system) — so any stone/white class works in both themes. New colours outside that palette need an entry there. The map switches to OpenFreeMap `dark`.
 
 ## The owner key
 The web list is Sarp's alone (`lib/owner.ts`). Every `/api/places*` route and
