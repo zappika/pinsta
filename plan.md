@@ -41,7 +41,7 @@ Known limits for the beta (tell friends):
 
 ## After the beta: design
 - [x] Type colors everywhere (web): soft tint behind photo-less tiles and list rows; a full-strength dot beside the type in List and Cards (`CATEGORY_DOT`)
-- Place preview as a pull-up sheet, Apple Maps style
+- [x] Place preview as a pull-up sheet (web): opens short, drag or tap the handle for the full card (big photo, posts open), drag down to go back or away; the map stays live behind it
 - Dark mode
 
 ## Expansion: Social (after the beta)

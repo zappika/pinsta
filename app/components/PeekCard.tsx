@@ -1,27 +1,69 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import PlaceCard from "./PlaceCard";
 import type { Place } from "./types";
 
 /**
- * One place, floated above the map or tile grid. Sits just above the
- * bottom controls; tap outside or the × to dismiss.
+ * One place, as a pull-up sheet over the map, list or tile grid (Apple Maps
+ * style). Opens short: photo strip, name, actions. Drag up → the full card;
+ * drag down → back to short, or away. The map behind stays live; tapping it closes.
  */
 export default function PeekCard({ place, onClose }: { place: Place; onClose: () => void }) {
+  const [full, setFull] = useState(false);
+  const [dy, setDy] = useState(0);
+  const drag = useRef<{ y: number; moved: boolean } | null>(null);
+
+  // A different place opens short again.
+  useEffect(() => setFull(false), [place.id]);
+
+  function down(e: React.PointerEvent) {
+    drag.current = { y: e.clientY, moved: false };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }
+  function move(e: React.PointerEvent) {
+    if (!drag.current) return;
+    const d = e.clientY - drag.current.y;
+    if (Math.abs(d) > 4) drag.current.moved = true;
+    // Resist dragging past the top; follow freely downward.
+    setDy(d < 0 ? d / (full ? 4 : 1.5) : d);
+  }
+  function up() {
+    const d = dy;
+    const moved = drag.current?.moved;
+    drag.current = null;
+    setDy(0);
+    if (!moved) {
+      setFull((f) => !f); // a tap on the handle toggles
+      return;
+    }
+    if (d < -50) setFull(true);
+    else if (d > 80) full ? setFull(false) : onClose();
+  }
+
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-10 mx-auto max-w-md px-5">
-      <div className="pointer-events-auto relative overflow-hidden rounded-2xl bg-white shadow-xl shadow-stone-900/15">
-        <button
-          type="button"
-          aria-label="Close"
-          onClick={onClose}
-          className="absolute top-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-stone-700 shadow"
+    <div className="pointer-events-none fixed inset-0 z-20 mx-auto flex max-w-md flex-col justify-end" role="dialog" aria-label={place.name}>
+      <div
+        className="pinsta-rise pointer-events-auto relative flex max-h-[85dvh] flex-col overflow-hidden rounded-t-3xl bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgb(0_0_0/0.12)]"
+        style={{
+          transform: `translateY(${Math.max(dy, full ? -20 : -120)}px)`,
+          transition: drag.current ? "none" : "transform 280ms cubic-bezier(.22,1,.36,1)",
+        }}
+      >
+        <div
+          onPointerDown={down}
+          onPointerMove={move}
+          onPointerUp={up}
+          onPointerCancel={up}
+          className="flex shrink-0 cursor-grab touch-none justify-center py-2.5 active:cursor-grabbing"
+          aria-label={full ? "Show less" : "Show more"}
+          role="button"
         >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" aria-hidden>
-            <path d="M4 4l8 8M12 4l-8 8" />
-          </svg>
-        </button>
-        <PlaceCard place={place} compact />
+          <span className="h-1.5 w-10 rounded-full bg-stone-300" />
+        </div>
+        <div className={full ? "overflow-y-auto" : "overflow-hidden"}>
+          <PlaceCard key={full ? "full" : "short"} place={place} compact={!full} expanded={full} />
+        </div>
       </div>
     </div>
   );

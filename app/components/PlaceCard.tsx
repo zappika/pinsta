@@ -13,10 +13,12 @@ type Props = {
   hideCity?: boolean;
   /** Shorter photo — for the PeekCard floating over map or tiles. */
   compact?: boolean;
+  /** The pull-up sheet at full height: big photo, posts already open. */
+  expanded?: boolean;
 };
 
-export default function PlaceCard({ place, hideCategory, hideCity, compact }: Props) {
-  const [showPost, setShowPost] = useState(false);
+export default function PlaceCard({ place, hideCategory, hideCity, compact, expanded }: Props) {
+  const [showPost, setShowPost] = useState(!!expanded);
   const postUrls = [place.instagramUrl, ...(place.posts ?? []).map((p) => p.instagramUrl)];
   const meta = [hideCategory ? null : place.category, hideCity ? null : place.city, postUrls.length > 1 ? `${postUrls.length} posts` : null]
     .filter(Boolean)
@@ -26,7 +28,7 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact }: Pr
     <>
       {place.imageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={place.imageUrl} alt="" draggable={false} className={`${compact ? "h-32" : "h-44"} w-full bg-stone-100 object-cover`} />
+        <img src={place.imageUrl} alt="" draggable={false} className={`${compact ? "h-32" : expanded ? "h-72" : "h-44"} w-full bg-stone-100 object-cover`} />
       )}
       {/* Name and type on the left; two round actions on the right. No button row. */}
       <div className="flex items-center gap-3 px-4 py-3.5">
