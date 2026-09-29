@@ -35,6 +35,7 @@ Pinsta. Instagram itself can't be installed in the Simulator.
 - **One cloud call:** `POST /api/extract` reads the post through Apify and copies
   the image to Blob. Web also gets Google Places candidates from it; iOS sends
   `native: true` and resolves places itself with MapKit (no key, no quota).
+- **Three kinds of link** (`lib/sources.ts` parses all of them): Instagram (Apify), TikTok (`lib/tiktok.ts`: the video page's `__UNIVERSAL_DATA_FOR_REHYDRATION__` JSON has caption, author and `poi` = location tag; oEmbed for the thumbnail), Google Maps (`lib/google-link.ts`: name + `!3d/!4d` pin from the URL, short links followed). `instagram_url` in the DB holds any of them. Untagged posts also try `captionPlaceQuery` ("at X in Y").
 - **Tag → place** (`lib/google-places.ts: resolveTag/resolveAccount`, ported to
   `ios/Pinsta/Services/PlaceSearch.swift`): several cheap queries merged and
   ranked — tag, account display name, tag + category word from the caption,

@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { places } from "@/lib/db/schema";
 import { getPlace } from "@/lib/google-places";
-import { normalizeInstagramUrl } from "@/lib/instagram";
+import { parseSourceUrl } from "@/lib/sources";
 import { findPhoto } from "@/lib/photo";
 
 // Finding a missing photo may mean re-reading the post (5–30 s).
@@ -31,10 +31,11 @@ export async function POST(req: Request) {
     ownerUsername?: string | null;
   };
 
-  const instagramUrl = normalizeInstagramUrl(body.instagramUrl ?? "");
+  // Field keeps its old name; it holds any supported link (Instagram, TikTok, Google Maps).
+  const instagramUrl = parseSourceUrl(body.instagramUrl ?? "")?.url ?? null;
   if (!instagramUrl) {
     return NextResponse.json(
-      { error: "That doesn't look like an Instagram post link" },
+      { error: "That doesn't look like an Instagram, TikTok or Google Maps link" },
       { status: 400 },
     );
   }

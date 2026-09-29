@@ -36,6 +36,7 @@ Known limits for the beta (tell friends):
 - Every friend's save runs on Sarp's Apify account. The free plan allows 5 reads at a time; busy shows "try again in a minute". Check Apify usage after the first weekend.
 
 ## Before friends get it (agreed 2026-09-29)
+- [x] Save from TikTok and Google Maps links too (web, 2026-09-29). Google Maps: the link names the place (name + pin, or a place id), auto-saves one clear match, photo from Google. TikTok: the page's own data gives caption, author and the location tag when there is one; oEmbed for the thumbnail. No new paid service. Untagged posts: a caption pattern ("at Cal Pep in Barcelona") and the account, suggestions only.
 - [x] Icon buttons on cards: directions and post as round icons beside the name; the text button row is gone
 - [x] Group nearby map pins (web): pins within 44 px merge into a count on the tint of their most common type; tap zooms in; from zoom 16 no grouping, overlapping pins fan out with names hidden
 - [x] One place, many posts (web): same Google id, or within ~60 m with a shared name word, adds the post to that card (`posts` jsonb). Card shows "2 posts" and embeds all; "Wrong place?" removes just that post. Bar Brutal / Can Cisa merged into one card with both posts (2026-09-29, `scripts/merge-places.mts`).
@@ -62,7 +63,7 @@ Known limits for the beta (tell friends):
 2. Sarp: enroll in the Apple Developer Program today; approval can take up to ~2 days and gates everything after.
 3. Sarp: confirm the add-sheet findings in Phase 6 are what he saw (or name what else).
 4. Then: build → internal TestFlight on Sarp's phone → external review → public link.
-5. Port to iOS — everything from the 2026-09-29 web pass: tinted emoji pins + grouping, placeholder tiles, Near me, buddy menu, round + (→ × morph), List view, glyph view pill, card icon actions, Directions (ask once, remember, confirm), Appearance setting, one place many posts, type colors, pull-up sheet, dark mode.
+5. Port to iOS — everything from the 2026-09-29 web pass: tinted emoji pins + grouping, placeholder tiles, Near me, buddy menu, round + (→ × morph), List view, glyph view pill, card icon actions, Directions (ask once, remember, confirm), Appearance setting, one place many posts, type colors, pull-up sheet, dark mode, TikTok + Google Maps links (share extension must accept them too).
 6. Later: iCloud backup via CloudKit.
 
 ## Waiting on Sarp
@@ -230,3 +231,4 @@ pre-loaded with the shared post and saves to the same list the app shows.
 - **2026-09-29 — List view added** (Map · List · Cards · Tiles): rounded square photo, name, type, "distance · town" (distance only after Near me). Tap opens the PeekCard, like Tiles. **The + animates:** springy press, turns into × while the sheet is open, and the sheet rises from it.
 - **2026-09-29 — The view pill is glyphs, not words** (map, list, card, grid line icons; labels kept for screen readers and hover). Not emoji, per Sarp.
 - **2026-09-29 — Renamed to Vicolo** (supersedes "name stays Pinsta"). Visible name on web and iOS; iOS bundle ID `se.sarper.vicolo` and App Group `group.se.sarper.vicolo`, changed before the App Store Connect record exists. Internal names (repo, folder, Vercel project `pinsta-two`, file/CSS/storage names) unchanged.
+- **2026-09-29 — Vicolo accepts TikTok and Google Maps links** alongside Instagram, with no new paid service: TikTok page data + oEmbed, Google Maps links parsed from the URL. The DB field `instagram_url` keeps its name but holds any supported link.

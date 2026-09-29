@@ -75,7 +75,7 @@ function toCandidate(p: RawPlace): PlaceCandidate {
   };
 }
 
-export async function searchPlaces(query: string): Promise<PlaceCandidate[]> {
+export async function searchPlaces(query: string, near?: { lat: number; lng: number } | null): Promise<PlaceCandidate[]> {
   const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
     method: "POST",
     headers: {
@@ -85,7 +85,12 @@ export async function searchPlaces(query: string): Promise<PlaceCandidate[]> {
         .map((f) => `places.${f}`)
         .join(","),
     },
-    body: JSON.stringify({ textQuery: query, pageSize: 6, languageCode: "en" }),
+    body: JSON.stringify({
+      textQuery: query,
+      pageSize: 6,
+      languageCode: "en",
+      ...(near ? { locationBias: { circle: { center: { latitude: near.lat, longitude: near.lng }, radius: 2000 } } } : {}),
+    }),
   });
   if (!res.ok) {
     throw new Error(`Places search failed: ${res.status} ${await res.text()}`);
@@ -128,6 +133,8 @@ export async function resolveTag(input: {
   caption?: string | null;
   hashtags?: string[];
   cityHints?: string[];
+  /** More queries to merge in (e.g. TikTok gives the tagged place's city). */
+  extraQueries?: string[];
 }): Promise<PlaceCandidate[]> {
   const tag = input.tag.trim();
   const tagWords = words(tag);
@@ -146,6 +153,7 @@ export async function resolveTag(input: {
     .map((h) => h.toLowerCase())
     .find((h) => (input.cityHints ?? []).map((c) => c.toLowerCase().replace(/\s+/g, "")).includes(h));
   if (city) queries.add(`${tag} ${city}`);
+  for (const q of input.extraQueries ?? []) if (q.trim()) queries.add(q.trim());
 
   const results = await Promise.all(
     [...queries].map((q) => searchPlaces(q).catch(() => [] as PlaceCandidate[])),
@@ -200,9 +208,26 @@ export async function resolveAccount(input: {
       }
     }
   }
-  const nameWords = words(full ?? "");
-  const score = (c: PlaceCandidate) => (overlaps(words(c.name), nameWords) ? 0 : 1);
-  return merged.sort((a, b) => score(a) - score(b));
+  // Only places that share a real word with the account: "jecca" must not suggest "JEC Arquitectura".
+  const nameWords = [...words(full ?? ""), ...words(input.ownerUsername ?? "")];
+  return merged.filter((c) => overlaps(words(c.name), nameWords));
+}
+
+/**
+ * No tag: look for the place in the caption the way people write it —
+ * "dinner at Cal Pep in Barcelona", "brunch @ Burro Cafe". A run of
+ * capitalised words after at/@/en/à/på/bei, plus the city after "in" when
+ * there is one. Plain pattern matching; suggestions only, never auto-saved.
+ */
+export function captionPlaceQuery(caption: string | null | undefined): string | null {
+  if (!caption) return null;
+  const cap = String.raw`[\p{Lu}\d][\p{L}\d'’&.-]*`;
+  const re = new RegExp(String.raw`(?:^|\s)(?:at|@|en|à|på|bei)\s+(${cap}(?:\s+(?:de|del|la|le|du|of|the|&|${cap}))*)(?:\s+in\s+(${cap}(?:\s+${cap})*))?`, "u");
+  const m = caption.match(re);
+  if (!m) return null;
+  const place = m[1].replace(/[.,!]+$/, "").trim();
+  if (place.length < 3 || /^(the|my|our|this)$/i.test(place)) return null;
+  return m[2] ? `${place} ${m[2].replace(/[.,!]+$/, "")}` : place;
 }
 
 const CATEGORY_WORDS = [

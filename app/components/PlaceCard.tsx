@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { directions } from "@/lib/directions";
+import { sourceKind } from "@/lib/sources";
 import { dotFor } from "@/lib/categories";
 import type { Place } from "./types";
 
@@ -19,7 +20,9 @@ type Props = {
 
 export default function PlaceCard({ place, hideCategory, hideCity, compact, expanded }: Props) {
   const [showPost, setShowPost] = useState(!!expanded);
-  const postUrls = [place.instagramUrl, ...(place.posts ?? []).map((p) => p.instagramUrl)];
+  const allUrls = [place.instagramUrl, ...(place.posts ?? []).map((p) => p.instagramUrl)];
+  // Google Maps links are the place, not a post: Directions covers them.
+  const postUrls = allUrls.filter((u) => sourceKind(u) !== "google");
   const meta = [hideCategory ? null : place.category, hideCity ? null : place.city, postUrls.length > 1 ? `${postUrls.length} posts` : null]
     .filter(Boolean)
     .join(" · ");
@@ -46,14 +49,14 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact, expa
         <RoundAction label="Directions" onClick={() => directions(place)}>
           <path d="M21 3 3 10.5l7.5 3L13.5 21 21 3Z" />
         </RoundAction>
-        <RoundAction label={showPost ? "Hide post" : "Post"} active={showPost} onClick={() => setShowPost((s) => !s)}>
+        {postUrls.length > 0 && <RoundAction label={showPost ? "Hide post" : "Post"} active={showPost} onClick={() => setShowPost((s) => !s)}>
           <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
           <circle cx="12" cy="12" r="4" />
           <circle cx="17.2" cy="6.8" r="0.9" fill="currentColor" stroke="none" />
-        </RoundAction>
+        </RoundAction>}
       </div>
 
-      {showPost && postUrls.map((u) => <InstagramEmbed key={u} url={u} />)}
+      {showPost && postUrls.map((u) => (sourceKind(u) === "tiktok" ? <TikTokEmbed key={u} url={u} /> : <InstagramEmbed key={u} url={u} />))}
     </>
   );
 }
@@ -106,5 +109,27 @@ function RoundAction({ label, onClick, active, children }: { label: string; onCl
         {children}
       </svg>
     </button>
+  );
+}
+
+/** TikTok's public embed.js — the same pattern as Instagram's. */
+function TikTokEmbed({ url }: { url: string }) {
+  const id = url.match(/video\/(\d+)/)?.[1];
+  useEffect(() => {
+    // embed.js renders every .tiktok-embed on load, so it is re-added per embed.
+    const s = document.createElement("script");
+    s.src = "https://www.tiktok.com/embed.js";
+    s.async = true;
+    document.body.appendChild(s);
+    return () => s.remove();
+  }, [url]);
+  return (
+    <div className="border-t border-stone-100 bg-stone-50 p-2">
+      <blockquote className="tiktok-embed !m-0 !max-w-full" cite={url} data-video-id={id}>
+        <a href={url} target="_blank" rel="noreferrer" className="block p-3 text-sm text-stone-500">
+          Open on TikTok
+        </a>
+      </blockquote>
+    </div>
   );
 }

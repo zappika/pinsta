@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { normalizeInstagramUrl } from "@/lib/instagram";
+import { parseSourceUrl, SOURCE_LABEL, type SourceKind } from "@/lib/sources";
 import { api } from "@/lib/api";
 import type { Place, PlaceCandidate } from "./types";
 
@@ -19,13 +19,14 @@ type Props = {
 
 type PostInfo = {
   url: string;
+  kind?: SourceKind;
   caption: string | null;
   locationName: string | null;
   imageUrl: string | null;
   ownerUsername: string | null;
 };
 
-type Source = "tag" | "account" | null;
+type Source = "tag" | "account" | "link" | null;
 
 type Extract =
   | { status: "idle" }
@@ -67,7 +68,8 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
   const urlRef = useRef<HTMLInputElement>(null);
   const queryRef = useRef<HTMLInputElement>(null);
 
-  const validUrl = normalizeInstagramUrl(url);
+  const source0 = parseSourceUrl(url);
+  const validUrl = source0?.url ?? null;
   const urlTouched = url.trim().length > 0;
   const post = extract.status === "done" ? extract.post : null;
 
@@ -122,7 +124,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
         setExtract({ status: "done", post: data.post, source: data.source ?? null });
         setCandidates(found);
         // Only a location tag is trusted enough to save without a tap.
-        if (found.length === 1 && data.source === "tag" && !autoSaveDeclined) {
+        if (found.length === 1 && (data.source === "tag" || data.source === "link") && !autoSaveDeclined) {
           void save(found[0], data.post, true);
         } else if (found.length === 0) {
           queryRef.current?.focus();
@@ -200,7 +202,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          instagramUrl: validUrl,
+          instagramUrl: p?.url ?? validUrl,
           placeId: c.placeId,
           imageUrl: p?.imageUrl ?? null,
           caption: p?.caption ?? null,
@@ -229,7 +231,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
       const res = await api(`/api/places/${place.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ removePost: validUrl }),
+        body: JSON.stringify({ removePost: post?.url ?? validUrl }),
       }).catch(() => null);
       const data = res ? ((await res.json()) as { place?: Place }) : null;
       if (data?.place) onUpdated?.(data.place);
@@ -282,7 +284,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
                   autoCapitalize="off"
                   autoCorrect="off"
                   spellCheck={false}
-                  placeholder="Paste an Instagram link"
+                  placeholder="Paste an Instagram, TikTok or Maps link"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   className={`min-w-0 flex-1 rounded-xl border bg-stone-50 px-3.5 py-2.5 text-base outline-none placeholder:text-stone-400 ${
@@ -297,7 +299,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
               </div>
               )}
               {!editing && urlTouched && !validUrl && (
-                <p className="mt-1.5 text-xs text-red-600">Needs to be an Instagram post or reel link.</p>
+                <p className="mt-1.5 text-xs text-red-600">Needs to be an Instagram post, a TikTok video, or a Google Maps place.</p>
               )}
 
               {extract.status === "loading" && (
@@ -323,9 +325,11 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
               {showTaggedFirst && !saving && (
                 <>
                   <p className="mt-3 mb-1 text-xs font-medium uppercase tracking-wide text-stone-400">
-                    {source === "account"
-                      ? `No location tag — is it @${post?.ownerUsername}'s place?`
-                      : `Tagged “${post?.locationName}” — ${candidates.length > 1 ? "which one?" : "tap to save"}`}
+                    {source === "link"
+                      ? `From ${SOURCE_LABEL.google} — ${candidates.length > 1 ? "which one?" : "tap to save"}`
+                      : source === "account"
+                        ? "No location tag — is it one of these?"
+                        : `Tagged “${post?.locationName}” — ${candidates.length > 1 ? "which one?" : "tap to save"}`}
                   </p>
                   <CandidateList candidates={candidates} saving={saving} onPick={(c) => save(c)} />
                 </>
@@ -416,8 +420,12 @@ function PostRow({ post }: { post: PostInfo }) {
         <div className="h-12 w-12 shrink-0 rounded-lg bg-stone-100" />
       )}
       <div className="min-w-0 flex-1">
-        {post.ownerUsername && <p className="truncate text-xs font-medium text-stone-500">@{post.ownerUsername}</p>}
-        {post.caption && <p className="truncate text-sm text-stone-600">{post.caption}</p>}
+        <p className="truncate text-xs font-medium text-stone-500">
+          {[post.kind && post.kind !== "instagram" ? SOURCE_LABEL[post.kind] : null, post.ownerUsername ? `@${post.ownerUsername}` : null].filter(Boolean).join(" · ")}
+        </p>
+        {(post.caption ?? (post.kind === "google" ? post.locationName : null)) && (
+          <p className="truncate text-sm text-stone-600">{post.caption ?? post.locationName}</p>
+        )}
       </div>
     </div>
   );

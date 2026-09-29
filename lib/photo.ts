@@ -1,5 +1,6 @@
 import { storeImage } from "./blob";
 import { fetchInstagramPost } from "./instagram-post";
+import { sourceKind } from "./sources";
 
 /**
  * A place never goes without a photo. The post's own image is what you saw
@@ -8,7 +9,8 @@ import { fetchInstagramPost } from "./instagram-post";
  * the URL is ours and doesn't expire.
  */
 export async function findPhoto(instagramUrl: string, placeId: string): Promise<string | null> {
-  const shortcode = instagramUrl.split("/").filter(Boolean).pop() ?? "post";
+  const shortcode = instagramUrl.split(/[/?#]/).filter(Boolean).pop()?.slice(0, 40) ?? "post";
+  if (sourceKind(instagramUrl) !== "instagram") return googlePhoto(placeId, shortcode);
   try {
     const post = await fetchInstagramPost(instagramUrl);
     if (post.imageUrl) {
