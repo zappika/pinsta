@@ -2,7 +2,7 @@ import SwiftUI
 import MapKit
 
 /// The card says only what the header doesn't: under a city row the town
-/// goes, under a type the category goes. No address — the maps buttons are it.
+/// goes, under a type the category goes. No address: Directions is it.
 struct PlaceCardView: View {
     let place: Place
     var hideCategory = false
@@ -27,55 +27,34 @@ struct PlaceCardView: View {
                     .clipped()
             }
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(place.name).font(.headline).lineLimit(1)
-                if !meta.isEmpty {
-                    Text(meta).font(.subheadline).foregroundStyle(.secondary)
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(place.name).font(.headline).lineLimit(1)
+                    if !meta.isEmpty {
+                        Text(meta).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 0)
+                roundAction("arrow.triangle.turn.up.right.diamond", label: "Directions") { Settings.shared.directions(to: place) }
+                if SourceURL.parse(place.instagramURL)?.kind != .google {
+                    roundAction("camera", label: "Post") { openPost() }
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 14)
-            .padding(.bottom, 12)
-
-            Divider()
-
-            HStack(spacing: 0) {
-                actionButton("Google Maps") { openGoogleMaps() }
-                Divider().frame(height: 20)
-                actionButton("Apple Maps") { openAppleMaps() }
-                Divider().frame(height: 20)
-                actionButton("Post") { openPost() }
-            }
+            .padding(.vertical, 14)
         }
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
-    private func actionButton(_ title: String, action: @escaping () -> Void) -> some View {
+    private func roundAction(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title)
-                .font(.subheadline.weight(.medium))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
+            Image(systemName: symbol)
+                .font(.system(size: 16, weight: .medium))
+                .frame(width: 40, height: 40)
+                .background(Color(.tertiarySystemFill), in: Circle())
         }
         .buttonStyle(.plain)
-    }
-
-    private func openAppleMaps() {
-        let coordinate = CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude)
-        let item = MKMapItem(placemark: MKPlacemark(coordinate: coordinate))
-        item.name = place.name
-        item.openInMaps()
-    }
-
-    private func openGoogleMaps() {
-        let q = place.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? place.name
-        let app = URL(string: "comgooglemaps://?q=\(q)&center=\(place.latitude),\(place.longitude)")!
-        let web = URL(string: "https://www.google.com/maps/search/?api=1&query=\(q)&query_place_id=\(place.googlePlaceID ?? "")")!
-        if UIApplication.shared.canOpenURL(app) {
-            UIApplication.shared.open(app)
-        } else {
-            UIApplication.shared.open(web)
-        }
+        .accessibilityLabel(label)
     }
 
     private func openPost() {

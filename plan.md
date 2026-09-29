@@ -40,7 +40,7 @@ Each chunk is built, checked on the simulator, committed and pushed on its own, 
 - [x] 1. Links (2026-09-29): TikTok + Google Maps links in the app and the share extension; Maps links searched in MapKit around their pin, a match on the pin auto-saves; caption pattern + stricter account match for untagged posts. Maps-link saves have no photo on iOS (that would need Google, paid).
 - [x] 2. Bottom bar (2026-09-29): SF Symbol view pill with List; round + with a springy press that turns into × above the save sheet; List view (photo rows, tap → sheet)
 - [x] 3. Map (2026-09-29): emoji pins on type tints (`PlaceCategory.tint` / `.dot`, same hex as web); pins within 44pt group into a count, tap zooms until it splits; no grouping below ~1 km span
-- [ ] 4. Cards: round icon actions; Directions (ask once, remember, confirm); buddy menu with Appearance + Directions
+- [x] 4. Cards (2026-09-29): round Directions + Post icons, no button row; Directions asks once, remembers, confirms (5 s); buddy menu with Appearance (System/Light/Dark) + Directions. Known: buddy icon looks blank in dark — fix in 6. Launch arg `-slowNotices` keeps notices 30 s for testing.
 - [ ] 5. Data + colour: one place many posts; type colours on list and tiles; placeholder tiles
 - [ ] 6. Pull-up place sheet; Near me; dark mode pass
 

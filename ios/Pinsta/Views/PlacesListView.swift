@@ -10,8 +10,10 @@ struct PlacesListView: View {
     var body: some View {
         PlacesContent()
             .id(refreshID)
-            .onChange(of: scenePhase) { _, phase in
-                if phase == .active { refreshID = UUID() }
+            .onChange(of: scenePhase) { old, phase in
+                // Only a real return from the background (share extension, other apps).
+                // Dialogs and menus pass through .inactive and must not reset the screen.
+                if phase == .active && old == .background { refreshID = UUID() }
             }
     }
 }
@@ -23,6 +25,19 @@ private struct PlacesContent: View {
     @State private var city: String?
     @State private var category: PlaceCategory?
     @State private var adding = false
+    private let settings = Settings.shared
+    @State private var notice: String?
+    @State private var noticeTask: Task<Void, Never>?
+
+    private func showNotice(_ text: String, seconds: Double = ProcessInfo.processInfo.arguments.contains("-slowNotices") ? 30 : 5) {
+        withAnimation(.snappy) { notice = text }
+        noticeTask?.cancel()
+        noticeTask = Task {
+            try? await Task.sleep(for: .seconds(seconds))
+            guard !Task.isCancelled else { return }
+            withAnimation(.snappy) { notice = nil }
+        }
+    }
     @State private var editing: Place?
     @State private var importing = false
     @State private var openSwipe: UUID?
@@ -63,6 +78,16 @@ private struct PlacesContent: View {
                 if let peek, view != .cards {
                     PeekCardView(place: peek) { withAnimation(.snappy) { self.peek = nil } }
                 }
+                if let notice {
+                    Text(notice)
+                        .font(.subheadline)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 16).padding(.vertical, 12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(white: 0.15), in: RoundedRectangle(cornerRadius: 16))
+                        .padding(.horizontal, 20)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
                 if let toast {
                     undoToast(toast)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -98,6 +123,15 @@ private struct PlacesContent: View {
             }
         }
         .overlay(alignment: .bottomTrailing) { plusButton }
+        .animation(.snappy, value: notice)
+        .confirmationDialog("Open directions in", isPresented: Bindable(settings).choosingOpen, titleVisibility: .visible) {
+            ForEach(Settings.MapsApp.allCases, id: \.self) { app in
+                Button(app.label) {
+                    settings.pick(app)
+                    showNotice("Saved \(app.label) as your default. You can change it anytime in the menu, top right.")
+                }
+            }
+        }
         .animation(.snappy(duration: 0.3), value: adding)
         .animation(.snappy(duration: 0.3), value: editing?.id)
         .task {
@@ -283,6 +317,8 @@ private struct PlacesContent: View {
                     headerLabel(category?.plural ?? "Everything", muted: true)
                 }
                 Spacer(minLength: 0)
+                BuddyMenu()
+                    .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 8 }
             }
             .padding(.top, 12)
         }
@@ -295,8 +331,11 @@ private struct PlacesContent: View {
                 .font(.footnote.weight(.bold))
                 .opacity(0.6)
         }
+        // Scales down a little before truncating, so the buddy button fits beside it.
         .font(.title.weight(.semibold))
+        .minimumScaleFactor(0.8)
         .foregroundStyle(muted ? Color.secondary : Color.primary)
+        .layoutPriority(muted ? 0 : 1)
     }
 
     private var emptyState: some View {
