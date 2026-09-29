@@ -107,7 +107,7 @@ While the env var is unset the lock is off. Local curl with the key:
 ## Data operations
 - Schema: `lib/db/schema.ts` → `npx drizzle-kit push` (needs `.env.local` sourced).
 - One-off scripts in `scripts/*.mts`, run with `set -a; source .env.local; set +a; npx tsx scripts/<name>.mts`
-  (`.mts` because top-level await). Existing: `backfill-region`, `backfill-images`, `fix-rows`.
+  (`.mts` because top-level await). Existing: `backfill-region`, `backfill-images`, `fix-rows`, `merge-places` (fold a duplicate card into another).
 - Inspect prod data: same curl as above against `https://pinsta-two.vercel.app/api/places`, with the key once the lock is on. One request at a time (see the Vercel polling gotcha).
 
 ## Conventions
