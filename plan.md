@@ -2,10 +2,10 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
-## Last session — 2026-09-29
-- What we built: the web list is now **owner-only** (`lib/owner.ts`, key screen on the web) so friends' iOS installs can't read or wipe it; iOS no longer imports the web list on first launch; distribution plumbing (export-compliance flag, shared version numbers, privacy manifests, friend-facing empty state).
-- Where we stopped: web lock is pushed but **inactive until `PINSTA_OWNER_KEY` is set in Vercel**. Xcode license accepted; iOS builds again and was checked on a clean iPhone 17 simulator (fresh install starts empty; a tagged post saves itself with no tap).
-- Next action: fix the add-sheet findings below once Sarp confirms they're what he saw, then archive for TestFlight as soon as the paid developer account is active.
+## Last session — 2026-09-29 (long one)
+- What we built: the web list became owner-only; the product was renamed Vicolo; a web design pass (emoji map pins with grouping, List view, icon view pill, round + that turns into ×, Directions ask-once, one place many posts, type colours, pull-up place sheet, Near me, buddy menu with Appearance, dark mode); saving from TikTok and Google Maps links, not just Instagram; then the whole pass ported to iOS in six chunks, each checked on the simulator.
+- Where we stopped: web and iOS at parity, everything pushed (`main`, Vercel deploys from it). The web lock is **still off** until `PINSTA_OWNER_KEY` is set in Vercel. TestFlight waits on the paid Apple Developer account.
+- Next action: Sarp sets the Vercel key and enrolls; then set the real team in `project.yml`, archive, and put the first build on Sarp's own phone through internal TestFlight.
 
 ## Phase 6 — Friends & family beta (TestFlight) 🟡 target: link out Sat 2026-10-03
 Goal: friends install Pinsta from a TestFlight public link and use it on their own, with their own list.
@@ -15,11 +15,8 @@ Code (mine):
 - [x] iOS: no web import; every install starts empty; empty state explains Share → Pinsta
 - [x] iOS: `ITSAppUsesNonExemptEncryption = NO`, `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` shared by app + extension, privacy manifests
 - [x] Build + Simulator check of the above (2026-09-29, clean iPhone 17 simulator)
-- [ ] Resolve the open add-sheet issue from 2026-09-15. Seen on the clean simulator, 2026-09-29 — Sarp to confirm these are it:
-      - the card **jumps up** when the keyboard switches from the URL layout to the search layout (different heights)
-      - the system Paste button sits inside a second outlined box (double border)
-      - a sliver of the black Save button shows below the card
-      - iOS saved Ästad Vingård as **Hotel · Tvååker**; web has **Vineyard · Ästad**. MapKit's hotel category wins over the name heuristic, and MapKit's locality differs from Google's.
+- [x] Add-sheet issue from 2026-09-15: keyboard jump deferred by Sarp; double-bordered Paste and the Save sliver are gone with the round + redesign.
+- [ ] iOS categories: MapKit calls Ästad Vingård a hotel in Tvååker, the web says Vineyard · Ästad. A name word like "vingård"/"vineyard" should beat MapKit's category.
 - [ ] Real team in `project.yml` (`DEVELOPMENT_TEAM`, automatic signing) → archive → upload
 - [ ] Sarp's own phone via internal TestFlight: **Share from inside Instagram** (never tested on a real device), swipe thresholds, undo timing
 - [ ] Submit for external Beta App Review by Thu 2026-10-01 → public link
@@ -51,7 +48,7 @@ Each chunk is built, checked on the simulator, committed and pushed on its own, 
 - [x] One place, many posts (web): same Google id, or within ~60 m with a shared name word, adds the post to that card (`posts` jsonb). Card shows "2 posts" and embeds all; "Wrong place?" removes just that post. Bar Brutal / Can Cisa merged into one card with both posts (2026-09-29, `scripts/merge-places.mts`).
 - [x] Directions: one button; first tap asks Apple Maps or Google Maps, remembers it, and confirms: "Saved Google Maps as your default. You can change it anytime in the menu, top right."
 
-## After the beta: design
+## Design ideas from 2026-09-29 — done
 - [x] Type colors everywhere (web): soft tint behind photo-less tiles and list rows; a full-strength dot beside the type in List and Cards (`CATEGORY_DOT`)
 - [x] Place preview as a pull-up sheet (web): opens short, drag or tap the handle for the full card (big photo, posts open), drag down to go back or away; the map stays live behind it
 - [x] Dark mode (web): System / Light / Dark under the buddy menu (System follows the phone); the stone palette is flipped once in `globals.css`, the map uses OpenFreeMap "dark"
@@ -68,17 +65,38 @@ Each chunk is built, checked on the simulator, committed and pushed on its own, 
 **Accounts belong to Social (Sarp, 2026-09-29).** The app knows its user locally and works fully without an account. Creating one (username + login) is the step into "I want to be social now". Open for CTO when Social starts: how a local-first list joins an account later.
 
 ## Next steps
-1. Sarp: add `PINSTA_OWNER_KEY` in Vercel (value in `.env.local`), production + preview, then redeploy. Enter the same key once in the web app.
-2. Sarp: enroll in the Apple Developer Program today; approval can take up to ~2 days and gates everything after.
-3. Sarp: confirm the add-sheet findings in Phase 6 are what he saw (or name what else).
-4. Then: build → internal TestFlight on Sarp's phone → external review → public link.
-5. ~~Port to iOS~~ done 2026-09-29 (six chunks, below). Was: tinted emoji pins + grouping, placeholder tiles, Near me, buddy menu, round + (→ × morph), List view, glyph view pill, card icon actions, Directions (ask once, remember, confirm), Appearance setting, one place many posts, type colors, pull-up sheet, dark mode, TikTok + Google Maps links (share extension must accept them too).
-6. Later: iCloud backup via CloudKit.
+1. Sarp: add `PINSTA_OWNER_KEY` in Vercel (value in `.env.local`), Production + Preview, redeploy, then enter it once on the web app.
+2. Sarp: enroll in the Apple Developer Program. It gates everything below.
+3. Real team in `project.yml` → archive → internal TestFlight on Sarp's phone. Test Share **from inside Instagram and TikTok** (never done on a real device), swipe and undo timing by thumb, Near me outdoors.
+4. Submit for external Beta App Review → public link → friends.
+5. After the first weekend: check Apify usage (every friend's Instagram save runs on Sarp's account).
 
 ## Waiting on Sarp
-- `PINSTA_OWNER_KEY` in Vercel — turns the web lock on
-- Paid Apple Developer Program — unblocks TestFlight; the weekend depends on it
-- Whether you want your own 12 places on your phone (they stay on the web either way)
+- `PINSTA_OWNER_KEY` in Vercel — turns the web lock on; until then the web list is public
+- Paid Apple Developer Program — unblocks TestFlight
+
+## Roadmap — after the beta
+Ordered roughly by how soon friends will feel it. None started.
+
+**Reliability**
+- iCloud backup (CloudKit) so a friend's list survives deleting the app. Needs the paid account. Local-first stays; no accounts.
+- Cheaper, sturdier Instagram reads. Apify is the one paid dependency on every save; watch cost and failure rate from the beta, then decide (keep, cache, or an alternative).
+- Real-device checks the simulator can't do: share sheet from Instagram/TikTok, location permission flow, Google Maps app deep link.
+- Short share links (`vm.tiktok.com`, `maps.app.goo.gl`): code follows them, never tested with real ones.
+
+**Small fixes**
+- Categories: name words ("vingård", "vineyard", "bakery") should beat MapKit's category on iOS (Ästad shows as Hotel).
+- iOS places saved from a Maps link have no photo (web gets Google's; iOS doesn't pay for Google). Options: the MapKit Look Around snapshot, or keep the emoji.
+- Web embeds posts inside the full place sheet; iOS shows links. Decide whether iOS should embed too.
+- Keyboard jump in the iOS add sheet (deferred by Sarp).
+
+**Reading posts better**
+- Untagged posts: the caption pattern covers "at X in Y". Reading captions with Claude would catch more, but it's paid; only if tags turn out to be missing often (decided: low-tech first).
+
+**Expansion packages** (sections above)
+- Social: send a place to a friend; later, see friends' saves. Accounts arrive here, optional, as the step into being social.
+- Check-ins: Been there / Want to go, check in, and "Nika wants to go here" where it meets Social.
+- Open for CTO before either: how a local-first list joins an account later.
 
 ## What it is
 

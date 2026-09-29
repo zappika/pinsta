@@ -55,6 +55,9 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   "Wrong place?"; several → tap; none → account suggestions → search. Same link
   twice → "Already saved". Edit mode re-selects the place behind a card.
 - **One place, many posts** (`lib/same-place.ts`): a save that matches an existing place (same Google id, or ≤60 m + a shared name word) appends to its `posts` jsonb instead of inserting. First post stays in the row columns.
+- **Views** (both apps): Map (emoji pins on type tints, grouped when they overlap), List, Cards, Tiles; an icon pill picks one. The round + opens the save sheet and becomes its ×. Tapping a place opens a pull-up sheet (short → full → away).
+- **Settings, per device** (web localStorage / iOS `Settings` in UserDefaults): Directions app (asked on first use), Appearance (System/Light/Dark). Both live in the round buddy menu, top right.
+- **Near me:** a Where option, 50 km, location asked only when picked.
 - **Cards:** swipe right-to-left → round change/remove buttons; full swipe removes.
   Delete is deferred 5 s behind an Undo toast (`PinstaApp.tsx` / `PlacesListView.swift`).
 - **iOS data:** SwiftData store in App Group `group.se.sarper.vicolo`, shared with
@@ -115,6 +118,12 @@ While the env var is unset the lock is off. Local curl with the key:
 - One-off scripts in `scripts/*.mts`, run with `set -a; source .env.local; set +a; npx tsx scripts/<name>.mts`
   (`.mts` because top-level await). Existing: `backfill-region`, `backfill-images`, `fix-rows`, `merge-places` (fold a duplicate card into another).
 - Inspect prod data: same curl as above against `https://pinsta-two.vercel.app/api/places`, with the key once the lock is on. One request at a time (see the Vercel polling gotcha).
+
+## Testing iOS
+- Use the second simulator (iPhone 17, `169AC70A-…`) for fresh-install and destructive tests; the main one (iPhone 17 Pro) keeps a list.
+- `xcrun simctl location <id> set 41.39,2.17` + `xcrun simctl privacy <id> grant location se.sarper.vicolo` for Near me.
+- Launch with `-slowNotices` to keep toasts up 30 s while checking them.
+- Test auto-save with a tagged post that still exists (Ästad Vingård `DdJIacKIplU`) or a Maps link; Bar Brutal's post was deleted.
 
 ## Conventions
 - Web first, then port to iOS in one pass. Keep shared rules identical.
