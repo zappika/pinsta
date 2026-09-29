@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import CoreLocation
 
 /// Thin wrapper: re-runs the query whenever the app comes back to the
 /// foreground, so places saved by the share extension show up.
@@ -57,10 +58,20 @@ private struct PlacesContent: View {
     private var labels: [UUID: String] { Grouping.destinationLabels(places) }
     private var shown: [Place] { places.filter { !hidden.contains($0.id) } }
 
+    // "Near me": located only when picked; never on launch.
+    @State private var here: CLLocation?
+    @State private var nearMe = NearMe()
+    private var nearIDs: Set<UUID> {
+        guard let here else { return [] }
+        return Set(shown.filter { here.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude)) <= NearMe.km * 1000 }.map(\.id))
+    }
+
     private var visible: [Place] {
         let labels = labels
+        let near = city == NearMe.tag ? nearIDs : []
         return shown.filter { p in
-            (city == nil || labels[p.id] == city) && (category == nil || p.category == category)
+            (city == nil || (city == NearMe.tag ? near.contains(p.id) : labels[p.id] == city))
+                && (category == nil || p.category == category)
         }
     }
 
@@ -75,9 +86,6 @@ private struct PlacesContent: View {
             .background(Color(.systemGroupedBackground))
 
             VStack(spacing: 10) {
-                if let peek, view != .cards {
-                    PeekCardView(place: peek) { withAnimation(.snappy) { self.peek = nil } }
-                }
                 if let notice {
                     Text(notice)
                         .font(.subheadline)
@@ -122,7 +130,14 @@ private struct PlacesContent: View {
                 }
             }
         }
-        .overlay(alignment: .bottomTrailing) { plusButton }
+        .overlay(alignment: .bottom) {
+            if let peek, view != .cards {
+                PeekCardView(place: peek) { withAnimation(.snappy) { self.peek = nil } }
+                    .id(peek.id)
+            }
+        }
+        .animation(.snappy, value: peek?.id)
+        .overlay(alignment: .bottomTrailing) { if peek == nil || view == .cards { plusButton } }
         .animation(.snappy, value: notice)
         .confirmationDialog("Open directions in", isPresented: Bindable(settings).choosingOpen, titleVisibility: .visible) {
             ForEach(Settings.MapsApp.allCases, id: \.self) { app in
@@ -139,7 +154,19 @@ private struct PlacesContent: View {
             // (WebImporter stays in the tree for a possible owner-only import later.)
             await PhotoRetry.run(in: context)
         }
-        .onChange(of: city) { _, _ in category = nil; peek = nil }
+        .onChange(of: city) { old, new in
+            category = nil
+            peek = nil
+            guard new == NearMe.tag else { return }
+            Task {
+                if let fix = await nearMe.locate() {
+                    here = fix
+                } else {
+                    city = old
+                    showNotice("Location is off. Allow it for Vicolo in Settings to use Near me.")
+                }
+            }
+        }
         .onChange(of: category) { _, _ in peek = nil }
         .onChange(of: view) { _, _ in peek = nil }
         .onDisappear { commitPending() }
@@ -178,7 +205,8 @@ private struct PlacesContent: View {
                     places: visible,
                     selected: $peek,
                     hideCategory: category != nil,
-                    hideCity: { city != nil && $0.city == city }
+                    hideCity: { city != nil && $0.city == city },
+                    here: here
                 )
                 .padding(.bottom, 160)
             }
@@ -298,12 +326,16 @@ private struct PlacesContent: View {
                 Menu {
                     Picker("Where", selection: $city) {
                         Label("Everywhere · \(shown.count)", systemImage: "globe").tag(String?.none)
+                        Label(here == nil ? "Near me" : "Near me · \(nearIDs.count)", systemImage: "location.fill").tag(String?.some(NearMe.tag))
                         ForEach(destinations, id: \.0) { name, count in
                             Text("\(name) · \(count)").tag(String?.some(name))
                         }
                     }
                 } label: {
-                    headerLabel(city ?? "Everywhere", muted: false)
+                    HStack(spacing: 6) {
+                        if city == NearMe.tag { Image(systemName: "location.fill").font(.title3.weight(.semibold)).foregroundStyle(Color(.label)) }
+                        headerLabel(city == NearMe.tag ? "Near me" : (city ?? "Everywhere"), muted: false)
+                    }
                 }
 
                 Menu {
@@ -390,7 +422,7 @@ private struct FloatingSheet<Content: View>: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            Color.black.opacity(0.3)
+            Color.black.opacity(0.4)
                 .ignoresSafeArea()
                 .onTapGesture(perform: onClose)
                 .transition(.opacity)

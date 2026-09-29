@@ -35,14 +35,14 @@ Known limits for the beta (tell friends):
 - The list lives only on the phone. Deleting the app deletes it; TestFlight updates keep it. iCloud backup comes after the paid account.
 - Every friend's save runs on Sarp's Apify account. The free plan allows 5 reads at a time; busy shows "try again in a minute". Check Apify usage after the first weekend.
 
-## iOS port of the 2026-09-29 web pass — in chunks
+## iOS port of the 2026-09-29 web pass — done
 Each chunk is built, checked on the simulator, committed and pushed on its own, then ticked here. A new session continues at the first unticked chunk.
 - [x] 1. Links (2026-09-29): TikTok + Google Maps links in the app and the share extension; Maps links searched in MapKit around their pin, a match on the pin auto-saves; caption pattern + stricter account match for untagged posts. Maps-link saves have no photo on iOS (that would need Google, paid).
 - [x] 2. Bottom bar (2026-09-29): SF Symbol view pill with List; round + with a springy press that turns into × above the save sheet; List view (photo rows, tap → sheet)
 - [x] 3. Map (2026-09-29): emoji pins on type tints (`PlaceCategory.tint` / `.dot`, same hex as web); pins within 44pt group into a count, tap zooms until it splits; no grouping below ~1 km span
-- [x] 4. Cards (2026-09-29): round Directions + Post icons, no button row; Directions asks once, remembers, confirms (5 s); buddy menu with Appearance (System/Light/Dark) + Directions. Known: buddy icon looks blank in dark — fix in 6. Launch arg `-slowNotices` keeps notices 30 s for testing.
+- [x] 4. Cards (2026-09-29): round Directions + Post icons, no button row; Directions asks once, remembers, confirms (5 s); buddy menu with Appearance (System/Light/Dark) + Directions. Launch arg `-slowNotices` keeps notices 30 s for testing.
 - [x] 5. Data + colour (2026-09-29): one place many posts (`Place.extraPostURLs`, `SamePlace` port; receipt "Added to this place", undo removes just that link; card "2 posts", Post menu); type dots on cards and list, tints behind photo-less thumbnails and tiles; tiles padded to six with a nudge
-- [ ] 6. Pull-up place sheet; Near me; dark mode pass
+- [x] 6. Pull-up sheet, Near me, dark mode (2026-09-29): place sheet on the bottom edge with a handle, short → full (300pt photo, post links) → away; Near me in Where (50 km, asks only when picked, distances in List, a plain notice if refused, `NSLocationWhenInUseUsageDescription` added); dark fixes: buddy icon, raised save sheet with inset fields, stronger dim, visible Near me arrow
 
 ## Before friends get it (agreed 2026-09-29)
 - [x] Save from TikTok and Google Maps links too (web, 2026-09-29). Google Maps: the link names the place (name + pin, or a place id), auto-saves one clear match, photo from Google. TikTok: the page's own data gives caption, author and the location tag when there is one; oEmbed for the thumbnail. No new paid service. Untagged posts: a caption pattern ("at Cal Pep in Barcelona") and the account, suggestions only.
@@ -72,7 +72,7 @@ Each chunk is built, checked on the simulator, committed and pushed on its own, 
 2. Sarp: enroll in the Apple Developer Program today; approval can take up to ~2 days and gates everything after.
 3. Sarp: confirm the add-sheet findings in Phase 6 are what he saw (or name what else).
 4. Then: build → internal TestFlight on Sarp's phone → external review → public link.
-5. Port to iOS — everything from the 2026-09-29 web pass: tinted emoji pins + grouping, placeholder tiles, Near me, buddy menu, round + (→ × morph), List view, glyph view pill, card icon actions, Directions (ask once, remember, confirm), Appearance setting, one place many posts, type colors, pull-up sheet, dark mode, TikTok + Google Maps links (share extension must accept them too).
+5. ~~Port to iOS~~ done 2026-09-29 (six chunks, below). Was: tinted emoji pins + grouping, placeholder tiles, Near me, buddy menu, round + (→ × morph), List view, glyph view pill, card icon actions, Directions (ask once, remember, confirm), Appearance setting, one place many posts, type colors, pull-up sheet, dark mode, TikTok + Google Maps links (share extension must accept them too).
 6. Later: iCloud backup via CloudKit.
 
 ## Waiting on Sarp

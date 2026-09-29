@@ -7,8 +7,10 @@ struct PlaceCardView: View {
     let place: Place
     var hideCategory = false
     var hideCity = false
-    /// Shorter photo — for the PeekCard floating over the map or the grid.
+    /// Shorter photo — for the place sheet in its short state.
     var compact = false
+    /// The place sheet at full height: big photo, every post listed.
+    var expanded = false
 
     private var postURLs: [String] { place.allPostURLs.filter { SourceURL.parse($0)?.kind != .google } }
 
@@ -24,7 +26,7 @@ struct PlaceCardView: View {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
-                    .frame(height: compact ? 128 : 176)
+                    .frame(height: compact ? 128 : expanded ? 300 : 176)
                     .frame(maxWidth: .infinity)
                     .clipped()
             }
@@ -56,6 +58,24 @@ struct PlaceCardView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
+
+            if expanded && !postURLs.isEmpty {
+                Divider()
+                ForEach(Array(postURLs.enumerated()), id: \.offset) { i, url in
+                    Button { open(url) } label: {
+                        HStack {
+                            Image(systemName: SourceURL.parse(url)?.kind == .tiktok ? "play.rectangle" : "camera")
+                            Text(postURLs.count > 1 ? "Post \(i + 1)" : "Open the post")
+                            Spacer()
+                            Image(systemName: "arrow.up.right").foregroundStyle(.tertiary)
+                        }
+                        .font(.subheadline.weight(.medium))
+                        .padding(.horizontal, 16).padding(.vertical, 12)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.bottom, 24)
+            }
         }
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }

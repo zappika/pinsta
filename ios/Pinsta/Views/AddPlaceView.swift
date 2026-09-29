@@ -100,7 +100,8 @@ struct AddPlaceView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
+        // Raised surface: white in light, the elevated grey in dark (never pure black on black).
+        .background(Color(.secondarySystemGroupedBackground))
         .onAppear {
             if let editing {
                 reading = .done(InstagramPost(
@@ -134,7 +135,7 @@ struct AddPlaceView: View {
                     .keyboardType(.URL)
                     .focused($focus, equals: .url)
                     .padding(.horizontal, 14).padding(.vertical, 10)
-                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+                    .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(!urlText.isEmpty && validURL == nil ? Color.red.opacity(0.5) : Color.clear)
@@ -198,7 +199,7 @@ struct AddPlaceView: View {
         .submitLabel(.search)
         .focused($focus, equals: .query)
         .padding(.horizontal, 14).padding(.vertical, 10)
-        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+        .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private var candidateList: some View {

@@ -17,9 +17,10 @@ struct BuddyMenu: View {
                 Label("Directions: \(settings.mapsApp?.label ?? "Ask each time")", systemImage: "location.north")
             }
         } label: {
+            // Explicit colour: a Menu label otherwise takes the tint, which vanished in dark.
             Image(systemName: "person")
                 .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color(.secondaryLabel))
                 .frame(width: 36, height: 36)
                 .background(Color(.tertiarySystemFill), in: Circle())
         }

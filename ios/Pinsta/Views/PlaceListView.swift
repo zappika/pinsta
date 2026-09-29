@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 /// The directory list (port of the web's PlaceList): rounded square photo,
 /// name, type, town. Tap a row → the place sheet, like Tiles. What the header
@@ -8,6 +9,7 @@ struct PlaceListView: View {
     @Binding var selected: Place?
     var hideCategory = false
     var hideCity: (Place) -> Bool = { _ in false }
+    var here: CLLocation? = nil
 
     var body: some View {
         LazyVStack(spacing: 0) {
@@ -45,7 +47,10 @@ struct PlaceListView: View {
                         Text(p.category.rawValue).font(.subheadline).foregroundStyle(.secondary)
                     }
                 }
-                if !hideCity(p), let city = p.city { Text(city).font(.subheadline).foregroundStyle(.secondary).lineLimit(1) }
+                let km = here.map { $0.distance(from: CLLocation(latitude: p.latitude, longitude: p.longitude)) / 1000 }
+                let whereText = [km.map { $0 < 10 ? String(format: "%.1f km", $0) : "\(Int($0.rounded())) km" }, hideCity(p) ? nil : p.city]
+                    .compactMap { $0 }.joined(separator: " · ")
+                if !whereText.isEmpty { Text(whereText).font(.subheadline).foregroundStyle(.secondary).lineLimit(1) }
             }
             Spacer(minLength: 0)
         }
