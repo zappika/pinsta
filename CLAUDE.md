@@ -58,6 +58,9 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   the extension. First launch imports the web DB once (`WebImporter`). The list
   refetches on foreground because SwiftData doesn't see the extension's writes.
 
+## Dark mode
+No `dark:` classes. `globals.css` flips Tailwind's stone palette variables (and white, red, amber) under `prefers-color-scheme: dark`, so any stone/white class works in both themes. New colours outside that palette need an entry there. The map switches to OpenFreeMap `dark`.
+
 ## The owner key
 The web list is Sarp's alone (`lib/owner.ts`). Every `/api/places*` route and
 `/api/places/search` need header `x-pinsta-key: $PINSTA_OWNER_KEY`; the web app

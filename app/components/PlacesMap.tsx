@@ -6,8 +6,9 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { emojiFor, tintFor } from "@/lib/categories";
 import type { Place } from "./types";
 
-// OpenFreeMap: vector tiles, no key, no quota. Positron is the quiet grey style.
-const STYLE = "https://tiles.openfreemap.org/styles/positron";
+// OpenFreeMap: vector tiles, no key, no quota. Positron is the quiet grey style; "dark" its night twin.
+const STYLE_LIGHT = "https://tiles.openfreemap.org/styles/positron";
+const STYLE_DARK = "https://tiles.openfreemap.org/styles/dark";
 /** Pins closer than this on screen are shown as one numbered circle. */
 const CLUSTER_PX = 44;
 /** From street level on, never group — two entries at one address would never split. */
@@ -41,7 +42,7 @@ export default function PlacesMap({ places, selected, onSelect }: Props) {
       lib.setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
       const m = new lib.Map({
         container: container.current,
-        style: STYLE,
+        style: matchMedia("(prefers-color-scheme: dark)").matches ? STYLE_DARK : STYLE_LIGHT,
         center: [10, 50],
         zoom: 3,
         attributionControl: { compact: true },
