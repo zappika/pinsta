@@ -73,8 +73,8 @@ export default function PlacesMap({ places, selected, onSelect }: Props) {
       el.style.cssText = "width:44px;height:44px;cursor:pointer";
       const pin = document.createElement("div");
       pin.className = "pinsta-pin";
-      if (p.imageUrl) pin.style.backgroundImage = `url(${p.imageUrl})`;
-      else pin.textContent = emojiFor(p.category);
+      // Emoji only: a photo shrunk to 44px is unreadable; the type glyph reads at a glance.
+      pin.textContent = emojiFor(p.category);
       const label = document.createElement("div");
       label.className = "pinsta-pin-label";
       label.textContent = p.name;

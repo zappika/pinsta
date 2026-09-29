@@ -2,25 +2,29 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CATEGORIES } from "@/lib/categories";
+import { NEAR } from "@/lib/geo";
+import BuddyMenu from "./BuddyMenu";
 import type { Place } from "./types";
 
 type Props = {
   places: Place[];
   /** Destination label per place id (see lib/grouping). */
   labels: Map<string, string>;
+  /** Places within NEAR_KM of you, once the browser has shared a location. */
+  nearIds: Set<string> | null;
   city: string | null;
   category: string | null;
   onCity: (c: string | null) => void;
   onCategory: (c: string | null) => void;
 };
 
-type Option = { value: string | null; label: string; count: number };
+type Option = { value: string | null; label: string; count: number | null; locate?: boolean };
 
 /**
  * The header *is* the filter: "Barcelona ▾  Everything ▾".
  * Each half opens an action-sheet picker with counts.
  */
-export default function Filters({ places, labels, city, category, onCity, onCategory }: Props) {
+export default function Filters({ places, labels, nearIds, city, category, onCity, onCategory }: Props) {
   const [open, setOpen] = useState<"city" | "category" | null>(null);
 
   const cityOptions = useMemo<Option[]>(() => {
@@ -32,13 +36,15 @@ export default function Filters({ places, labels, city, category, onCity, onCate
     const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
     return [
       { value: null, label: "Everywhere", count: places.length },
+      { value: NEAR, label: "Near me", count: nearIds ? nearIds.size : null, locate: true },
       ...sorted.map(([c, n]) => ({ value: c, label: c, count: n })),
     ];
-  }, [places, labels]);
+  }, [places, labels, nearIds]);
 
   const categoryOptions = useMemo<Option[]>(() => {
     // Counts respect the chosen destination so the picker never offers an empty result.
-    const scoped = city ? places.filter((p) => labels.get(p.id) === city) : places;
+    const scoped =
+      city === NEAR ? places.filter((p) => nearIds?.has(p.id)) : city ? places.filter((p) => labels.get(p.id) === city) : places;
     const counts = new Map<string, number>();
     for (const p of scoped) if (p.category) counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
     return [
@@ -49,21 +55,24 @@ export default function Filters({ places, labels, city, category, onCity, onCate
         count: counts.get(c)!,
       })),
     ];
-  }, [places, labels, city]);
+  }, [places, labels, nearIds, city]);
 
   return (
     <>
       <header className="flex items-baseline gap-3 px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-4">
         <Trigger
-          label={city ?? "Everywhere"}
+          label={city === NEAR ? "Near me" : (city ?? "Everywhere")}
+          locate={city === NEAR}
           onClick={() => setOpen("city")}
-          className="text-2xl font-semibold tracking-tight"
+          // The place name keeps its room; "Everything" gives way first.
+          className="max-w-[65%] shrink-0 text-2xl font-semibold tracking-tight"
         />
         <Trigger
           label={category ? pluralize(category) : "Everything"}
           onClick={() => setOpen("category")}
           className="text-2xl font-semibold tracking-tight text-stone-400"
         />
+        <BuddyMenu />
       </header>
 
       {open === "city" && (
@@ -94,14 +103,25 @@ export default function Filters({ places, labels, city, category, onCity, onCate
   );
 }
 
+/** The location arrow used for "Near me". */
+function LocateGlyph({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className="shrink-0" aria-hidden>
+      <path d="M21 3 3 10.5l7.5 3L13.5 21 21 3Z" />
+    </svg>
+  );
+}
+
 function Trigger({
   label,
   onClick,
   className,
+  locate,
 }: {
   label: string;
   onClick: () => void;
   className?: string;
+  locate?: boolean;
 }) {
   return (
     <button
@@ -109,6 +129,7 @@ function Trigger({
       onClick={onClick}
       className={`-mx-1 flex min-w-0 items-center gap-1 rounded-lg px-1 py-0.5 active:bg-stone-200 ${className ?? ""}`}
     >
+      {locate && <LocateGlyph size={20} />}
       <span className="truncate">{label}</span>
       <svg
         width="14"
@@ -162,7 +183,10 @@ function Picker({
                   onClick={() => onSelect(o.value)}
                   className="flex w-full items-center justify-between px-4 py-3.5 text-left text-base active:bg-stone-50"
                 >
-                  <span className={active ? "font-semibold" : "font-medium"}>{o.label}</span>
+                  <span className={`flex items-center gap-2 ${active ? "font-semibold" : "font-medium"}`}>
+                    {o.locate && <LocateGlyph />}
+                    {o.label}
+                  </span>
                   <span className="flex items-center gap-3 text-sm tabular-nums text-stone-400">
                     {o.count}
                     {active && (

@@ -38,7 +38,8 @@ Known limits for the beta (tell friends):
 2. Sarp: enroll in the Apple Developer Program today; approval can take up to ~2 days and gates everything after.
 3. Sarp: confirm the add-sheet findings in Phase 6 are what he saw (or name what else).
 4. Then: build → internal TestFlight on Sarp's phone → external review → public link.
-5. Later: Sander on the two-row bottom stack (pill + Save); iCloud backup via CloudKit.
+5. Port to iOS: emoji-only map pins, placeholder tiles, Near me, buddy menu (web done 2026-09-29).
+6. Later: Sander on the two-row bottom stack (pill + Save); iCloud backup via CloudKit.
 
 ## Waiting on Sarp
 - `PINSTA_OWNER_KEY` in Vercel — turns the web lock on
@@ -200,3 +201,4 @@ pre-loaded with the shared post and saves to the same list the app shows.
 - **2026-09-29 — No automatic web import on iOS.** It would hand Sarp's list to every friend.
 - **2026-09-29 — Distribute through a TestFlight public link**, not per-email invites or cable installs.
 - **2026-09-29 — App name stays Pinsta.** Keyboard jump in the iOS add sheet: not fixing for now (Sarp).
+- **2026-09-29 — Web design pass (Sarp):** map pins show only the category emoji; a short Tiles grid is padded to two rows with placeholders and a nudge; Where gets a "Near me" option (50 km, asked only when picked, not the default, so the page never prompts on load); a round buddy button top right opens a menu (today: Lock this browser).

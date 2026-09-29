@@ -12,6 +12,7 @@ import PlaceTiles from "./PlaceTiles";
 import PeekCard from "./PeekCard";
 import ViewSwitch, { type View } from "./ViewSwitch";
 import { destinationLabels } from "@/lib/grouping";
+import { NEAR, NEAR_KM, currentPosition, kmBetween } from "@/lib/geo";
 
 export default function PinstaApp() {
   const [places, setPlaces] = useState<Place[] | null>(null);
@@ -118,14 +119,22 @@ export default function PinstaApp() {
 
   const labels = useMemo(() => destinationLabels(places ?? []), [places]);
 
+  // "Near me": asked for only when chosen, never on load.
+  const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
+  const [locError, setLocError] = useState<string | null>(null);
+  const nearIds = useMemo(
+    () => (here ? new Set((places ?? []).filter((p) => kmBetween(here, p) <= NEAR_KM).map((p) => p.id)) : null),
+    [here, places],
+  );
+
   const visible = useMemo(() => {
     if (!places) return [];
     return places.filter(
       (p) =>
-        (city === null || labels.get(p.id) === city) &&
+        (city === null || (city === NEAR ? nearIds?.has(p.id) : labels.get(p.id) === city)) &&
         (category === null || p.category === category),
     );
-  }, [places, labels, city, category]);
+  }, [places, labels, nearIds, city, category]);
 
   function onSaved(p: Place) {
     setPlaces((prev) => [p, ...(prev ?? [])]);
@@ -155,9 +164,19 @@ export default function PinstaApp() {
         <Filters
           places={places}
           labels={labels}
+          nearIds={nearIds}
           city={city}
           category={category}
-          onCity={(c) => {
+          onCity={async (c) => {
+            setLocError(null);
+            if (c === NEAR) {
+              try {
+                setHere(await currentPosition());
+              } catch {
+                setLocError("Location is off. Allow it for this site to use Near me.");
+                return;
+              }
+            }
             setCity(c);
             setCategory(null);
             setPeek(null);
@@ -182,6 +201,7 @@ export default function PinstaApp() {
               : "flex-1 px-5 pb-40"
         }
       >
+        {locError && <p className="mb-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">{locError}</p>}
         {error && (
           <p className="mt-6 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>
         )}
