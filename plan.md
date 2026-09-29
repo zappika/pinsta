@@ -2,8 +2,8 @@
 
 ## Last session — 2026-09-29
 - What we built: the web list is now **owner-only** (`lib/owner.ts`, key screen on the web) so friends' iOS installs can't read or wipe it; iOS no longer imports the web list on first launch; distribution plumbing (export-compliance flag, shared version numbers, privacy manifests, friend-facing empty state).
-- Where we stopped: web lock is pushed but **inactive until `PINSTA_OWNER_KEY` is set in Vercel**. iOS changes are committed but **not yet built** — Xcode 27 arrived with macOS 27 and needs its license accepted (sudo).
-- Next action: once Sarp runs the sudo commands, build + run on the Simulator, then archive for TestFlight as soon as the paid developer account is active.
+- Where we stopped: web lock is pushed but **inactive until `PINSTA_OWNER_KEY` is set in Vercel**. Xcode license accepted; iOS builds again and was checked on a clean iPhone 17 simulator (fresh install starts empty; a tagged post saves itself with no tap).
+- Next action: fix the add-sheet findings below once Sarp confirms they're what he saw, then archive for TestFlight as soon as the paid developer account is active.
 
 ## Phase 6 — Friends & family beta (TestFlight) 🟡 target: link out Sat 2026-10-03
 Goal: friends install Pinsta from a TestFlight public link and use it on their own, with their own list.
@@ -12,8 +12,12 @@ Code (mine):
 - [x] Web list owner-only; `/api/extract` stays open for the app, no Google spend from strangers
 - [x] iOS: no web import; every install starts empty; empty state explains Share → Pinsta
 - [x] iOS: `ITSAppUsesNonExemptEncryption = NO`, `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` shared by app + extension, privacy manifests
-- [ ] Build + Simulator check of the above (blocked on the Xcode license)
-- [ ] Resolve the open add-sheet issue from 2026-09-15 (Sarp names what he saw)
+- [x] Build + Simulator check of the above (2026-09-29, clean iPhone 17 simulator)
+- [ ] Resolve the open add-sheet issue from 2026-09-15. Seen on the clean simulator, 2026-09-29 — Sarp to confirm these are it:
+      - the card **jumps up** when the keyboard switches from the URL layout to the search layout (different heights)
+      - the system Paste button sits inside a second outlined box (double border)
+      - a sliver of the black Save button shows below the card
+      - iOS saved Ästad Vingård as **Hotel · Tvååker**; web has **Vineyard · Ästad**. MapKit's hotel category wins over the name heuristic, and MapKit's locality differs from Google's.
 - [ ] Real team in `project.yml` (`DEVELOPMENT_TEAM`, automatic signing) → archive → upload
 - [ ] Sarp's own phone via internal TestFlight: **Share from inside Instagram** (never tested on a real device), swipe thresholds, undo timing
 - [ ] Submit for external Beta App Review by Thu 2026-10-01 → public link
@@ -30,18 +34,16 @@ Known limits for the beta (tell friends):
 - Every friend's save runs on Sarp's Apify account. The free plan allows 5 reads at a time; busy shows "try again in a minute". Check Apify usage after the first weekend.
 
 ## Next steps
-1. Sarp: accept the Xcode license and finish first launch (commands in `CLAUDE.md` › Gotchas).
-2. Sarp: add `PINSTA_OWNER_KEY` in Vercel (value in `.env.local`), production + preview, then redeploy. Enter the same key once in the web app.
-3. Sarp: enroll in the Apple Developer Program today; approval can take up to ~2 days and gates everything after.
-4. Sarp: say what looked wrong in the iOS add sheet, or send an unsaved post link to run side by side.
-5. Then: build → internal TestFlight on Sarp's phone → external review → public link.
-6. Later: Sander on the two-row bottom stack (pill + Save); iCloud backup via CloudKit.
+1. Sarp: add `PINSTA_OWNER_KEY` in Vercel (value in `.env.local`), production + preview, then redeploy. Enter the same key once in the web app.
+2. Sarp: enroll in the Apple Developer Program today; approval can take up to ~2 days and gates everything after.
+3. Sarp: confirm the add-sheet findings in Phase 6 are what he saw (or name what else).
+4. Then: build → internal TestFlight on Sarp's phone → external review → public link.
+5. Later: Sander on the two-row bottom stack (pill + Save); iCloud backup via CloudKit.
 
 ## Waiting on Sarp
-- Xcode license + first launch (sudo) — unblocks every iOS build
 - `PINSTA_OWNER_KEY` in Vercel — turns the web lock on
 - Paid Apple Developer Program — unblocks TestFlight; the weekend depends on it
-- What looked wrong in the iOS add sheet — last open bug before friends see it
+- Are the four add-sheet findings (Phase 6) what you saw? — last open bug before friends see it
 - App Store Connect name (and a fallback) — needed for the app record
 - Whether you want your own 12 places on your phone (they stay on the web either way)
 

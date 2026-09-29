@@ -67,6 +67,11 @@ While the env var is unset the lock is off. Local curl with the key:
 `curl -H "x-pinsta-key: $(grep PINSTA_OWNER_KEY .env.local | cut -d= -f2)" localhost:3010/api/places`
 
 ## Gotchas that cost time
+- **Saved posts can vanish.** Instagram posts get deleted (Bar Brutal's did); the
+  reader then says "Post does not exist" and the app falls back to typing. Test
+  auto-save with a tagged post that still exists — Ästad Vingård (`DdJIacKIplU`).
+- **Test fresh installs on a second simulator** (e.g. iPhone 17) so the main one
+  keeps its list.
 - **Pull before you start.** Two sessions (two machines) work on this repo. On
   2026-09-29 a session built on a copy eight commits old and had to rebase.
 - **Xcode license after an OS update.** macOS 27 brought Xcode 27; until
