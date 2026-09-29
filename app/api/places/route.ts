@@ -8,13 +8,18 @@ import { findPhoto } from "@/lib/photo";
 
 // Finding a missing photo may mean re-reading the post (5–30 s).
 export const maxDuration = 60;
+import { requireOwner } from "@/lib/owner";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const locked = requireOwner(req);
+  if (locked) return locked;
   const rows = await getDb().select().from(places).orderBy(desc(places.createdAt));
   return NextResponse.json({ places: rows });
 }
 
 export async function POST(req: Request) {
+  const locked = requireOwner(req);
+  if (locked) return locked;
   const body = (await req.json().catch(() => ({}))) as {
     instagramUrl?: string;
     placeId?: string;

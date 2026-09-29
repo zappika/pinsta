@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { searchPlaces } from "@/lib/google-places";
+import { requireOwner } from "@/lib/owner";
 
 export async function POST(req: Request) {
+  const locked = requireOwner(req);
+  if (locked) return locked;
   const { query } = (await req.json().catch(() => ({}))) as { query?: string };
   const q = query?.trim();
   if (!q) {

@@ -3,11 +3,14 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { places } from "@/lib/db/schema";
 import { getPlace } from "@/lib/google-places";
+import { requireOwner } from "@/lib/owner";
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const locked = requireOwner(req);
+  if (locked) return locked;
   const { id } = await params;
   const deleted = await getDb().delete(places).where(eq(places.id, id)).returning();
   if (deleted.length === 0) {
@@ -21,6 +24,8 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const locked = requireOwner(req);
+  if (locked) return locked;
   const { id } = await params;
   const body = (await req.json().catch(() => ({}))) as { placeId?: string };
   if (!body.placeId) {

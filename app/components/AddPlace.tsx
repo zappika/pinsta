@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { normalizeInstagramUrl } from "@/lib/instagram";
+import { api } from "@/lib/api";
 import type { Place, PlaceCandidate } from "./types";
 
 type Props = {
@@ -101,7 +102,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
     // Debounce: every prefix of a URL being typed is itself a "valid" link.
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch("/api/extract", {
+        const res = await api("/api/extract", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -148,7 +149,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
       setSearching(true);
       setError(null);
       try {
-        const res = await fetch("/api/places/search", {
+        const res = await api("/api/places/search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: q }),
@@ -184,7 +185,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
     setError(null);
     try {
       if (editing) {
-        const res = await fetch(`/api/places/${editing.id}`, {
+        const res = await api(`/api/places/${editing.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ placeId: c.placeId }),
@@ -195,7 +196,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
         setSaved({ place: data.place, automatic: false, already: false, changed: true });
         return;
       }
-      const res = await fetch("/api/places", {
+      const res = await api("/api/places", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -224,7 +225,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
     setSaved(null);
     setAutoSaveDeclined(true);
     onRemoved(id);
-    await fetch(`/api/places/${id}`, { method: "DELETE" }).catch(() => undefined);
+    await api(`/api/places/${id}`, { method: "DELETE" }).catch(() => undefined);
     queryRef.current?.focus();
   }
 

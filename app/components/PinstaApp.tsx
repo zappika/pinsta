@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { api, setOwnerKey } from "@/lib/api";
 import type { Place } from "./types";
 import AddPlace from "./AddPlace";
 import Filters from "./Filters";
@@ -25,7 +26,7 @@ export default function PinstaApp() {
 
   const commitDelete = useCallback((id: string) => {
     pending.current.delete(id);
-    fetch(`/api/places/${id}`, { method: "DELETE", keepalive: true }).catch(() => undefined);
+    api(`/api/places/${id}`, { method: "DELETE", keepalive: true }).catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -66,6 +67,8 @@ export default function PinstaApp() {
     const t = setTimeout(() => setToast(null), 5000);
     return () => clearTimeout(t);
   }, [toast]);
+  const [locked, setLocked] = useState(false);
+  const [keyTried, setKeyTried] = useState(false);
   const [city, setCity] = useState<string | null>(null);
   const [category, setCategory] = useState<string | null>(null);
 
@@ -88,8 +91,13 @@ export default function PinstaApp() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/places", { cache: "no-store" });
+      const res = await api("/api/places", { cache: "no-store" });
+      if (res.status === 401) {
+        setLocked(true);
+        return;
+      }
       if (!res.ok) throw new Error(await res.text());
+      setLocked(false);
       const data = (await res.json()) as { places: Place[] };
       setPlaces(data.places);
     } catch (e) {
@@ -100,6 +108,13 @@ export default function PinstaApp() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Any API call that comes back 401 (key missing or changed) shows the key screen.
+  useEffect(() => {
+    const onLocked = () => setLocked(true);
+    window.addEventListener("pinsta:locked", onLocked);
+    return () => window.removeEventListener("pinsta:locked", onLocked);
+  }, []);
 
   const labels = useMemo(() => destinationLabels(places ?? []), [places]);
 
@@ -118,6 +133,20 @@ export default function PinstaApp() {
 
   function onUpdated(p: Place) {
     setPlaces((prev) => prev?.map((x) => (x.id === p.id ? p : x)) ?? null);
+  }
+
+  if (locked) {
+    return (
+      <Locked
+        rejected={keyTried}
+        onKey={(k) => {
+          setKeyTried(true);
+          setOwnerKey(k);
+          setError(null);
+          load();
+        }}
+      />
+    );
   }
 
   return (
@@ -255,6 +284,37 @@ export default function PinstaApp() {
           onRemoved={(id) => setPlaces((ps) => ps?.filter((p) => p.id !== id) ?? null)}
         />
       )}
+    </main>
+  );
+}
+
+/** The web list is private (see lib/owner.ts). One field, remembered in this browser. */
+function Locked({ onKey, rejected }: { onKey: (key: string) => void; rejected: boolean }) {
+  const [key, setKey] = useState("");
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5">
+      <h1 className="text-2xl font-semibold tracking-tight">Pinsta</h1>
+      <p className="mt-1 text-sm text-stone-500">This list is private. Enter your key to open it.</p>
+      <form
+        className="mt-5 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (key.trim()) onKey(key);
+        }}
+      >
+        <input
+          type="password"
+          autoComplete="current-password"
+          value={key}
+          onChange={(e) => setKey(e.target.value)}
+          placeholder="Key"
+          className="min-w-0 flex-1 rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-base outline-none focus:border-stone-400"
+        />
+        <button type="submit" className="rounded-xl bg-stone-900 px-4 text-sm font-medium text-white active:bg-stone-800">
+          Open
+        </button>
+      </form>
+      {rejected && <p className="mt-2 text-sm text-red-600">That key didn&apos;t open it.</p>}
     </main>
   );
 }

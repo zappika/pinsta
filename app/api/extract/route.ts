@@ -3,6 +3,7 @@ import { fetchInstagramPost } from "@/lib/instagram-post";
 import { normalizeInstagramUrl } from "@/lib/instagram";
 import { resolveAccount, resolveTag, type PlaceCandidate } from "@/lib/google-places";
 import { storeImage } from "@/lib/blob";
+import { isOwner } from "@/lib/owner";
 
 // Apify runs take 5–30s; give the function room.
 export const maxDuration = 60;
@@ -30,7 +31,8 @@ export async function POST(req: Request) {
     cityHints?: string[];
   };
   // The iOS app resolves places with MapKit itself; skip the Google call for it.
-  const native = body.native === true || body.native === "true";
+  // Anyone but the owner gets native mode too: no Google Places spend from unknown callers.
+  const native = body.native === true || body.native === "true" || !isOwner(req);
   const url = normalizeInstagramUrl(body.instagramUrl ?? "");
   if (!url) {
     return NextResponse.json({ error: "Not an Instagram post link" }, { status: 400 });
