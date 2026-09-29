@@ -38,7 +38,7 @@ Known limits for the beta (tell friends):
 2. Sarp: enroll in the Apple Developer Program today; approval can take up to ~2 days and gates everything after.
 3. Sarp: confirm the add-sheet findings in Phase 6 are what he saw (or name what else).
 4. Then: build → internal TestFlight on Sarp's phone → external review → public link.
-5. Port to iOS: tinted emoji map pins, placeholder tiles, Near me, buddy menu, round + instead of the Save bar, List view, + → × morph with the sheet rising from it (web done 2026-09-29).
+5. Port to iOS: tinted emoji map pins, placeholder tiles, Near me, buddy menu, round + instead of the Save bar, List view, glyph-only view pill, + → × morph with the sheet rising from it (web done 2026-09-29).
 6. Later: iCloud backup via CloudKit.
 
 ## Waiting on Sarp
@@ -204,3 +204,4 @@ pre-loaded with the shared post and saves to the same list the app shows.
 - **2026-09-29 — Web design pass (Sarp):** map pins show only the category emoji; a short Tiles grid is padded to two rows with placeholders and a nudge; Where gets a "Near me" option (50 km, asked only when picked, not the default, so the page never prompts on load); a round buddy button top right opens a menu (today: Lock this browser).
 - **2026-09-29 — Pins get a white border and a soft per-type tint** (`CATEGORY_TINT`). **Save a place becomes a round + at the bottom right**, in one row with the view pill (Sarp picked it over + in the pill or + in the header). Settles the two-row bottom stack question; no Sander needed.
 - **2026-09-29 — List view added** (Map · List · Cards · Tiles): rounded square photo, name, type, "distance · town" (distance only after Near me). Tap opens the PeekCard, like Tiles. **The + animates:** springy press, turns into × while the sheet is open, and the sheet rises from it.
+- **2026-09-29 — The view pill is glyphs, not words** (map, list, card, grid line icons; labels kept for screen readers and hover). Not emoji, per Sarp.

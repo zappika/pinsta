@@ -290,7 +290,7 @@ export default function PinstaApp() {
         view === "map" || adding ? "" : "bg-gradient-to-t from-stone-100 via-stone-100/90 to-transparent"
       }`}>
         {/* One row: the view pill centered, a round + at the right edge. */}
-        <div className="relative flex h-14 items-center justify-center pr-16">
+        <div className="relative flex h-14 items-center justify-center">
           {places && places.length > 0 && (
             <div className={`transition-opacity duration-200 ${adding ? "pointer-events-none opacity-0" : "opacity-100"}`}>
               <ViewSwitch view={view} onChange={setView} />
