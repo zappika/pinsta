@@ -12,13 +12,21 @@ export type Source = { kind: SourceKind; url: string };
 export const SOURCE_LABEL: Record<SourceKind, string> = { instagram: "Instagram", tiktok: "TikTok", google: "Google Maps" };
 
 export function parseSourceUrl(input: string): Source | null {
-  const raw = input.trim();
+  const raw = input.trim().replace(/[.,!?;:]+$/, "");
   const ig = normalizeInstagramUrl(raw);
   if (ig) return { kind: "instagram", url: ig };
   let u: URL;
   try {
     u = new URL(raw);
   } catch {
+    // Share sheets sometimes provide a caption followed by the link, rather
+    // than a URL item. Try every URL in the text, not just the first one.
+    for (const match of raw.matchAll(/https?:\/\/[^\s<>]+/g)) {
+      const link = match[0].replace(/[.,!?;:]+$/, "");
+      if (link === raw) continue;
+      const source = parseSourceUrl(link);
+      if (source) return source;
+    }
     return null;
   }
   const host = u.hostname.replace(/^(www|m)\./, "");

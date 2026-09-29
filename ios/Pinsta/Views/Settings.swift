@@ -53,10 +53,17 @@ final class Settings {
             item.name = place.name
             item.openInMaps()
         case .google:
-            let q = place.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? place.name
-            let native = URL(string: "comgooglemaps://?q=\(q)&center=\(place.latitude),\(place.longitude)")!
-            let web = URL(string: "https://www.google.com/maps/search/?api=1&query=\(q)&query_place_id=\(place.googlePlaceID ?? "")")!
-            UIApplication.shared.open(UIApplication.shared.canOpenURL(native) ? native : web)
+            // The name alone may find the wrong venue. A saved Google ID is
+            // exact; native MapKit saves have no ID, so use their coordinates.
+            // Maps URLs open the Google Maps app when installed, or the browser.
+            var url = URLComponents(string: "https://www.google.com/maps/search/")!
+            url.queryItems = [
+                URLQueryItem(name: "api", value: "1"),
+                URLQueryItem(name: "query", value: place.googlePlaceID == nil
+                    ? "\(place.latitude),\(place.longitude)" : place.name),
+            ]
+            if let id = place.googlePlaceID { url.queryItems?.append(URLQueryItem(name: "query_place_id", value: id)) }
+            if let link = url.url { UIApplication.shared.open(link) }
         }
     }
 }

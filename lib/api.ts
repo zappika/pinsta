@@ -6,8 +6,10 @@
  * listens for. See lib/owner.ts for the server side.
  */
 const STORAGE = "pinsta-owner-key";
+let pageKey: string | null = null;
 
 export function ownerKey(): string | null {
+  if (pageKey !== null) return pageKey;
   try {
     return localStorage.getItem(STORAGE);
   } catch {
@@ -16,8 +18,9 @@ export function ownerKey(): string | null {
 }
 
 export function setOwnerKey(key: string) {
+  pageKey = key.trim();
   try {
-    localStorage.setItem(STORAGE, key.trim());
+    localStorage.setItem(STORAGE, pageKey);
   } catch {
     /* storage blocked: the key lasts for this page only */
   }

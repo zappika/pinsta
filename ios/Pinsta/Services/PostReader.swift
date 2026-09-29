@@ -62,8 +62,19 @@ enum SourceURL {
 
     static func parse(_ input: String) -> (kind: Kind, url: String)? {
         let raw = input.trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: ".,!?;:"))
         if let ig = InstagramURL.normalize(raw) { return (.instagram, ig) }
-        guard let url = URL(string: raw), let rawHost = url.host()?.lowercased() else { return nil }
+        guard let url = URL(string: raw), let rawHost = url.host()?.lowercased() else {
+            // Apps may share "caption https://short.link/..." as plain text.
+            // Find a supported URL anywhere in it before showing an empty field.
+            let pattern = /https?:\/\/[^\s<>]+/
+            for match in raw.matches(of: pattern) {
+                let link = String(match.output).trimmingCharacters(in: CharacterSet(charactersIn: ".,!?;:"))
+                if link == raw { continue }
+                if let source = parse(link) { return source }
+            }
+            return nil
+        }
         let host = rawHost.replacingOccurrences(of: "^(www|m)\\.", with: "", options: .regularExpression)
         let path = url.path()
         if host == "tiktok.com" {

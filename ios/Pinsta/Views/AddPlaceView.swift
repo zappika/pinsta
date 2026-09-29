@@ -252,6 +252,13 @@ struct AddPlaceView: View {
         do {
             let post = try await PostReader.read(validURL)
             guard !Task.isCancelled else { return }
+            // A short link may resolve to a post already saved under its
+            // canonical URL. The pre-read duplicate check cannot see that.
+            if let existing = existingPlace(for: post.url) {
+                reading = .idle
+                withAnimation(.snappy) { saved = Saved(place: existing, automatic: false, already: true, changed: false) }
+                return
+            }
             reading = .done(post)
             let cityHints = Set((try? context.fetch(FetchDescriptor<Place>()))?.compactMap(\.city) ?? [])
             if post.kind == "google", let name = post.locationName {
@@ -331,7 +338,12 @@ struct AddPlaceView: View {
             // One place, many posts: a second post of a place already in the list joins its card.
             let all = (try? context.fetch(FetchDescriptor<Place>())) ?? []
             if let same = all.first(where: { SamePlace.matches($0, name: c.name, latitude: c.latitude, longitude: c.longitude) }) {
-                if !same.allPostURLs.contains(url) { same.extraPostURLs.append(url) }
+                if same.allPostURLs.contains(url) {
+                    saving = nil
+                    withAnimation(.snappy) { saved = Saved(place: same, automatic: false, already: true, changed: false) }
+                    return
+                }
+                same.extraPostURLs.append(url)
                 try? context.save()
                 saving = nil
                 withAnimation(.snappy) { saved = Saved(place: same, automatic: automatically, already: false, changed: false, mergedURL: url) }

@@ -23,13 +23,14 @@ final class ShareViewController: UIViewController {
         for item in items {
             for provider in item.attachments ?? [] {
                 if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier),
-                   let url = try? await provider.loadItem(forTypeIdentifier: UTType.url.identifier) as? URL {
-                    return url.absoluteString
+                   let url = try? await provider.loadItem(forTypeIdentifier: UTType.url.identifier) as? URL,
+                   let source = SourceURL.parse(url.absoluteString) {
+                    return source.url
                 }
                 if provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier),
                    let text = try? await provider.loadItem(forTypeIdentifier: UTType.plainText.identifier) as? String,
-                   SourceURL.parse(text) != nil {
-                    return text
+                   let source = SourceURL.parse(text) {
+                    return source.url
                 }
             }
         }

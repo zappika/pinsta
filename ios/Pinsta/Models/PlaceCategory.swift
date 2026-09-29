@@ -78,10 +78,13 @@ enum PlaceCategory: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Map MapKit's point-of-interest category onto our buckets.
-    /// Falls back to a name heuristic because MapKit has no "bar" category.
+    /// An explicit type in the name wins when MapKit classifies a mixed-use
+    /// place by a different business on the same property (e.g. a vineyard hotel).
+    /// Otherwise use MapKit, then the remaining name heuristics as a fallback.
     static func from(_ poi: MKPointOfInterestCategory?, name: String) -> PlaceCategory {
         let lower = name.lowercased()
+        if lower.contains("vingård") || lower.contains("vineyard") || lower.contains("winery") || lower.contains("vinyard") { return .vineyard }
+        if lower.contains("bakery") || lower.contains("bageri") || lower.contains("boulangerie") || lower.contains("pastisseria") { return .bakery }
         if let poi {
             switch poi {
             case .restaurant: return .restaurant
@@ -104,9 +107,7 @@ enum PlaceCategory: String, CaseIterable, Identifiable {
                 if raw.contains("bakery") { return .bakery }
             }
         }
-        if lower.contains("vingård") || lower.contains("vineyard") || lower.contains("winery") || lower.contains("vinyard") { return .vineyard }
         if lower.contains("bar ") || lower.hasSuffix(" bar") || lower.contains("cocktail") || lower.contains("pub") { return .bar }
-        if lower.contains("bakery") || lower.contains("bageri") || lower.contains("boulangerie") || lower.contains("pastisseria") { return .bakery }
         if lower.contains("hotel") || lower.contains("hostel") { return .hotel }
         if lower.contains("cafe") || lower.contains("café") || lower.contains("coffee") { return .cafe }
         if lower.contains("restaurant") || lower.contains("tapas") || lower.contains("bistro") { return .restaurant }

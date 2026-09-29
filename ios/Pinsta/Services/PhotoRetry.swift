@@ -13,9 +13,10 @@ enum PhotoRetry {
         guard !running else { return }
         running = true
         defer { running = false }
-        var d = FetchDescriptor<Place>(predicate: #Predicate { $0.imageData == nil })
-        d.fetchLimit = 5 // Apify's free plan allows 5 concurrent runs; stay well under, one at a time.
-        guard let missing = try? context.fetch(d), !missing.isEmpty else { return }
+        let d = FetchDescriptor<Place>(predicate: #Predicate { $0.imageData == nil })
+        // Maps links have no server photo in native mode. Exclude them before
+        // taking five, or they can permanently crowd out retryable posts.
+        let missing = ((try? context.fetch(d)) ?? []).filter { SourceURL.parse($0.instagramURL)?.kind != .google }.prefix(5)
         for place in missing {
             guard let post = try? await PostReader.read(place.instagramURL),
                   let data = await ImageLoader.data(from: post.imageURL) else { continue }

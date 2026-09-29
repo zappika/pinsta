@@ -2,21 +2,30 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
-## Last session — 2026-09-29 (long one)
-- What we built: the web list became owner-only; the product was renamed Vicolo; a web design pass (emoji map pins with grouping, List view, icon view pill, round + that turns into ×, Directions ask-once, one place many posts, type colours, pull-up place sheet, Near me, buddy menu with Appearance, dark mode); saving from TikTok and Google Maps links, not just Instagram; then the whole pass ported to iOS in six chunks, each checked on the simulator.
-- Where we stopped: web and iOS at parity, everything pushed (`main`, Vercel deploys from it). The web lock is **on** (key set in Vercel 2026-09-29, verified: 401 without it). TestFlight waits on the paid Apple Developer account.
-- Next action: Sarp enrolls in the Apple Developer Program; then set the real team in `project.yml`, archive, and put the first build on Sarp's own phone through internal TestFlight.
+## Latest handoff — 2026-09-29
+- The web and iOS feature pass is complete. The web owner lock is **on** in Vercel (verified: 401 without the key). Friends' iOS lists remain local.
+- Beta reliability fixes now in code: iOS name-first vineyard/bakery categories, short links inside shared text, canonical duplicate detection, Near me category counts, photo-retry filtering, coordinate-based Google Maps links, and a web owner-key fallback when browser storage rejects writes.
+- Verification: `npm run build` (including TypeScript), local mocked short-link redirect checks (`node --import tsx scripts/check-links.mts`), Swift syntax checks, and isolated Swift type checks passed. **A full iOS build and real-link/device tests are still pending.** This Codex shell could not run Xcode's SwiftUI macro service. Do not treat the earlier simulator build as verification of these new changes.
+- Sarp confirmed the paid Apple Developer membership is **not yet active**. Once active: set the real team in `ios/project.yml`, run a full signed build, test the share flow and Google Maps opening on his phone, then proceed to internal and external TestFlight.
+- The code review backlog below lists new reliability and performance findings. The iOS keyboard jump remains deferred; the Maps-link photo and inline-post decisions remain open.
 
 ## Phase 6 — Friends & family beta (TestFlight) 🟡 target: link out Sat 2026-10-03
-Goal: friends install Pinsta from a TestFlight public link and use it on their own, with their own list.
+Goal: friends install Vicolo from a TestFlight public link and use it on their own, with their own list.
 
 Code (mine):
 - [x] Web list owner-only; `/api/extract` stays open for the app, no Google spend from strangers
-- [x] iOS: no web import; every install starts empty; empty state explains Share → Pinsta
+- [x] iOS: no web import; every install starts empty; empty state explains Share → Vicolo
 - [x] iOS: `ITSAppUsesNonExemptEncryption = NO`, `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` shared by app + extension, privacy manifests
 - [x] Build + Simulator check of the above (2026-09-29, clean iPhone 17 simulator)
 - [x] Add-sheet issue from 2026-09-15: keyboard jump deferred by Sarp; double-bordered Paste and the Save sliver are gone with the round + redesign.
-- [ ] iOS categories: MapKit calls Ästad Vingård a hotel in Tvååker, the web says Vineyard · Ästad. A name word like "vingård"/"vineyard" should beat MapKit's category.
+- [x] iOS category precedence: an explicit vineyard or bakery word in the name beats MapKit's category (2026-09-29). Ästad still needs a device check for its city label.
+- [x] Share-text links: web and iOS accept a supported URL inside shared caption text; the share extension selects that URL (2026-09-29).
+- [x] iOS checks the canonical URL again after resolving a short link, so sharing the same post twice shows Already saved (2026-09-29).
+- [x] iOS Near me category counts reflect nearby places; photo retry skips Maps saves before its five-post limit (2026-09-29).
+- [x] Web owner key works for the current page even when browser storage rejects writes (2026-09-29).
+- [x] iOS Google Maps action uses a place ID when available, otherwise the saved coordinates instead of an ambiguous name search (2026-09-29); confirm app opening on a phone.
+- [ ] Try real `vm.tiktok.com` and `maps.app.goo.gl` links on a phone. Local redirect checks pass with simulated responses, but no real links were available for an end-to-end check.
+- [ ] Run a full iOS build after these changes. Swift parsing and isolated type checks pass; this Codex sandbox cannot run Xcode's SwiftUI macro service.
 - [ ] Real team in `project.yml` (`DEVELOPMENT_TEAM`, automatic signing) → archive → upload
 - [ ] Sarp's own phone via internal TestFlight: **Share from inside Instagram** (never tested on a real device), swipe thresholds, undo timing
 - [ ] Submit for external Beta App Review by Thu 2026-10-01 → public link
@@ -75,16 +84,13 @@ Each chunk is built, checked on the simulator, committed and pushed on its own, 
 - Paid Apple Developer Program — unblocks TestFlight
 
 ## Roadmap — after the beta
-Ordered roughly by how soon friends will feel it. None started.
+Ordered roughly by how soon friends will feel it. The category and share-text fixes above were pulled into the beta work; real-device checks remain a beta gate.
 
 **Reliability**
-- iCloud backup (CloudKit) so a friend's list survives deleting the app. Needs the paid account. Local-first stays; no accounts.
+- iCloud backup (CloudKit) so a friend's list survives deleting the app. Needs the paid account. Then add iCloud/Background Modes capabilities, check the SwiftData schema and App Group store migration, enable the CloudKit configuration, and verify sync plus reinstall on real devices. Local-first stays; no app accounts.
 - Cheaper, sturdier Instagram reads. Apify is the one paid dependency on every save; watch cost and failure rate from the beta, then decide (keep, cache, or an alternative).
-- Real-device checks the simulator can't do: share sheet from Instagram/TikTok, location permission flow, Google Maps app deep link.
-- Short share links (`vm.tiktok.com`, `maps.app.goo.gl`): code follows them, never tested with real ones.
 
 **Small fixes**
-- Categories: name words ("vingård", "vineyard", "bakery") should beat MapKit's category on iOS (Ästad shows as Hotel).
 - iOS places saved from a Maps link have no photo (web gets Google's; iOS doesn't pay for Google). Options: the MapKit Look Around snapshot, or keep the emoji.
 - Web embeds posts inside the full place sheet; iOS shows links. Decide whether iOS should embed too.
 - Keyboard jump in the iOS add sheet (deferred by Sarp).
@@ -96,6 +102,14 @@ Ordered roughly by how soon friends will feel it. None started.
 - Social: send a place to a friend; later, see friends' saves. Accounts arrive here, optional, as the step into being social.
 - Check-ins: Been there / Want to go, check in, and "Nika wants to go here" where it meets Social.
 - Open for CTO before either: how a local-first list joins an account later.
+
+## Code review — 2026-09-29
+Items to address after the local fixes above, ordered by user impact:
+- Web deletion is optimistic and ignores a failed DELETE response (`PinstaApp.tsx`); a failed request can make a place disappear until reload. Keep it visible or restore it on failure.
+- iOS photo retry still tries permanently unavailable Instagram posts on every foreground and can keep later missing photos outside its five-post batch (`PhotoRetry.swift`). Track attempts and back off, while rotating through eligible places.
+- A signed iOS build should not silently switch from the App Group store to a private store when opening the shared container fails (`Persistence.swift`); that can look like a lost list.
+- `/api/extract` is intentionally public for friends' iOS apps and can spend Apify/Blob resources for any caller. Add abuse and cost controls before sharing the public TestFlight link.
+- Performance: a web save may re-read the same Instagram post when the extracted image is missing (`/api/places` → `findPhoto`); reuse the extraction result or avoid the second paid read. iOS decodes full image data in every card and tile render; cache scaled thumbnails if lists grow.
 
 ## What it is
 

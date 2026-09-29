@@ -309,7 +309,8 @@ private struct PlacesContent: View {
 
     private var categories: [(PlaceCategory, Int)] {
         let labels = labels
-        let scoped = city == nil ? shown : shown.filter { labels[$0.id] == city }
+        let scoped = city == NearMe.tag ? shown.filter { nearIDs.contains($0.id) }
+            : city == nil ? shown : shown.filter { labels[$0.id] == city }
         var counts: [PlaceCategory: Int] = [:]
         for p in scoped { counts[p.category, default: 0] += 1 }
         return PlaceCategory.allCases.compactMap { c in counts[c].map { (c, $0) } }
