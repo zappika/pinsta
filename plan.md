@@ -35,6 +35,15 @@ Known limits for the beta (tell friends):
 - The list lives only on the phone. Deleting the app deletes it; TestFlight updates keep it. iCloud backup comes after the paid account.
 - Every friend's save runs on Sarp's Apify account. The free plan allows 5 reads at a time; busy shows "try again in a minute". Check Apify usage after the first weekend.
 
+## iOS port of the 2026-09-29 web pass — in chunks
+Each chunk is built, checked on the simulator, committed and pushed on its own, then ticked here. A new session continues at the first unticked chunk.
+- [ ] 1. Links: TikTok + Google Maps links in the app and the share extension; Maps links searched around their pin; "link" auto-saves
+- [ ] 2. Bottom bar: glyph view pill with List; round + that turns into ×; List view
+- [ ] 3. Map: emoji pins on type tints; nearby pins group into a count
+- [ ] 4. Cards: round icon actions; Directions (ask once, remember, confirm); buddy menu with Appearance + Directions
+- [ ] 5. Data + colour: one place many posts; type colours on list and tiles; placeholder tiles
+- [ ] 6. Pull-up place sheet; Near me; dark mode pass
+
 ## Before friends get it (agreed 2026-09-29)
 - [x] Save from TikTok and Google Maps links too (web, 2026-09-29). Google Maps: the link names the place (name + pin, or a place id), auto-saves one clear match, photo from Google. TikTok: the page's own data gives caption, author and the location tag when there is one; oEmbed for the thumbnail. No new paid service. Untagged posts: a caption pattern ("at Cal Pep in Barcelona") and the account, suggestions only.
 - [x] Icon buttons on cards: directions and post as round icons beside the name; the text button row is gone
