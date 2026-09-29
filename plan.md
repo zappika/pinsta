@@ -4,8 +4,8 @@ _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code 
 
 ## Last session — 2026-09-29 (long one)
 - What we built: the web list became owner-only; the product was renamed Vicolo; a web design pass (emoji map pins with grouping, List view, icon view pill, round + that turns into ×, Directions ask-once, one place many posts, type colours, pull-up place sheet, Near me, buddy menu with Appearance, dark mode); saving from TikTok and Google Maps links, not just Instagram; then the whole pass ported to iOS in six chunks, each checked on the simulator.
-- Where we stopped: web and iOS at parity, everything pushed (`main`, Vercel deploys from it). The web lock is **still off** until `PINSTA_OWNER_KEY` is set in Vercel. TestFlight waits on the paid Apple Developer account.
-- Next action: Sarp sets the Vercel key and enrolls; then set the real team in `project.yml`, archive, and put the first build on Sarp's own phone through internal TestFlight.
+- Where we stopped: web and iOS at parity, everything pushed (`main`, Vercel deploys from it). The web lock is **on** (key set in Vercel 2026-09-29, verified: 401 without it). TestFlight waits on the paid Apple Developer account.
+- Next action: Sarp enrolls in the Apple Developer Program; then set the real team in `project.yml`, archive, and put the first build on Sarp's own phone through internal TestFlight.
 
 ## Phase 6 — Friends & family beta (TestFlight) 🟡 target: link out Sat 2026-10-03
 Goal: friends install Pinsta from a TestFlight public link and use it on their own, with their own list.
@@ -65,14 +65,13 @@ Each chunk is built, checked on the simulator, committed and pushed on its own, 
 **Accounts belong to Social (Sarp, 2026-09-29).** The app knows its user locally and works fully without an account. Creating one (username + login) is the step into "I want to be social now". Open for CTO when Social starts: how a local-first list joins an account later.
 
 ## Next steps
-1. Sarp: add `PINSTA_OWNER_KEY` in Vercel (value in `.env.local`), Production + Preview, redeploy, then enter it once on the web app.
+1. ~~Vercel key~~ done 2026-09-29.
 2. Sarp: enroll in the Apple Developer Program. It gates everything below.
 3. Real team in `project.yml` → archive → internal TestFlight on Sarp's phone. Test Share **from inside Instagram and TikTok** (never done on a real device), swipe and undo timing by thumb, Near me outdoors.
 4. Submit for external Beta App Review → public link → friends.
 5. After the first weekend: check Apify usage (every friend's Instagram save runs on Sarp's account).
 
 ## Waiting on Sarp
-- `PINSTA_OWNER_KEY` in Vercel — turns the web lock on; until then the web list is public
 - Paid Apple Developer Program — unblocks TestFlight
 
 ## Roadmap — after the beta
