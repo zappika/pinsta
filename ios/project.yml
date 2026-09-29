@@ -7,6 +7,9 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
+    # Bump CURRENT_PROJECT_VERSION for every TestFlight upload; app and extension must match.
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
     # Ad-hoc signing: enough for the Simulator and embeds the entitlements
     # (App Group). Swap for a real team when the developer account exists.
     CODE_SIGN_STYLE: Manual
@@ -33,6 +36,10 @@ targets:
       path: Pinsta/Info.plist
       properties:
         CFBundleDisplayName: Pinsta
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # HTTPS only, no custom crypto: exempt, so TestFlight skips the compliance question.
+        ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         LSApplicationQueriesSchemes: [comgooglemaps]
@@ -61,6 +68,9 @@ targets:
       path: PinstaShare/Info.plist
       properties:
         CFBundleDisplayName: Pinsta
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController

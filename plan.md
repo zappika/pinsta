@@ -1,25 +1,49 @@
 # Pinsta — Plan
 
-## Last session — 2026-09-15, ~00:30
-- What we built: web + iOS at parity again — Map / Cards / Tiles pill (Liquid Glass on iOS), Instagram-style grid, photos guaranteed (web: post → Google fallback; iOS: `PhotoRetry` on launch), app icon in. Then **the iOS save sheet was brought back in line with the web's** (`ec7af50`): no clipboard pre-fill (it raised the system paste prompt and skipped the link step), system `PasteButton`, floating 12pt card with dimmed backdrop and tap-outside-to-close instead of an edge-to-edge system sheet, solid Done button.
-- Where we stopped: all pushed. Simulator has the latest build with the 12 places.
-- **OPEN ISSUE — Sarp saw the iOS add sheet misbehave vs the fine-tuned web one.** Four visible divergences were fixed (above), but the post-paste flow — read post → tag → candidates → one-match auto-save → receipt (3 s auto / 1.5 s tap) → "Wrong place?" — could not be exercised: every known link is already saved. **Tomorrow: Sarp names what he saw, or gives an unsaved post link, and we run the real flow side by side on web and Simulator.** Suspects if it's in that part: search-field focus after a failed read, the auto-save timing, keyboard pushing the fixed-height card, `Menu`-based Where/What pickers vs the web's action sheets.
-- Next action: that side-by-side. Then Sander on the two-row bottom stack (pill + Save).
+## Last session — 2026-09-29
+- What we built: the web list is now **owner-only** (`lib/owner.ts`, key screen on the web) so friends' iOS installs can't read or wipe it; iOS no longer imports the web list on first launch; distribution plumbing (export-compliance flag, shared version numbers, privacy manifests, friend-facing empty state).
+- Where we stopped: web lock is pushed but **inactive until `PINSTA_OWNER_KEY` is set in Vercel**. iOS changes are committed but **not yet built** — Xcode 27 arrived with macOS 27 and needs its license accepted (sudo).
+- Next action: once Sarp runs the sudo commands, build + run on the Simulator, then archive for TestFlight as soon as the paid developer account is active.
+
+## Phase 6 — Friends & family beta (TestFlight) 🟡 target: link out Sat 2026-10-03
+Goal: friends install Pinsta from a TestFlight public link and use it on their own, with their own list.
+
+Code (mine):
+- [x] Web list owner-only; `/api/extract` stays open for the app, no Google spend from strangers
+- [x] iOS: no web import; every install starts empty; empty state explains Share → Pinsta
+- [x] iOS: `ITSAppUsesNonExemptEncryption = NO`, `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` shared by app + extension, privacy manifests
+- [ ] Build + Simulator check of the above (blocked on the Xcode license)
+- [ ] Resolve the open add-sheet issue from 2026-09-15 (Sarp names what he saw)
+- [ ] Real team in `project.yml` (`DEVELOPMENT_TEAM`, automatic signing) → archive → upload
+- [ ] Sarp's own phone via internal TestFlight: **Share from inside Instagram** (never tested on a real device), swipe thresholds, undo timing
+- [ ] Submit for external Beta App Review by Thu 2026-10-01 → public link
+
+Apple (Sarp's — needs his identity and payment):
+- [ ] Apple Developer Program, paid ($99/yr). The free team can't distribute: cable installs only, expire in 7 days.
+- [ ] App Store Connect app record. The name must be unique store-wide; have a fallback in case "Pinsta" is taken or flagged for "Insta".
+- [ ] TestFlight beta info: short description, feedback email, possibly a privacy policy URL (one page on the web app would do).
+
+Acceptance: a friend with no connection to Sarp installs from the link, shares a post from Instagram, and sees it saved in their own empty list — while Sarp's web list stays private.
+
+Known limits for the beta (tell friends):
+- The list lives only on the phone. Deleting the app deletes it; TestFlight updates keep it. iCloud backup comes after the paid account.
+- Every friend's save runs on Sarp's Apify account. The free plan allows 5 reads at a time; busy shows "try again in a minute". Check Apify usage after the first weekend.
 
 ## Next steps
-1. ~~App icon into the asset catalog~~ done 2026-09-14 — **verify on the Simulator** once Xcode builds again. If the light icon's off-white corners show under the mask, ask Claude Design for a full-bleed pink export.
-2. ~~Port the view switch to iOS~~ done 2026-09-15. Open: bottom stack layout (pill + Save = two rows) → ask Sander.
-3. On Sarp's iPhone via cable first, **free personal team** (no paid membership yet): Apple ID in Xcode → `DEVELOPMENT_TEAM` + automatic signing in `project.yml` → Developer Mode on the phone → run. Test Share from inside Instagram. Builds expire after 7 days on a free team; CloudKit still needs the paid program.
-4. ~~Decide the web app's fate~~ → **keep live** (2026-09-14): it's Sarp's prototyping surface.
-5. Sarp to skim `CLAUDE.md` (project) for factual errors and confirm the lighter sub-chunk gate in `~/Skills/commands/s-build.md` ("state, then go").
-6. Real-device only: swipe thresholds (half opens, 60 % removes) and the 5 s undo were tuned with a mouse and automation — recheck by thumb.
+1. Sarp: accept the Xcode license and finish first launch (commands in `CLAUDE.md` › Gotchas).
+2. Sarp: add `PINSTA_OWNER_KEY` in Vercel (value in `.env.local`), production + preview, then redeploy. Enter the same key once in the web app.
+3. Sarp: enroll in the Apple Developer Program today; approval can take up to ~2 days and gates everything after.
+4. Sarp: say what looked wrong in the iOS add sheet, or send an unsaved post link to run side by side.
+5. Then: build → internal TestFlight on Sarp's phone → external review → public link.
+6. Later: Sander on the two-row bottom stack (pill + Save); iCloud backup via CloudKit.
 
 ## Waiting on Sarp
-- **What exactly looked wrong in the iOS add sheet** (or an unsaved post link to test with) — the open issue above
-- Xcode first-launch fix (sudo, see above) — unblocks iOS builds
-- Verdict on the Map/Cards/Tiles switch — unblocks the push and the iOS port
-- Apple ID added in Xcode (free personal team) — unblocks next step 3; paid membership later for CloudKit
-- Review of `CLAUDE.md` and the s-build gate change — next step 5
+- Xcode license + first launch (sudo) — unblocks every iOS build
+- `PINSTA_OWNER_KEY` in Vercel — turns the web lock on
+- Paid Apple Developer Program — unblocks TestFlight; the weekend depends on it
+- What looked wrong in the iOS add sheet — last open bug before friends see it
+- App Store Connect name (and a fallback) — needed for the app record
+- Whether you want your own 12 places on your phone (they stay on the web either way)
 
 ## What it is
 
@@ -172,3 +196,6 @@ pre-loaded with the shared post and saves to the same list the app shows.
 - **2026-09-14 — A place never goes without a photo.** The post's image first; if the post can't be read, the place's Google photo (`lib/photo.ts`, on save and via `scripts/backfill-images`). Photo-less tiles read as holes in the grid.
 - **2026-09-14 — Web app stays live.** It's the fastest place to prototype; iOS follows once an idea sticks.
 - **2026-09-13 — Process: hygiene over ritual.** plan.md + CLAUDE.md stay current at every stopping point whether or not a command was typed.
+- **2026-09-29 — The web list is owner-only; friends get the iOS app, local-first.** One secret (`PINSTA_OWNER_KEY`, env only — the repo is public) guards every `/api/places*` route and the Google search. `/api/extract` stays open because the app needs it, but strangers get native mode (no Google spend). Rejected: per-device IDs on the web and real accounts — not needed while friends only use iOS.
+- **2026-09-29 — No automatic web import on iOS.** It would hand Sarp's list to every friend.
+- **2026-09-29 — Distribute through a TestFlight public link**, not per-email invites or cable installs.

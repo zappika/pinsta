@@ -92,9 +92,8 @@ private struct PlacesContent: View {
         .animation(.snappy(duration: 0.3), value: adding)
         .animation(.snappy(duration: 0.3), value: editing?.id)
         .task {
-            importing = true
-            await WebImporter.runIfEmpty(in: context)
-            importing = false
+            // No web import: the web list is Sarp's, and every install starts empty.
+            // (WebImporter stays in the tree for a possible owner-only import later.)
             await PhotoRetry.run(in: context)
         }
         .onChange(of: city) { _, _ in category = nil; peek = nil }
@@ -284,7 +283,7 @@ private struct PlacesContent: View {
     private var emptyState: some View {
         VStack(spacing: 4) {
             Text("Nothing saved yet").font(.headline)
-            Text("Paste an Instagram post and pin the place it shows.")
+            Text("In Instagram, tap Share on a post and pick Pinsta. First time, find it under More.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

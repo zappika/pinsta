@@ -57,7 +57,21 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   the extension. First launch imports the web DB once (`WebImporter`). The list
   refetches on foreground because SwiftData doesn't see the extension's writes.
 
+## The owner key
+The web list is Sarp's alone (`lib/owner.ts`). Every `/api/places*` route and
+`/api/places/search` need header `x-pinsta-key: $PINSTA_OWNER_KEY`; the web app
+asks for it once and keeps it in localStorage (`lib/api.ts`). `/api/extract` is
+open for the iOS app, but only the owner gets Google candidates from it. The key
+lives in `.env.local` and Vercel env — **never in the repo, which is public**.
+While the env var is unset the lock is off. Local curl with the key:
+`curl -H "x-pinsta-key: $(grep PINSTA_OWNER_KEY .env.local | cut -d= -f2)" localhost:3010/api/places`
+
 ## Gotchas that cost time
+- **Pull before you start.** Two sessions (two machines) work on this repo. On
+  2026-09-29 a session built on a copy eight commits old and had to rebase.
+- **Xcode license after an OS update.** macOS 27 brought Xcode 27; until
+  `sudo xcodebuild -license accept` runs, `xcodebuild` *and* `/usr/bin/python3`
+  refuse to run. Use `node` for scripted edits meanwhile.
 - **XcodeGen blanks `.entitlements` files** unless the App Group is declared under
   `entitlements.properties` in `project.yml`. It is — keep it there.
 - **Ad-hoc signing** (`CODE_SIGN_IDENTITY: "-"`) is what embeds entitlements for
@@ -84,7 +98,7 @@ Pinsta. Instagram itself can't be installed in the Simulator.
 - Schema: `lib/db/schema.ts` → `npx drizzle-kit push` (needs `.env.local` sourced).
 - One-off scripts in `scripts/*.mts`, run with `set -a; source .env.local; set +a; npx tsx scripts/<name>.mts`
   (`.mts` because top-level await). Existing: `backfill-region`, `backfill-images`, `fix-rows`.
-- Inspect prod data: `curl -s https://pinsta-two.vercel.app/api/places`.
+- Inspect prod data: same curl as above against `https://pinsta-two.vercel.app/api/places`, with the key once the lock is on. One request at a time (see the Vercel polling gotcha).
 
 ## Conventions
 - Web first, then port to iOS in one pass. Keep shared rules identical.
