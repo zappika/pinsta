@@ -35,7 +35,7 @@ Known limits for the beta (tell friends):
 
 ## Before friends get it (agreed 2026-09-29)
 - [x] Icon buttons on cards: directions and post as round icons beside the name; the text button row is gone
-- [ ] Group nearby map pins into a tinted count circle that splits on zoom
+- [x] Group nearby map pins (web): pins within 44 px merge into a count on the tint of their most common type; tap zooms in; from zoom 16 no grouping, overlapping pins fan out with names hidden
 - [x] One place, many posts (web): same Google id, or within ~60 m with a shared name word, adds the post to that card (`posts` jsonb). Card shows "2 posts" and embeds all; "Wrong place?" removes just that post. The existing Bar Brutal / Can Cisa pair is not merged yet — Sarp to decide.
 - [x] Directions: one button; first tap asks Apple Maps or Google Maps, remembers it, and confirms: "Saved Google Maps as your default. You can change it anytime in the menu, top right."
 

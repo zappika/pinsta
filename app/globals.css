@@ -39,6 +39,13 @@ body {
   transform: scale(1.2);
   border-color: #1c1917;
 }
+.pinsta-cluster {
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1c1917;
+  font-variant-numeric: tabular-nums;
+}
 .pinsta-pin-label {
   display: none;
   position: absolute;
@@ -54,6 +61,9 @@ body {
 }
 .show-labels .pinsta-pin-label {
   display: block;
+}
+.show-labels .no-label .pinsta-pin-label {
+  display: none;
 }
 .maplibregl-ctrl-attrib {
   font-size: 9px;
