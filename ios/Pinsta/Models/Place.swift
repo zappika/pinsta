@@ -25,6 +25,12 @@ final class Place {
     /// Google place id when the row came from the web import; nil for native saves.
     var googlePlaceID: String?
 
+    /// More posts of this place, saved later (web: the `posts` column). The first stays in instagramURL.
+    var extraPostURLs: [String] = []
+
+    /// Every link that points at this place, first post first.
+    var allPostURLs: [String] { [instagramURL] + extraPostURLs }
+
     init(
         id: UUID = UUID(),
         instagramURL: String,

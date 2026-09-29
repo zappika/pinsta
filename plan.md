@@ -41,7 +41,7 @@ Each chunk is built, checked on the simulator, committed and pushed on its own, 
 - [x] 2. Bottom bar (2026-09-29): SF Symbol view pill with List; round + with a springy press that turns into × above the save sheet; List view (photo rows, tap → sheet)
 - [x] 3. Map (2026-09-29): emoji pins on type tints (`PlaceCategory.tint` / `.dot`, same hex as web); pins within 44pt group into a count, tap zooms until it splits; no grouping below ~1 km span
 - [x] 4. Cards (2026-09-29): round Directions + Post icons, no button row; Directions asks once, remembers, confirms (5 s); buddy menu with Appearance (System/Light/Dark) + Directions. Known: buddy icon looks blank in dark — fix in 6. Launch arg `-slowNotices` keeps notices 30 s for testing.
-- [ ] 5. Data + colour: one place many posts; type colours on list and tiles; placeholder tiles
+- [x] 5. Data + colour (2026-09-29): one place many posts (`Place.extraPostURLs`, `SamePlace` port; receipt "Added to this place", undo removes just that link; card "2 posts", Post menu); type dots on cards and list, tints behind photo-less thumbnails and tiles; tiles padded to six with a nudge
 - [ ] 6. Pull-up place sheet; Near me; dark mode pass
 
 ## Before friends get it (agreed 2026-09-29)

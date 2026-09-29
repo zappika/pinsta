@@ -35,7 +35,11 @@ struct AddPlaceView: View {
 
     private enum Field { case url, query }
     private enum Source { case tag, account, link }
-    fileprivate struct Saved { let place: Place; let automatic: Bool; let already: Bool; let changed: Bool }
+    fileprivate struct Saved {
+        let place: Place; let automatic: Bool; let already: Bool; let changed: Bool
+        /// The post was added to a place already in the list, not saved as a new one.
+        var mergedURL: String? = nil
+    }
     private enum Reading: Equatable {
         case idle, loading, done(InstagramPost), failed(String)
         static func == (a: Reading, b: Reading) -> Bool {
@@ -322,6 +326,16 @@ struct AddPlaceView: View {
                 withAnimation(.snappy) { saved = Saved(place: editing, automatic: false, already: false, changed: true) }
                 return
             }
+            let url = post?.url ?? validURL
+            // One place, many posts: a second post of a place already in the list joins its card.
+            let all = (try? context.fetch(FetchDescriptor<Place>())) ?? []
+            if let same = all.first(where: { SamePlace.matches($0, name: c.name, latitude: c.latitude, longitude: c.longitude) }) {
+                if !same.allPostURLs.contains(url) { same.extraPostURLs.append(url) }
+                try? context.save()
+                saving = nil
+                withAnimation(.snappy) { saved = Saved(place: same, automatic: automatically, already: false, changed: false, mergedURL: url) }
+                return
+            }
             let image = await ImageLoader.data(from: post?.imageURL)
             let place = Place(
                 // The server's canonical link: short links (vm.tiktok.com, maps.app.goo.gl) resolved.
@@ -347,15 +361,17 @@ struct AddPlaceView: View {
     }
 
     private func existingPlace(for url: String) -> Place? {
-        var d = FetchDescriptor<Place>(predicate: #Predicate { $0.instagramURL == url })
-        d.fetchLimit = 1
-        return try? context.fetch(d).first
+        ((try? context.fetch(FetchDescriptor<Place>())) ?? []).first { $0.allPostURLs.contains(url) }
     }
 
     /// "Wrong place?" — take the save back and hand control to the user.
     private func undo() {
         guard let saved else { return }
-        context.delete(saved.place)
+        if let url = saved.mergedURL {
+            saved.place.extraPostURLs.removeAll { $0 == url }
+        } else {
+            context.delete(saved.place)
+        }
         try? context.save()
         autoSaveDeclined = true
         withAnimation(.snappy) { self.saved = nil }
@@ -379,7 +395,7 @@ private struct Receipt: View {
     var body: some View {
         let place = saved.place
         VStack(alignment: .leading, spacing: 14) {
-            Text((saved.already ? "Already saved" : saved.changed ? "Changed" : "Saved").uppercased())
+            Text((saved.already ? "Already saved" : saved.changed ? "Changed" : saved.mergedURL != nil ? "Added to this place · \(saved.place.allPostURLs.count) posts" : "Saved").uppercased())
                 .font(.caption.weight(.medium)).foregroundStyle(.secondary)
             HStack(spacing: 14) {
                 if let data = place.imageData, let image = UIImage(data: data) {

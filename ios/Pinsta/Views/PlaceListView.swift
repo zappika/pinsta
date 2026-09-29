@@ -31,7 +31,7 @@ struct PlaceListView: View {
                 } else {
                     Text(p.category.emoji).font(.title2)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color(.tertiarySystemFill))
+                        .background(p.category.tint)
                 }
             }
             .frame(width: 80, height: 80)
@@ -39,7 +39,12 @@ struct PlaceListView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(p.name).font(.headline).lineLimit(1)
-                if !hideCategory { Text(p.category.rawValue).font(.subheadline).foregroundStyle(.secondary) }
+                if !hideCategory {
+                    HStack(spacing: 6) {
+                        Circle().fill(p.category.dot).frame(width: 8, height: 8)
+                        Text(p.category.rawValue).font(.subheadline).foregroundStyle(.secondary)
+                    }
+                }
                 if !hideCity(p), let city = p.city { Text(city).font(.subheadline).foregroundStyle(.secondary).lineLimit(1) }
             }
             Spacer(minLength: 0)
