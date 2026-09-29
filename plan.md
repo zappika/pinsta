@@ -43,8 +43,6 @@ Known limits for the beta (tell friends):
 ## Waiting on Sarp
 - `PINSTA_OWNER_KEY` in Vercel — turns the web lock on
 - Paid Apple Developer Program — unblocks TestFlight; the weekend depends on it
-- Are the four add-sheet findings (Phase 6) what you saw? — last open bug before friends see it
-- App Store Connect name (and a fallback) — needed for the app record
 - Whether you want your own 12 places on your phone (they stay on the web either way)
 
 ## What it is
@@ -201,3 +199,4 @@ pre-loaded with the shared post and saves to the same list the app shows.
 - **2026-09-29 — The web list is owner-only; friends get the iOS app, local-first.** One secret (`PINSTA_OWNER_KEY`, env only — the repo is public) guards every `/api/places*` route and the Google search. `/api/extract` stays open because the app needs it, but strangers get native mode (no Google spend). Rejected: per-device IDs on the web and real accounts — not needed while friends only use iOS.
 - **2026-09-29 — No automatic web import on iOS.** It would hand Sarp's list to every friend.
 - **2026-09-29 — Distribute through a TestFlight public link**, not per-email invites or cable installs.
+- **2026-09-29 — App name stays Pinsta.** Keyboard jump in the iOS add sheet: not fixing for now (Sarp).
