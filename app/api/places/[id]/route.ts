@@ -27,7 +27,18 @@ export async function PATCH(
   const locked = requireOwner(req);
   if (locked) return locked;
   const { id } = await params;
-  const body = (await req.json().catch(() => ({}))) as { placeId?: string };
+  const body = (await req.json().catch(() => ({}))) as { placeId?: string; removePost?: string };
+  // "Wrong place?" after a merge: take that one post back off the card.
+  if (body.removePost) {
+    const [row] = await getDb().select().from(places).where(eq(places.id, id));
+    if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    const [updated] = await getDb()
+      .update(places)
+      .set({ posts: row.posts.filter((x) => x.instagramUrl !== body.removePost) })
+      .where(eq(places.id, id))
+      .returning();
+    return NextResponse.json({ place: updated });
+  }
   if (!body.placeId) {
     return NextResponse.json({ error: "placeId is required" }, { status: 400 });
   }

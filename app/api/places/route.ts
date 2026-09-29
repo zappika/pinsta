@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { places } from "@/lib/db/schema";
 import { getPlace } from "@/lib/google-places";
@@ -9,6 +9,7 @@ import { findPhoto } from "@/lib/photo";
 // Finding a missing photo may mean re-reading the post (5–30 s).
 export const maxDuration = 60;
 import { requireOwner } from "@/lib/owner";
+import { isSamePlace } from "@/lib/same-place";
 
 export async function GET(req: Request) {
   const locked = requireOwner(req);
@@ -49,7 +50,34 @@ export async function POST(req: Request) {
       getPlace(body.placeId),
       body.imageUrl ? Promise.resolve(body.imageUrl) : findPhoto(instagramUrl, body.placeId),
     ]);
-    const [row] = await getDb()
+    // One place, many posts: a second post of a place already in the list is
+    // added to that card instead of becoming a duplicate.
+    const db = getDb();
+    const existing = (await db.select().from(places)).find((r) => isSamePlace(r, p));
+    if (existing) {
+      const known = existing.instagramUrl === instagramUrl || existing.posts.some((x) => x.instagramUrl === instagramUrl);
+      if (known) return NextResponse.json({ place: existing, already: true });
+      const [merged] = await db
+        .update(places)
+        .set({
+          posts: [
+            ...existing.posts,
+            {
+              instagramUrl,
+              imageUrl,
+              caption: body.caption || null,
+              ownerUsername: body.ownerUsername || null,
+              igLocationName: body.igLocationName || null,
+              addedAt: new Date().toISOString(),
+            },
+          ],
+        })
+        .where(eq(places.id, existing.id))
+        .returning();
+      return NextResponse.json({ place: merged, merged: true });
+    }
+
+    const [row] = await db
       .insert(places)
       .values({
         instagramUrl,

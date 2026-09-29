@@ -3,6 +3,7 @@ import {
   uuid,
   text,
   doublePrecision,
+  jsonb,
   timestamp,
 } from "drizzle-orm/pg-core";
 
@@ -32,10 +33,21 @@ export const places = pgTable("places", {
   caption: text("caption"),
   igLocationName: text("ig_location_name"),
   ownerUsername: text("owner_username"),
+  // More posts of the same place, saved later. The first post stays in the columns above.
+  posts: jsonb("posts").$type<ExtraPost[]>().notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
 });
+
+export type ExtraPost = {
+  instagramUrl: string;
+  imageUrl: string | null;
+  caption: string | null;
+  ownerUsername: string | null;
+  igLocationName: string | null;
+  addedAt: string;
+};
 
 export type Place = typeof places.$inferSelect;
 export type NewPlace = typeof places.$inferInsert;

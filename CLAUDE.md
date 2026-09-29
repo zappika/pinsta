@@ -51,6 +51,7 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   fixed-height bottom sheet; one tag match saves itself → receipt with
   "Wrong place?"; several → tap; none → account suggestions → search. Same link
   twice → "Already saved". Edit mode re-selects the place behind a card.
+- **One place, many posts** (`lib/same-place.ts`): a save that matches an existing place (same Google id, or ≤60 m + a shared name word) appends to its `posts` jsonb instead of inserting. First post stays in the row columns.
 - **Cards:** swipe right-to-left → round change/remove buttons; full swipe removes.
   Delete is deferred 5 s behind an Undo toast (`PinstaApp.tsx` / `PlacesListView.swift`).
 - **iOS data:** SwiftData store in App Group `group.se.sarper.pinsta`, shared with
@@ -72,6 +73,7 @@ While the env var is unset the lock is off. Local curl with the key:
   auto-save with a tagged post that still exists — Ästad Vingård (`DdJIacKIplU`).
 - **Test fresh installs on a second simulator** (e.g. iPhone 17) so the main one
   keeps its list.
+- **This shell is zsh:** unquoted `$VAR` doesn't word-split, and `echo` rewrites `\n` inside JSON. Write API tests as small `node` scripts, not curl pipelines.
 - **Pull before you start.** Two sessions (two machines) work on this repo. On
   2026-09-29 a session built on a copy eight commits old and had to rebase.
 - **Xcode license after an OS update.** macOS 27 brought Xcode 27; until

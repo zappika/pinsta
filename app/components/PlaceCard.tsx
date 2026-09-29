@@ -16,7 +16,8 @@ type Props = {
 
 export default function PlaceCard({ place, hideCategory, hideCity, compact }: Props) {
   const [showPost, setShowPost] = useState(false);
-  const meta = [hideCategory ? null : place.category, hideCity ? null : place.city]
+  const postUrls = [place.instagramUrl, ...(place.posts ?? []).map((p) => p.instagramUrl)];
+  const meta = [hideCategory ? null : place.category, hideCity ? null : place.city, postUrls.length > 1 ? `${postUrls.length} posts` : null]
     .filter(Boolean)
     .join(" · ");
 
@@ -42,7 +43,7 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact }: Pr
         </RoundAction>
       </div>
 
-      {showPost && <InstagramEmbed url={place.instagramUrl} />}
+      {showPost && postUrls.map((u) => <InstagramEmbed key={u} url={u} />)}
     </>
   );
 }

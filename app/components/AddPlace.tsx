@@ -33,7 +33,7 @@ type Extract =
   | { status: "done"; post: PostInfo; source: Source }
   | { status: "error"; message: string };
 
-type Saved = { place: Place; automatic: boolean; already: boolean; changed?: boolean };
+type Saved = { place: Place; automatic: boolean; already: boolean; changed?: boolean; merged?: boolean };
 
 /**
  * A small sheet at the bottom, sized like the "Where" picker. Paste a link →
@@ -89,7 +89,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
       setCandidates([]);
       return;
     }
-    const existing = places.find((p) => p.instagramUrl === validUrl);
+    const existing = places.find((p) => p.instagramUrl === validUrl || p.posts?.some((x) => x.instagramUrl === validUrl));
     if (existing) {
       setSaved({ place: existing, automatic: false, already: true });
       return;
@@ -208,10 +208,11 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
           ownerUsername: p?.ownerUsername ?? null,
         }),
       });
-      const data = (await res.json()) as { place?: Place; error?: string };
+      const data = (await res.json()) as { place?: Place; merged?: boolean; already?: boolean; error?: string };
       if (!res.ok || !data.place) throw new Error(data.error ?? "Could not save");
-      onSaved(data.place);
-      setSaved({ place: data.place, automatic, already: false });
+      if (data.merged) onUpdated?.(data.place);
+      else if (!data.already) onSaved(data.place);
+      setSaved({ place: data.place, automatic, already: !!data.already, merged: !!data.merged });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save");
     } finally {
@@ -221,13 +222,24 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
 
   async function undo() {
     if (!saved) return;
-    const id = saved.place.id;
+    const { place, merged } = saved;
     setSaved(null);
     setAutoSaveDeclined(true);
-    onRemoved(id);
-    await api(`/api/places/${id}`, { method: "DELETE" }).catch(() => undefined);
+    if (merged && validUrl) {
+      const res = await api(`/api/places/${place.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ removePost: validUrl }),
+      }).catch(() => null);
+      const data = res ? ((await res.json()) as { place?: Place }) : null;
+      if (data?.place) onUpdated?.(data.place);
+    } else {
+      onRemoved(place.id);
+      await api(`/api/places/${place.id}`, { method: "DELETE" }).catch(() => undefined);
+    }
     queryRef.current?.focus();
   }
+
 
   async function pasteFromClipboard() {
     try {
@@ -355,11 +367,12 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
 
 /** The moment after a save: what it is, where it went, and a way to say "not that one". */
 function Receipt({ saved, onUndo, onDone }: { saved: Saved; onUndo: () => void; onDone: () => void }) {
-  const { place, automatic, already, changed } = saved;
+  const { place, automatic, already, changed, merged } = saved;
+  const postCount = 1 + (place.posts?.length ?? 0);
   const where = [place.category, place.city ?? place.country].filter(Boolean).join(" · ");
   return (
     <div className="flex flex-1 flex-col justify-center px-4 pt-3 pb-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-stone-400">{already ? "Already saved" : changed ? "Changed" : "Saved"}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-stone-400">{already ? "Already saved" : changed ? "Changed" : merged ? `Added to this place · ${postCount} posts` : "Saved"}</p>
       <div className="mt-2 flex items-center gap-3">
         {place.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
