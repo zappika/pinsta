@@ -26,7 +26,7 @@ Code (mine):
 
 Apple (Sarp's — needs his identity and payment):
 - [ ] Apple Developer Program, paid ($99/yr). The free team can't distribute: cable installs only, expire in 7 days.
-- [ ] App Store Connect app record. The name must be unique store-wide; have a fallback in case "Pinsta" is taken or flagged for "Insta".
+- [ ] App Store Connect app record. Name: Vicolo. It must be unique store-wide; if taken, try "Vicolo — Places" (the home-screen name can stay Vicolo).
 - [ ] TestFlight beta info: short description, feedback email, possibly a privacy policy URL (one page on the web app would do).
 
 Acceptance: a friend with no connection to Sarp installs from the link, shares a post from Instagram, and sees it saved in their own empty list — while Sarp's web list stays private.
