@@ -40,7 +40,7 @@ Known limits for the beta (tell friends):
 - [x] Directions: one button; first tap asks Apple Maps or Google Maps, remembers it, and confirms: "Saved Google Maps as your default. You can change it anytime in the menu, top right."
 
 ## After the beta: design
-- Type tints everywhere (photo-less tiles and list rows, a tinted dot beside the type)
+- [x] Type colors everywhere (web): soft tint behind photo-less tiles and list rows; a full-strength dot beside the type in List and Cards (`CATEGORY_DOT`)
 - Place preview as a pull-up sheet, Apple Maps style
 - Dark mode
 

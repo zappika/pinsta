@@ -1,6 +1,6 @@
 "use client";
 
-import { emojiFor } from "@/lib/categories";
+import { dotFor, emojiFor, tintFor } from "@/lib/categories";
 import { kmBetween } from "@/lib/geo";
 import type { Place } from "./types";
 
@@ -34,7 +34,7 @@ export default function PlaceList({ places, selected, onSelect, here, hideCatego
                 selected === p.id ? "bg-stone-200/50" : ""
               }`}
             >
-              <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-stone-200">
+              <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl" style={{ backgroundColor: tintFor(p.category) }}>
                 {p.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={p.imageUrl} alt="" draggable={false} className="h-full w-full object-cover" />
@@ -44,7 +44,12 @@ export default function PlaceList({ places, selected, onSelect, here, hideCatego
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-base font-semibold">{p.name}</p>
-                {!hideCategory && p.category && <p className="truncate text-sm text-stone-500">{p.category}</p>}
+                {!hideCategory && p.category && (
+                  <p className="flex items-center gap-1.5 truncate text-sm text-stone-500">
+                    <span aria-hidden className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: dotFor(p.category) }} />
+                    {p.category}
+                  </p>
+                )}
                 {where && <p className="truncate text-sm text-stone-500">{where}</p>}
               </div>
             </button>

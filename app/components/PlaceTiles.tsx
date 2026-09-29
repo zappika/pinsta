@@ -1,6 +1,6 @@
 "use client";
 
-import { emojiFor } from "@/lib/categories";
+import { emojiFor, tintFor } from "@/lib/categories";
 import type { Place } from "./types";
 
 type Props = {
@@ -29,7 +29,8 @@ export default function PlaceTiles({ places, selected, onSelect }: Props) {
               type="button"
               aria-label={p.name}
               onClick={() => onSelect(p)}
-              className="block h-full w-full overflow-hidden bg-stone-200"
+              className="block h-full w-full overflow-hidden"
+              style={{ backgroundColor: tintFor(p.category) }}
             >
               {p.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element

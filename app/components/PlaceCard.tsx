@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { directions } from "@/lib/directions";
+import { dotFor } from "@/lib/categories";
 import type { Place } from "./types";
 
 type Props = {
@@ -31,7 +32,14 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact }: Pr
       <div className="flex items-center gap-3 px-4 py-3.5">
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-base font-semibold">{place.name}</h3>
-          {meta && <p className="mt-0.5 truncate text-sm text-stone-500">{meta}</p>}
+          {meta && (
+            <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-stone-500">
+              {!hideCategory && place.category && (
+                <span aria-hidden className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: dotFor(place.category) }} />
+              )}
+              {meta}
+            </p>
+          )}
         </div>
         <RoundAction label="Directions" onClick={() => directions(place)}>
           <path d="M21 3 3 10.5l7.5 3L13.5 21 21 3Z" />
