@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { appleMapsUrl, googleMapsUrl } from "@/lib/maps";
+import type { ReactNode } from "react";
+import { directions } from "@/lib/directions";
 import type { Place } from "./types";
 
 type Props = {
@@ -25,35 +26,20 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact }: Pr
         // eslint-disable-next-line @next/next/no-img-element
         <img src={place.imageUrl} alt="" draggable={false} className={`${compact ? "h-32" : "h-44"} w-full bg-stone-100 object-cover`} />
       )}
-      <div className="px-4 pt-4">
-        <h3 className="truncate text-base font-semibold">{place.name}</h3>
-        {meta && <p className="mt-0.5 text-sm text-stone-500">{meta}</p>}
-      </div>
-
-      <div className="mt-3 grid grid-cols-3 divide-x divide-stone-100 border-t border-stone-100 text-sm font-medium">
-        <a
-          href={googleMapsUrl(place.name, place.placeId)}
-          target="_blank"
-          rel="noreferrer"
-          className="py-3 text-center text-stone-800 active:bg-stone-50"
-        >
-          Google Maps
-        </a>
-        <a
-          href={appleMapsUrl(place.name, place.lat, place.lng)}
-          target="_blank"
-          rel="noreferrer"
-          className="py-3 text-center text-stone-800 active:bg-stone-50"
-        >
-          Apple Maps
-        </a>
-        <button
-          type="button"
-          onClick={() => setShowPost((s) => !s)}
-          className="py-3 text-center text-stone-800 active:bg-stone-50"
-        >
-          {showPost ? "Hide post" : "Post"}
-        </button>
+      {/* Name and type on the left; two round actions on the right. No button row. */}
+      <div className="flex items-center gap-3 px-4 py-3.5">
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-base font-semibold">{place.name}</h3>
+          {meta && <p className="mt-0.5 truncate text-sm text-stone-500">{meta}</p>}
+        </div>
+        <RoundAction label="Directions" onClick={() => directions(place)}>
+          <path d="M21 3 3 10.5l7.5 3L13.5 21 21 3Z" />
+        </RoundAction>
+        <RoundAction label={showPost ? "Hide post" : "Post"} active={showPost} onClick={() => setShowPost((s) => !s)}>
+          <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
+          <circle cx="12" cy="12" r="4" />
+          <circle cx="17.2" cy="6.8" r="0.9" fill="currentColor" stroke="none" />
+        </RoundAction>
       </div>
 
       {showPost && <InstagramEmbed url={place.instagramUrl} />}
@@ -91,5 +77,23 @@ function InstagramEmbed({ url }: { url: string }) {
         </a>
       </blockquote>
     </div>
+  );
+}
+
+function RoundAction({ label, onClick, active, children }: { label: string; onClick: () => void; active?: boolean; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors ${
+        active ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-700 active:bg-stone-200"
+      }`}
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        {children}
+      </svg>
+    </button>
   );
 }

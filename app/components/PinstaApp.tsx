@@ -11,6 +11,8 @@ import PlacesMap from "./PlacesMap";
 import PlaceTiles from "./PlaceTiles";
 import PeekCard from "./PeekCard";
 import PlaceList from "./PlaceList";
+import MapsChooser from "./MapsChooser";
+import { MAPS_LABEL, defaultMaps, openIn, setDefaultMaps, type MapsApp } from "@/lib/directions";
 import ViewSwitch, { type View } from "./ViewSwitch";
 import { destinationLabels } from "@/lib/grouping";
 import { NEAR, NEAR_KM, currentPosition, kmBetween } from "@/lib/geo";
@@ -70,6 +72,9 @@ export default function PinstaApp() {
     return () => clearTimeout(t);
   }, [toast]);
   const [locked, setLocked] = useState(false);
+  // Directions: the chooser (with the place to open next, or null from the menu) and the confirmation.
+  const [choosing, setChoosing] = useState<{ target: Parameters<typeof openIn>[1] | null } | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [keyTried, setKeyTried] = useState(false);
   const [city, setCity] = useState<string | null>(null);
   const [category, setCategory] = useState<string | null>(null);
@@ -110,6 +115,25 @@ export default function PinstaApp() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const onChoose = (e: Event) => setChoosing({ target: (e as CustomEvent).detail ?? null });
+    window.addEventListener("pinsta:choose-maps", onChoose);
+    return () => window.removeEventListener("pinsta:choose-maps", onChoose);
+  }, []);
+
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 4000);
+    return () => clearTimeout(t);
+  }, [notice]);
+
+  function pickMaps(app: MapsApp) {
+    setDefaultMaps(app);
+    if (choosing?.target) openIn(app, choosing.target);
+    setChoosing(null);
+    setNotice(`Saved ${MAPS_LABEL[app]} as your default. You can change it anytime in the menu, top right.`);
+  }
 
   // Any API call that comes back 401 (key missing or changed) shows the key screen.
   useEffect(() => {
@@ -274,6 +298,16 @@ export default function PinstaApp() {
       </section>
 
       {peek && view !== "cards" && <PeekCard place={peek} onClose={() => setPeek(null)} />}
+
+      {notice && !toast && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-40 mx-auto max-w-md px-5">
+          <div className="pinsta-rise rounded-2xl bg-stone-800 px-4 py-3 text-sm leading-snug text-white shadow-lg">{notice}</div>
+        </div>
+      )}
+
+      {choosing && (
+        <MapsChooser current={defaultMaps()} onPick={pickMaps} onClose={() => setChoosing(null)} />
+      )}
 
       {toast && (
         <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-10 mx-auto max-w-md px-5">

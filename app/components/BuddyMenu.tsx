@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { MAPS_LABEL, chooseMaps, defaultMaps } from "@/lib/directions";
 
 /**
  * The round "you" button, top right. A home for account-ish things later;
- * today it only locks this browser (forgets the owner key).
+ * today: the directions app, and locking this browser (forgets the owner key).
  */
 export default function BuddyMenu() {
   const [open, setOpen] = useState(false);
@@ -37,7 +38,18 @@ export default function BuddyMenu() {
         </svg>
       </button>
       {open && (
-        <div className="absolute right-0 top-11 z-30 w-56 overflow-hidden rounded-2xl bg-white py-1 shadow-lg ring-1 ring-black/5">
+        <div className="absolute right-0 top-11 z-30 w-60 divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white shadow-lg ring-1 ring-black/5">
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              chooseMaps();
+            }}
+            className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium active:bg-stone-50"
+          >
+            Directions
+            <span className="text-stone-400">{(() => { const d = defaultMaps(); return d ? MAPS_LABEL[d] : "Ask each time"; })()}</span>
+          </button>
           <button
             type="button"
             onClick={() => {

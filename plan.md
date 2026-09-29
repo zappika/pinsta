@@ -34,13 +34,13 @@ Known limits for the beta (tell friends):
 - Every friend's save runs on Sarp's Apify account. The free plan allows 5 reads at a time; busy shows "try again in a minute". Check Apify usage after the first weekend.
 
 ## Before friends get it (agreed 2026-09-29)
+- [x] Icon buttons on cards: directions and post as round icons beside the name; the text button row is gone
 - [ ] Group nearby map pins into a tinted count circle that splits on zoom
 - [ ] One place, many posts: saving a place already in the list adds the post to that card instead of a duplicate
-- [ ] Directions: one button; first tap asks Apple Maps or Google Maps and remembers; change it in the buddy menu (recommended — Sarp to confirm)
+- [x] Directions: one button; first tap asks Apple Maps or Google Maps, remembers it, and confirms: "Saved Google Maps as your default. You can change it anytime in the menu, top right."
 
 ## After the beta: design
 - Type tints everywhere (photo-less tiles and list rows, a tinted dot beside the type)
-- Icon buttons on cards instead of the "Google Maps · Apple Maps · Post" text row
 - Place preview as a pull-up sheet, Apple Maps style
 - Dark mode
 
@@ -53,7 +53,7 @@ Known limits for the beta (tell friends):
 - Check in at a place
 - Meets Social: "Nika wants to go here"
 
-**Open architecture question for CTO, before either expansion:** how to know who people are without building logins. Low-tech candidate: iCloud sharing via Apple IDs (CloudKit shared zones).
+**Accounts belong to Social (Sarp, 2026-09-29).** The app knows its user locally and works fully without an account. Creating one (username + login) is the step into "I want to be social now". Open for CTO when Social starts: how a local-first list joins an account later.
 
 ## Next steps
 1. Sarp: add `PINSTA_OWNER_KEY` in Vercel (value in `.env.local`), production + preview, then redeploy. Enter the same key once in the web app.
