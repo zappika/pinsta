@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import MapKit
 
 /// A small, fixed-height sheet. Paste a link → the post is read (cloud) → the
 /// tag becomes a place (MapKit, on device). One match saves itself; several ask
@@ -33,7 +34,7 @@ struct AddPlaceView: View {
     @FocusState private var focus: Field?
 
     private enum Field { case url, query }
-    private enum Source { case tag, account }
+    private enum Source { case tag, account, link }
     fileprivate struct Saved { let place: Place; let automatic: Bool; let already: Bool; let changed: Bool }
     private enum Reading: Equatable {
         case idle, loading, done(InstagramPost), failed(String)
@@ -47,7 +48,7 @@ struct AddPlaceView: View {
         }
     }
 
-    private var validURL: String? { editing?.instagramURL ?? InstagramURL.normalize(urlText) }
+    private var validURL: String? { editing?.instagramURL ?? SourceURL.parse(urlText)?.url }
     private var post: InstagramPost? { if case .done(let p) = reading { return p } else { return nil } }
     private var showSuggestedFirst: Bool { !candidates.isEmpty && source != nil && query.trimmed.count < 2 }
     private var manualMode: Bool {
@@ -123,7 +124,7 @@ struct AddPlaceView: View {
     private var urlField: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                TextField("Paste an Instagram link", text: $urlText)
+                TextField("Paste an Instagram, TikTok or Maps link", text: $urlText)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)
@@ -148,7 +149,7 @@ struct AddPlaceView: View {
                 }
             }
             if !urlText.isEmpty && validURL == nil {
-                Text("Needs to be an Instagram post or reel link.").font(.caption).foregroundStyle(.red)
+                Text("Needs to be an Instagram post, a TikTok video, or a Google Maps place.").font(.caption).foregroundStyle(.red)
             }
         }
     }
@@ -173,8 +174,10 @@ struct AddPlaceView: View {
 
     private var suggested: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if source == .account {
-                sectionLabel("No location tag — is it @\(post?.ownerUsername ?? "")'s place?")
+            if source == .link {
+                sectionLabel("From Google Maps — \(candidates.count > 1 ? "which one?" : "tap to save")")
+            } else if source == .account {
+                sectionLabel("No location tag — is it one of these?")
             } else {
                 sectionLabel("Tagged “\(post?.locationName ?? "")” — \(candidates.count > 1 ? "which one?" : "tap to save")")
             }
@@ -246,21 +249,32 @@ struct AddPlaceView: View {
             guard !Task.isCancelled else { return }
             reading = .done(post)
             let cityHints = Set((try? context.fetch(FetchDescriptor<Place>()))?.compactMap(\.city) ?? [])
-            if let tag = post.locationName {
+            if post.kind == "google", let name = post.locationName {
+                let pin = post.near.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lng) }
+                candidates = await PlaceSearch.resolveLink(name: name, near: pin)
+                source = candidates.isEmpty ? nil : .link
+            } else if let tag = post.locationName {
                 candidates = Array(await PlaceSearch.resolveTag(
                     tag, ownerFullName: post.ownerFullName, caption: post.caption,
                     hashtags: post.hashtags ?? [], cityHints: Array(cityHints)
                 ).prefix(5))
                 source = candidates.isEmpty ? nil : .tag
             } else {
-                candidates = Array(await PlaceSearch.resolveAccount(
+                // The caption naming a place beats the account; both are suggestions only.
+                var fromCaption: [PlaceCandidate] = []
+                if let q = PlaceSearch.captionPlaceQuery(post.caption) {
+                    fromCaption = Array(((try? await PlaceSearch.search(q, limit: 3)) ?? []))
+                }
+                let fromAccount = await PlaceSearch.resolveAccount(
                     ownerFullName: post.ownerFullName, ownerUsername: post.ownerUsername
-                ).prefix(3))
+                )
+                var seen = Set<String>()
+                candidates = Array((fromCaption + fromAccount).filter { seen.insert($0.id).inserted }.prefix(4))
                 source = candidates.isEmpty ? nil : .account
             }
             guard !Task.isCancelled else { return }
-            // Only a location tag is trusted enough to save without a tap.
-            if candidates.count == 1, source == .tag, !autoSaveDeclined {
+            // Only a location tag or a Maps link is trusted enough to save without a tap.
+            if candidates.count == 1, source == .tag || source == .link, !autoSaveDeclined {
                 save(candidates[0], automatically: true)
             } else if candidates.isEmpty {
                 focus = .query
@@ -310,7 +324,8 @@ struct AddPlaceView: View {
             }
             let image = await ImageLoader.data(from: post?.imageURL)
             let place = Place(
-                instagramURL: validURL,
+                // The server's canonical link: short links (vm.tiktok.com, maps.app.goo.gl) resolved.
+                instagramURL: post?.url ?? validURL,
                 name: c.name,
                 latitude: c.latitude,
                 longitude: c.longitude,
@@ -478,9 +493,10 @@ private struct CandidateList: View {
         return HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 0) {
-                    Text(c.name).font(.body.weight(.medium)).lineLimit(1)
+                    // The name keeps its room; the city truncates first.
+                    Text(c.name).font(.body.weight(.medium)).lineLimit(1).layoutPriority(1)
                     if !whereText.isEmpty {
-                        Text(" — \(whereText)").font(.body).foregroundStyle(.tertiary).lineLimit(1).layoutPriority(1)
+                        Text(" — \(whereText)").font(.body).foregroundStyle(.tertiary).lineLimit(1)
                     }
                 }
                 if dupes.contains(key), let address = c.address {

@@ -28,7 +28,7 @@ final class ShareViewController: UIViewController {
                 }
                 if provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier),
                    let text = try? await provider.loadItem(forTypeIdentifier: UTType.plainText.identifier) as? String,
-                   InstagramURL.normalize(text) != nil {
+                   SourceURL.parse(text) != nil {
                     return text
                 }
             }

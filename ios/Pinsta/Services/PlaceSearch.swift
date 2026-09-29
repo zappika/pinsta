@@ -19,15 +19,17 @@ struct PlaceCandidate: Identifiable, Hashable {
 
 enum PlaceSearch {
     /// Worldwide point-of-interest search. No key, no quota, on Apple's servers.
-    static func search(_ query: String, limit: Int = 5) async throws -> [PlaceCandidate] {
+    static func search(_ query: String, limit: Int = 5, near: CLLocationCoordinate2D? = nil) async throws -> [PlaceCandidate] {
         let request = MKLocalSearch.Request()
         request.naturalLanguageQuery = query
         request.resultTypes = .pointOfInterest
-        // Cover the whole world; without this MapKit biases to the device's region.
-        request.region = MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
-            span: MKCoordinateSpan(latitudeDelta: 180, longitudeDelta: 360)
-        )
+        // Around a Google Maps pin when there is one; otherwise the whole world
+        // (without a region MapKit biases to the device's location).
+        request.region = near.map { MKCoordinateRegion(center: $0, latitudinalMeters: 3000, longitudinalMeters: 3000) }
+            ?? MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                span: MKCoordinateSpan(latitudeDelta: 180, longitudeDelta: 360)
+            )
         let response = try await MKLocalSearch(request: request).start()
         return response.mapItems.prefix(limit).map(PlaceCandidate.init)
     }
@@ -87,8 +89,41 @@ extension PlaceSearch {
             .trimmingCharacters(in: .whitespaces), handle.count > 2 { queries.append(handle) }
         guard !queries.isEmpty else { return [] }
         let merged = await runAll(queries)
-        let nameWords = words(ownerFullName ?? "")
-        return merged.sorted { (overlaps(words($0.name), nameWords) ? 0 : 1) < (overlaps(words($1.name), nameWords) ? 0 : 1) }
+        // Only places sharing a real word with the account: "jecca" must not suggest "JEC Arquitectura".
+        let nameWords = words(ownerFullName ?? "") + words(ownerUsername ?? "")
+        return merged.filter { overlaps(words($0.name), nameWords) }
+    }
+
+    /// A Google Maps link names one place: search its name around its pin, nearest first.
+    static func resolveLink(name: String, near: CLLocationCoordinate2D?) async -> [PlaceCandidate] {
+        let found = (try? await search(name, limit: 5, near: near)) ?? []
+        guard let near else { return found }
+        let here = CLLocation(latitude: near.latitude, longitude: near.longitude)
+        let sorted = found.sorted {
+            CLLocation(latitude: $0.latitude, longitude: $0.longitude).distance(from: here)
+                < CLLocation(latitude: $1.latitude, longitude: $1.longitude).distance(from: here)
+        }
+        // The nearest sits right on the pin (≈100 m): that's the place, no need to ask.
+        if let first = sorted.first, CLLocation(latitude: first.latitude, longitude: first.longitude).distance(from: here) < 120 {
+            return [first]
+        }
+        return Array(sorted.prefix(3))
+    }
+
+    /// Port of the web's `captionPlaceQuery`: "dinner at Cal Pep in Barcelona"
+    /// → "Cal Pep Barcelona". Pattern matching only; suggestions, never auto-saved.
+    static func captionPlaceQuery(_ caption: String?) -> String? {
+        guard let caption else { return nil }
+        let cap = #"[\p{Lu}\d][\p{L}\d'’&.-]*"#
+        let pattern = #"(?:^|\s)(?:at|@|en|à|på|bei)\s+("# + cap + #"(?:\s+(?:de|del|la|le|du|of|the|&|"# + cap + #"))*)(?:\s+in\s+("# + cap + #"(?:\s+"# + cap + #")*))?"#
+        guard let re = try? NSRegularExpression(pattern: pattern),
+              let m = re.firstMatch(in: caption, range: NSRange(caption.startIndex..., in: caption)),
+              let placeRange = Range(m.range(at: 1), in: caption) else { return nil }
+        let trim: (Substring) -> String = { $0.trimmingCharacters(in: CharacterSet(charactersIn: ".,! ")) }
+        let place = trim(caption[placeRange])
+        guard place.count >= 3, !["the", "my", "our", "this"].contains(place.lowercased()) else { return nil }
+        if let cityRange = Range(m.range(at: 2), in: caption) { return "\(place) \(trim(caption[cityRange]))" }
+        return place
     }
 
     /// All queries in parallel, merged in order, de-duplicated by id.

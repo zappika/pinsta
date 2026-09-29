@@ -11,9 +11,15 @@ struct InstagramPost: Decodable {
     let ownerUsername: String?
     let ownerFullName: String?
     let hashtags: [String]?
+    /// "instagram" | "tiktok" | "google" — nil from older servers.
+    var kind: String? = nil
+    /// Google Maps links carry the pin; MapKit searches around it.
+    var near: Near? = nil
+
+    struct Near: Decodable, Equatable { let lat: Double; let lng: Double }
 
     enum CodingKeys: String, CodingKey {
-        case url, caption, locationName, ownerUsername, ownerFullName, hashtags
+        case url, caption, locationName, ownerUsername, ownerFullName, hashtags, kind, near
         case imageURL = "imageUrl"
     }
 }
@@ -44,6 +50,34 @@ enum PostReader {
             throw APIError(message: envelope.error ?? "Could not read post")
         }
         return post
+    }
+}
+
+/// The links Vicolo accepts — a port of the web's `lib/sources.ts`: an
+/// Instagram post, a TikTok video, or a Google Maps place. Short links
+/// (vm.tiktok.com, maps.app.goo.gl) pass as-is; the server resolves them and
+/// returns the canonical URL, which is what gets saved.
+enum SourceURL {
+    enum Kind: String { case instagram, tiktok, google }
+
+    static func parse(_ input: String) -> (kind: Kind, url: String)? {
+        let raw = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let ig = InstagramURL.normalize(raw) { return (.instagram, ig) }
+        guard let url = URL(string: raw), let rawHost = url.host()?.lowercased() else { return nil }
+        let host = rawHost.replacingOccurrences(of: "^(www|m)\\.", with: "", options: .regularExpression)
+        let path = url.path()
+        if host == "tiktok.com" {
+            guard let m = path.firstMatch(of: /^\/@([\w.-]+)\/(?:video|photo)\/(\d+)/) else { return nil }
+            return (.tiktok, "https://www.tiktok.com/@\(m.1)/video/\(m.2)")
+        }
+        if host == "vm.tiktok.com" || host == "vt.tiktok.com" {
+            return path.count > 1 ? (.tiktok, "https://\(host)\(path)") : nil
+        }
+        if host == "maps.app.goo.gl" || (host == "goo.gl" && path.hasPrefix("/maps")) { return (.google, raw) }
+        if host.firstMatch(of: /^(maps\.)?google\.[a-z.]+$/) != nil, host.hasPrefix("maps.") || path.hasPrefix("/maps") {
+            return (.google, raw)
+        }
+        return nil
     }
 }
 

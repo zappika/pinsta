@@ -37,7 +37,7 @@ Known limits for the beta (tell friends):
 
 ## iOS port of the 2026-09-29 web pass — in chunks
 Each chunk is built, checked on the simulator, committed and pushed on its own, then ticked here. A new session continues at the first unticked chunk.
-- [ ] 1. Links: TikTok + Google Maps links in the app and the share extension; Maps links searched around their pin; "link" auto-saves
+- [x] 1. Links (2026-09-29): TikTok + Google Maps links in the app and the share extension; Maps links searched in MapKit around their pin, a match on the pin auto-saves; caption pattern + stricter account match for untagged posts. Maps-link saves have no photo on iOS (that would need Google, paid).
 - [ ] 2. Bottom bar: glyph view pill with List; round + that turns into ×; List view
 - [ ] 3. Map: emoji pins on type tints; nearby pins group into a count
 - [ ] 4. Cards: round icon actions; Directions (ask once, remember, confirm); buddy menu with Appearance + Directions
