@@ -73,6 +73,9 @@ Each chunk is built, checked on the simulator, committed and pushed on its own, 
 
 **Accounts belong to Social (Sarp, 2026-09-29).** The app knows its user locally and works fully without an account. Creating one (username + login) is the step into "I want to be social now". Open for CTO when Social starts: how a local-first list joins an account later.
 
+## Expansion: What's New onboarding (after the beta)
+- An Apple-style "What's New" splash screen with concise highlights of new features. Show it on first launch and after meaningful app updates, not on every launch.
+
 ## Next steps
 1. ~~Vercel key~~ done 2026-09-29.
 2. Sarp: enroll in the Apple Developer Program. It gates everything below.
@@ -101,7 +104,8 @@ Ordered roughly by how soon friends will feel it. The category and share-text fi
 **Expansion packages** (sections above)
 - Social: send a place to a friend; later, see friends' saves. Accounts arrive here, optional, as the step into being social.
 - Check-ins: Been there / Want to go, check in, and "Nika wants to go here" where it meets Social.
-- Open for CTO before either: how a local-first list joins an account later.
+- What's New onboarding: a short, Apple-style feature splash screen for first launch and meaningful updates.
+- Before Social or Check-ins: decide how a local-first list joins an account later.
 
 ## Code review — 2026-09-29
 Items to address after the local fixes above, ordered by user impact:
