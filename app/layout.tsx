@@ -3,7 +3,7 @@ import "./globals.css";
 import { THEME_BOOT } from "@/lib/theme";
 
 export const metadata: Metadata = {
-  title: "Pinsta",
+  title: "Vicolo",
   description: "Save places from Instagram posts to your map.",
 };
 

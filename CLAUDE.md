@@ -1,4 +1,6 @@
-# Pinsta — working notes
+# Vicolo (formerly Pinsta) — working notes
+
+The product is **Vicolo**. Code, repo, folder and the Vercel project still say pinsta; that's intentional, not a leftover to fix.
 
 Read `plan.md` first: it has the "Last session" block, what's waiting on Sarp,
 and the dated decisions. This file is *how things work* so a session can
@@ -24,7 +26,7 @@ cd ios && xcodegen generate    # ALWAYS after adding/removing Swift files (brew 
 xcodebuild -project Pinsta.xcodeproj -scheme Pinsta -sdk iphonesimulator \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath DerivedData build
 xcrun simctl install "iPhone 17 Pro" DerivedData/Build/Products/Debug-iphonesimulator/Pinsta.app
-xcrun simctl launch  "iPhone 17 Pro" se.sarper.pinsta
+xcrun simctl launch  "iPhone 17 Pro" se.sarper.vicolo
 ```
 Share extension test: open a post URL in Safari on the Simulator → `⋯` → Share →
 Pinsta. Instagram itself can't be installed in the Simulator.
@@ -54,7 +56,7 @@ Pinsta. Instagram itself can't be installed in the Simulator.
 - **One place, many posts** (`lib/same-place.ts`): a save that matches an existing place (same Google id, or ≤60 m + a shared name word) appends to its `posts` jsonb instead of inserting. First post stays in the row columns.
 - **Cards:** swipe right-to-left → round change/remove buttons; full swipe removes.
   Delete is deferred 5 s behind an Undo toast (`PinstaApp.tsx` / `PlacesListView.swift`).
-- **iOS data:** SwiftData store in App Group `group.se.sarper.pinsta`, shared with
+- **iOS data:** SwiftData store in App Group `group.se.sarper.vicolo`, shared with
   the extension. First launch imports the web DB once (`WebImporter`). The list
   refetches on foreground because SwiftData doesn't see the extension's writes.
 
@@ -77,6 +79,7 @@ While the env var is unset the lock is off. Local curl with the key:
 - **Test fresh installs on a second simulator** (e.g. iPhone 17) so the main one
   keeps its list.
 - **This shell is zsh:** unquoted `$VAR` doesn't word-split, and `echo` rewrites `\n` inside JSON. Write API tests as small `node` scripts, not curl pipelines.
+- **Bundle ID changed to `se.sarper.vicolo`.** The old `se.sarper.pinsta` app is a separate install on simulators; its local list stays with it.
 - **Pull before you start.** Two sessions (two machines) work on this repo. On
   2026-09-29 a session built on a copy eight commits old and had to rebase.
 - **Xcode license after an OS update.** macOS 27 brought Xcode 27; until

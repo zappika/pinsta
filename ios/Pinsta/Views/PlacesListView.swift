@@ -237,7 +237,7 @@ private struct PlacesContent: View {
     @ViewBuilder
     private var header: some View {
         if shown.isEmpty {
-            Text("Pinsta")
+            Text("Vicolo")
                 .font(.title.weight(.semibold))
                 .padding(.top, 12)
         } else {
@@ -283,7 +283,7 @@ private struct PlacesContent: View {
     private var emptyState: some View {
         VStack(spacing: 4) {
             Text("Nothing saved yet").font(.headline)
-            Text("In Instagram, tap Share on a post and pick Pinsta. First time, find it under More.")
+            Text("In Instagram, tap Share on a post and pick Vicolo. First time, find it under More.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

@@ -5,7 +5,7 @@ import SwiftData
 /// Local only for now; `cloudKitDatabase: .automatic` later for iCloud backup —
 /// still no accounts, no login.
 enum Persistence {
-    static let appGroup = "group.se.sarper.pinsta"
+    static let appGroup = "group.se.sarper.vicolo"
 
     static let container: ModelContainer = {
         let schema = Schema([Place.self])

@@ -15,7 +15,7 @@ final class ShareViewController: UIViewController {
     }
 
     @objc private func cancel() {
-        extensionContext?.cancelRequest(withError: NSError(domain: "se.sarper.pinsta", code: 0))
+        extensionContext?.cancelRequest(withError: NSError(domain: "se.sarper.vicolo", code: 0))
     }
 
     private func sharedURL() async -> String? {

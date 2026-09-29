@@ -1,4 +1,6 @@
-# Pinsta — Plan
+# Vicolo — Plan
+
+_Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
 ## Last session — 2026-09-29
 - What we built: the web list is now **owner-only** (`lib/owner.ts`, key screen on the web) so friends' iOS installs can't read or wipe it; iOS no longer imports the web list on first launch; distribution plumbing (export-compliance flag, shared version numbers, privacy manifests, friend-facing empty state).
@@ -227,3 +229,4 @@ pre-loaded with the shared post and saves to the same list the app shows.
 - **2026-09-29 — Pins get a white border and a soft per-type tint** (`CATEGORY_TINT`). **Save a place becomes a round + at the bottom right**, in one row with the view pill (Sarp picked it over + in the pill or + in the header). Settles the two-row bottom stack question; no Sander needed.
 - **2026-09-29 — List view added** (Map · List · Cards · Tiles): rounded square photo, name, type, "distance · town" (distance only after Near me). Tap opens the PeekCard, like Tiles. **The + animates:** springy press, turns into × while the sheet is open, and the sheet rises from it.
 - **2026-09-29 — The view pill is glyphs, not words** (map, list, card, grid line icons; labels kept for screen readers and hover). Not emoji, per Sarp.
+- **2026-09-29 — Renamed to Vicolo** (supersedes "name stays Pinsta"). Visible name on web and iOS; iOS bundle ID `se.sarper.vicolo` and App Group `group.se.sarper.vicolo`, changed before the App Store Connect record exists. Internal names (repo, folder, Vercel project `pinsta-two`, file/CSS/storage names) unchanged.

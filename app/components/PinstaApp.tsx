@@ -213,7 +213,7 @@ export default function PinstaApp() {
         />
       ) : (
         <header className="px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-4">
-          <h1 className="text-2xl font-semibold tracking-tight">Pinsta</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Vicolo</h1>
         </header>
       )}
 
@@ -367,7 +367,7 @@ function Locked({ onKey, rejected }: { onKey: (key: string) => void; rejected: b
   const [key, setKey] = useState("");
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5">
-      <h1 className="text-2xl font-semibold tracking-tight">Pinsta</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Vicolo</h1>
       <p className="mt-1 text-sm text-stone-500">This list is private. Enter your key to open it.</p>
       <form
         className="mt-5 flex gap-2"
