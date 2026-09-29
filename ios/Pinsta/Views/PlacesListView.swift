@@ -67,10 +67,18 @@ private struct PlacesContent: View {
                     undoToast(toast)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                if !shown.isEmpty {
-                    ViewSwitch(view: $view)
+                // One row: the view pill centred, the round + at the right edge (drawn
+                // in an overlay above the save sheet, so it can turn into its ×).
+                ZStack {
+                    if !shown.isEmpty {
+                        ViewSwitch(view: $view)
+                            .opacity(adding ? 0 : 1)
+                    }
                 }
-                saveButton
+                .frame(maxWidth: .infinity, minHeight: 56)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 8)
+                .background(bottomFade, alignment: .top)
             }
             .animation(.snappy, value: toast?.id)
             .animation(.snappy, value: peek?.id)
@@ -89,6 +97,7 @@ private struct PlacesContent: View {
                 }
             }
         }
+        .overlay(alignment: .bottomTrailing) { plusButton }
         .animation(.snappy(duration: 0.3), value: adding)
         .animation(.snappy(duration: 0.3), value: editing?.id)
         .task {
@@ -129,6 +138,16 @@ private struct PlacesContent: View {
                 .frame(maxWidth: .infinity)
                 .padding(.top, 48)
             Spacer()
+        } else if view == .list {
+            ScrollView {
+                PlaceListView(
+                    places: visible,
+                    selected: $peek,
+                    hideCategory: category != nil,
+                    hideCity: { city != nil && $0.city == city }
+                )
+                .padding(.bottom, 160)
+            }
         } else if view == .tiles {
             ScrollView {
                 PlaceTilesView(places: visible, selected: $peek)
@@ -292,29 +311,35 @@ private struct PlacesContent: View {
         .padding(.top, 96)
     }
 
-    private var saveButton: some View {
+    /// Round +, springs on press, turns into × while the save sheet is open and closes it.
+    private var plusButton: some View {
         Button {
-            adding = true
+            if adding || editing != nil { adding = false; editing = nil } else { adding = true }
         } label: {
-            Text("Save a place")
-                .font(.body.weight(.medium))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(Color.primary, in: RoundedRectangle(cornerRadius: 16))
+            Image(systemName: "plus")
+                .font(.system(size: 22, weight: .semibold))
+                .rotationEffect(.degrees(adding || editing != nil ? 135 : 0))
+                .animation(.spring(response: 0.35, dampingFraction: 0.55), value: adding)
                 .foregroundStyle(Color(.systemBackground))
+                .frame(width: 56, height: 56)
+                .background(Color.primary, in: Circle())
+                .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
         }
-        .padding(.horizontal, 20)
+        .buttonStyle(PressSpring())
+        .accessibilityLabel(adding || editing != nil ? "Close" : "Save a place")
+        .padding(.trailing, 20)
         .padding(.bottom, 8)
-        .background(
-            LinearGradient(
-                colors: [Color(.systemGroupedBackground).opacity(0), Color(.systemGroupedBackground)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .frame(height: 96)
-            .offset(y: -8)
-            .opacity(view == .map ? 0 : 1),
-            alignment: .top
+    }
+
+    private var bottomFade: some View {
+        LinearGradient(
+            colors: [Color(.systemGroupedBackground).opacity(0), Color(.systemGroupedBackground)],
+            startPoint: .top, endPoint: .bottom
         )
+        .frame(height: 96)
+        .offset(y: -24)
+        .opacity(view == .map || adding ? 0 : 1)
+        .allowsHitTesting(false)
     }
 }
 
@@ -334,8 +359,18 @@ private struct FloatingSheet<Content: View>: View {
                 .frame(height: AddPlaceView.sheetHeight)
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .padding(.horizontal, 12)
-                .padding(.bottom, 12)
+                // Sits above the + (now ×), which stays on top to close it.
+                .padding(.bottom, 76)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
         }
+    }
+}
+
+/// The + press: a quick squash and a springy release.
+private struct PressSpring: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.9 : 1)
+            .animation(.spring(response: 0.25, dampingFraction: 0.5), value: configuration.isPressed)
     }
 }

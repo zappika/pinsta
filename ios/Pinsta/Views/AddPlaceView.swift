@@ -124,7 +124,7 @@ struct AddPlaceView: View {
     private var urlField: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                TextField("Paste an Instagram, TikTok or Maps link", text: $urlText)
+                TextField("Instagram, TikTok or Maps link", text: $urlText)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)

@@ -2,9 +2,18 @@ import SwiftUI
 
 /// How the current Where·What selection is shown. Remembered across launches.
 enum PlacesView: String, CaseIterable {
-    case map, cards, tiles
+    case map, list, cards, tiles
 
     var title: String { rawValue.capitalized }
+    /// Simple glyphs, not words (same set as the web pill).
+    var symbol: String {
+        switch self {
+        case .map: return "map"
+        case .list: return "list.bullet"
+        case .cards: return "rectangle.portrait"
+        case .tiles: return "square.grid.2x2"
+        }
+    }
 }
 
 /// The segmented pill at the bottom. Liquid Glass on iOS 26; a material below.
@@ -19,11 +28,10 @@ struct ViewSwitch: View {
                 Button {
                     withAnimation(.snappy(duration: 0.25)) { view = v }
                 } label: {
-                    Text(v.title)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(active ? Color(.systemBackground) : .primary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
+                    Image(systemName: v.symbol)
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(active ? Color(.systemBackground) : .secondary)
+                        .frame(width: 48, height: 40)
                         .background {
                             if active {
                                 Capsule().fill(Color.primary)
@@ -32,6 +40,8 @@ struct ViewSwitch: View {
                         }
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(v.title)
+                .accessibilityAddTraits(active ? .isSelected : [])
             }
         }
         .padding(4)
