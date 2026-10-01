@@ -119,6 +119,16 @@ While the env var is unset the lock is off. Local curl with the key:
   (`.mts` because top-level await). Existing: `backfill-region`, `backfill-images`, `fix-rows`, `merge-places` (fold a duplicate card into another).
 - Inspect prod data: same curl as above against `https://pinsta-two.vercel.app/api/places`, with the key once the lock is on. One request at a time (see the Vercel polling gotcha).
 
+## Shipping a TestFlight build
+```bash
+cd ios && xcodegen generate   # bump CURRENT_PROJECT_VERSION in project.yml first — every upload needs a new number
+xcodebuild -project Pinsta.xcodeproj -scheme Pinsta -sdk iphoneos -destination 'generic/platform=iOS' \
+  -archivePath build/Vicolo.xcarchive -allowProvisioningUpdates archive
+xcodebuild -exportArchive -archivePath build/Vicolo.xcarchive -exportOptionsPlist build/export.plist \
+  -exportPath build/export -allowProvisioningUpdates   # export.plist: method app-store-connect, destination upload, teamID 8D6ML34D52
+```
+`ios/build/` is gitignored; recreate `export.plist` if missing. Team 8D6ML34D52 (paid), Sarp's iPhone 15 is registered. Processing at Apple takes 10–20 min.
+
 ## Testing iOS
 - Use the second simulator (iPhone 17, `169AC70A-…`) for fresh-install and destructive tests; the main one (iPhone 17 Pro) keeps a list.
 - `xcrun simctl location <id> set 41.39,2.17` + `xcrun simctl privacy <id> grant location se.sarper.vicolo` for Near me.

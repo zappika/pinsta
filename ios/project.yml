@@ -40,6 +40,8 @@ targets:
         NSLocationWhenInUseUsageDescription: Vicolo uses your location only when you pick Near me, to show saved places within 50 km. It is never stored or sent anywhere.
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        # Portrait-only passes App Store validation only when iPad multitasking is opted out.
+        UIRequiresFullScreen: true
         LSApplicationQueriesSchemes: [comgooglemaps]
     settings:
       base:

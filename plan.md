@@ -26,13 +26,13 @@ Code (mine):
 - [x] iOS Google Maps action uses a place ID when available, otherwise the saved coordinates instead of an ambiguous name search (2026-09-29); confirm app opening on a phone.
 - [ ] Try real `vm.tiktok.com` and `maps.app.goo.gl` links on a phone. Local redirect checks pass with simulated responses, but no real links were available for an end-to-end check.
 - [x] Full iOS build after these changes passes (2026-10-01).
-- [ ] Real team in `project.yml` (`DEVELOPMENT_TEAM`, automatic signing) → archive → upload
+- [x] Real team in `project.yml` (8D6ML34D52, automatic signing) → archive → upload: build 1.0 (1) uploaded 2026-10-01. `UIRequiresFullScreen` added; portrait-only fails validation without it.
 - [ ] Sarp's own phone via internal TestFlight: **Share from inside Instagram** (never tested on a real device), swipe thresholds, undo timing
 - [ ] Submit for external Beta App Review by Thu 2026-10-01 → public link
 
 Apple (Sarp's — needs his identity and payment):
 - [x] (2026-10-01) Apple Developer Program, paid ($99/yr). The free team can't distribute: cable installs only, expire in 7 days.
-- [ ] App Store Connect app record. Name: Vicolo. It must be unique store-wide; if taken, try "Vicolo — Places" (the home-screen name can stay Vicolo).
+- [x] (2026-10-01) App Store Connect app record. Name: Vicolo. It must be unique store-wide; if taken, try "Vicolo — Places" (the home-screen name can stay Vicolo).
 - [ ] TestFlight beta info: short description, feedback email, possibly a privacy policy URL (one page on the web app would do).
 
 Acceptance: a friend with no connection to Sarp installs from the link, shares a post from Instagram, and sees it saved in their own empty list — while Sarp's web list stays private.
