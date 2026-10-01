@@ -73,18 +73,25 @@ Each chunk is built, checked on the simulator, committed and pushed on its own, 
 
 **Accounts belong to Social (Sarp, 2026-09-29).** The app knows its user locally and works fully without an account. Creating one (username + login) is the step into "I want to be social now". Open for CTO when Social starts: how a local-first list joins an account later.
 
-## Expansion: What's New onboarding (after the beta)
-- An Apple-style "What's New" splash screen with concise highlights of new features. Show it on first launch and after meaningful app updates, not on every launch.
+## First experience — the one to nail (Sarp, 2026-10-01) — not started
+Sarp tried the app fresh twice: it's flat and boring. Friends and family see it next, so the first minutes have to be great. Design it properly first (web prototype, see "How we design" below); don't patch it.
+- Questions to answer: what the first screen shows before anything is saved, how the first share is taught (share sheet → More → Favorites is a real hurdle), what the first save feels like (a moment, not a receipt), and when the list starts to feel like *yours*.
+- Folds in the old "What's New" idea: an Apple-style splash with a few highlights, on first launch and after meaningful updates, never on every launch.
+
+## Expansion: Menu, Settings and Imports (Sarp, 2026-10-01) — not started
+- The buddy button opens a real menu. Appearance and Directions move into a **Settings** screen inside it.
+- In that menu, a placeholder for now: **Import from Google**. Idea: people's saved Google Maps places/lists become Vicolo cards.
+- Later another import: **lists you already keep elsewhere** (notes, text lists of places), read and turned into cards.
+- Both imports to be designed properly when their turn comes; parked here as future thinking, like Social.
 
 ## Next steps
-1. ~~Vercel key~~ done 2026-09-29.
-2. Sarp: enroll in the Apple Developer Program. It gates everything below.
-3. Real team in `project.yml` → archive → internal TestFlight on Sarp's phone. Test Share **from inside Instagram and TikTok** (never done on a real device), swipe and undo timing by thumb, Near me outdoors.
-4. Submit for external Beta App Review → public link → friends.
-5. After the first weekend: check Apify usage (every friend's Instagram save runs on Sarp's account).
+1. ~~Vercel key~~ done 2026-09-29. ~~Developer account, team, first upload~~ done 2026-10-01.
+2. Build 2 on Sarp's phone: check the share card floats over Instagram (couldn't test on the simulator), the steps while reading, the empty state.
+3. External testing group → Beta App Review → public link → friends.
+4. After the first weekend: check Apify usage (every friend's Instagram save runs on Sarp's account).
 
 ## Waiting on Sarp
-- Paid Apple Developer Program — unblocks TestFlight
+- Build 2 check on the phone; external group + review submission in App Store Connect
 
 ## Roadmap — after the beta
 Ordered roughly by how soon friends will feel it. The category and share-text fixes above were pulled into the beta work; real-device checks remain a beta gate.
@@ -104,7 +111,8 @@ Ordered roughly by how soon friends will feel it. The category and share-text fi
 **Expansion packages** (sections above)
 - Social: send a place to a friend; later, see friends' saves. Accounts arrive here, optional, as the step into being social.
 - Check-ins: Been there / Want to go, check in, and "Nika wants to go here" where it meets Social.
-- What's New onboarding: a short, Apple-style feature splash screen for first launch and meaningful updates.
+- First experience (top priority of these): see its section above; includes the What's New splash.
+- Menu, Settings and Imports: real menu, Settings screen, Import from Google, import from notes/lists.
 - Before Social or Check-ins: decide how a local-first list joins an account later.
 
 ## Code review — 2026-09-29
@@ -276,3 +284,4 @@ pre-loaded with the shared post and saves to the same list the app shows.
 - **2026-09-29 — The view pill is glyphs, not words** (map, list, card, grid line icons; labels kept for screen readers and hover). Not emoji, per Sarp.
 - **2026-09-29 — Renamed to Vicolo** (supersedes "name stays Pinsta"). Visible name on web and iOS; iOS bundle ID `se.sarper.vicolo` and App Group `group.se.sarper.vicolo`, changed before the App Store Connect record exists. Internal names (repo, folder, Vercel project `pinsta-two`, file/CSS/storage names) unchanged.
 - **2026-09-29 — Vicolo accepts TikTok and Google Maps links** alongside Instagram, with no new paid service: TikTok page data + oEmbed, Google Maps links parsed from the URL. The DB field `instagram_url` keeps its name but holds any supported link.
+- **2026-10-01 — How we design: iterate on the web, port to iOS once settled (Sarp).** Iterating on iOS (build, install, simulator taps) is too slow for design. Web is the sketchbook; iOS gets the agreed version in one pass.

@@ -136,7 +136,7 @@ xcodebuild -exportArchive -archivePath build/Vicolo.xcarchive -exportOptionsPlis
 - Test auto-save with a tagged post that still exists (Ästad Vingård `DdJIacKIplU`) or a Maps link; Bar Brutal's post was deleted.
 
 ## Conventions
-- Web first, then port to iOS in one pass. Keep shared rules identical.
+- Web first, then port to iOS in one pass. Keep shared rules identical. Design iteration happens on the web only (Sarp, 2026-10-01); iOS gets the settled version.
 - Low-tech first: no LLM/paid API where a heuristic does the job (Sarp's call).
 - Commit per verified chunk; the message body says why. Push = deploy.
 - Categories: `lib/categories.ts` ↔ `PlaceCategory.swift`, incl. Vineyard.
