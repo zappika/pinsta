@@ -25,13 +25,13 @@ Code (mine):
 - [x] Web owner key works for the current page even when browser storage rejects writes (2026-09-29).
 - [x] iOS Google Maps action uses a place ID when available, otherwise the saved coordinates instead of an ambiguous name search (2026-09-29); confirm app opening on a phone.
 - [ ] Try real `vm.tiktok.com` and `maps.app.goo.gl` links on a phone. Local redirect checks pass with simulated responses, but no real links were available for an end-to-end check.
-- [ ] Run a full iOS build after these changes. Swift parsing and isolated type checks pass; this Codex sandbox cannot run Xcode's SwiftUI macro service.
+- [x] Full iOS build after these changes passes (2026-10-01).
 - [ ] Real team in `project.yml` (`DEVELOPMENT_TEAM`, automatic signing) → archive → upload
 - [ ] Sarp's own phone via internal TestFlight: **Share from inside Instagram** (never tested on a real device), swipe thresholds, undo timing
 - [ ] Submit for external Beta App Review by Thu 2026-10-01 → public link
 
 Apple (Sarp's — needs his identity and payment):
-- [ ] Apple Developer Program, paid ($99/yr). The free team can't distribute: cable installs only, expire in 7 days.
+- [x] (2026-10-01) Apple Developer Program, paid ($99/yr). The free team can't distribute: cable installs only, expire in 7 days.
 - [ ] App Store Connect app record. Name: Vicolo. It must be unique store-wide; if taken, try "Vicolo — Places" (the home-screen name can stay Vicolo).
 - [ ] TestFlight beta info: short description, feedback email, possibly a privacy policy URL (one page on the web app would do).
 
