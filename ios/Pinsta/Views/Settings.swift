@@ -25,6 +25,8 @@ final class Settings {
     /// Set when Directions is tapped with no default yet: the chooser opens for this place.
     var choosingFor: Place?
     var choosingOpen = false
+    /// The Settings sheet (buddy menu → Settings).
+    var showingSheet = false
 
     private init() {
         mapsApp = UserDefaults.standard.string(forKey: "vicolo.maps").flatMap(MapsApp.init(rawValue:))
@@ -35,9 +37,6 @@ final class Settings {
     func directions(to place: Place) {
         if let app = mapsApp { open(place, in: app) } else { choosingFor = place; choosingOpen = true }
     }
-
-    /// From the buddy menu: ask again, with no place to open afterwards.
-    func chooseAgain() { choosingFor = nil; choosingOpen = true }
 
     func pick(_ app: MapsApp) {
         mapsApp = app

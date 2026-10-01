@@ -141,11 +141,12 @@ private struct PlacesContent: View {
         .animation(.snappy, value: peek?.id)
         .overlay(alignment: .bottomTrailing) { if peek == nil || view == .cards { plusButton } }
         .animation(.snappy, value: notice)
+        .sheet(isPresented: Bindable(settings).showingSheet) { SettingsSheet() }
         .confirmationDialog("Open directions in", isPresented: Bindable(settings).choosingOpen, titleVisibility: .visible) {
             ForEach(Settings.MapsApp.allCases, id: \.self) { app in
                 Button(app.label) {
                     settings.pick(app)
-                    showNotice("Saved \(app.label) as your default. You can change it anytime in the menu, top right.")
+                    showNotice("Saved \(app.label) as your default. You can change it anytime in Settings, top right.")
                 }
             }
         }

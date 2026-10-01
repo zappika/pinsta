@@ -101,7 +101,6 @@ Ordered roughly by how soon friends will feel it. The category and share-text fi
 - Cheaper, sturdier Instagram reads. Apify is the one paid dependency on every save; watch cost and failure rate from the beta, then decide (keep, cache, or an alternative).
 
 **Small fixes**
-- iOS places saved from a Maps link have no photo (web gets Google's; iOS doesn't pay for Google). Options: the MapKit Look Around snapshot, or keep the emoji.
 - Web embeds posts inside the full place sheet; iOS shows links. Decide whether iOS should embed too.
 - Keyboard jump in the iOS add sheet (deferred by Sarp).
 
@@ -285,3 +284,4 @@ pre-loaded with the shared post and saves to the same list the app shows.
 - **2026-09-29 — Renamed to Vicolo** (supersedes "name stays Pinsta"). Visible name on web and iOS; iOS bundle ID `se.sarper.vicolo` and App Group `group.se.sarper.vicolo`, changed before the App Store Connect record exists. Internal names (repo, folder, Vercel project `pinsta-two`, file/CSS/storage names) unchanged.
 - **2026-09-29 — Vicolo accepts TikTok and Google Maps links** alongside Instagram, with no new paid service: TikTok page data + oEmbed, Google Maps links parsed from the URL. The DB field `instagram_url` keeps its name but holds any supported link.
 - **2026-10-01 — How we design: iterate on the web, port to iOS once settled (Sarp).** Iterating on iOS (build, install, simulator taps) is too slow for design. Web is the sketchbook; iOS gets the agreed version in one pass.
+- **2026-10-01 — iOS Maps-link saves keep the emoji tile, no Look Around photo (Sarp).** Look Around images aren't good enough to stand in for a place photo.
