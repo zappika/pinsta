@@ -4,7 +4,7 @@ import { appleMapsUrl, googleMapsUrl } from "./maps";
 
 /**
  * One Directions button. The first tap asks Apple Maps or Google Maps; the
- * answer is remembered in this browser and can be changed from the buddy menu.
+ * answer is remembered in this browser and can be changed in Settings (buddy menu).
  */
 export type MapsApp = "apple" | "google";
 const KEY = "pinsta.maps";
@@ -26,6 +26,13 @@ export function setDefaultMaps(app: MapsApp) {
   } catch {}
 }
 
+/** Back to asking on the next Directions tap (Settings → Directions → Ask). */
+export function clearDefaultMaps() {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {}
+}
+
 type Target = { name: string; placeId: string; lat: number; lng: number };
 
 export function openIn(app: MapsApp, p: Target) {
@@ -38,9 +45,4 @@ export function directions(p: Target) {
   const app = defaultMaps();
   if (app) openIn(app, p);
   else window.dispatchEvent(new CustomEvent("pinsta:choose-maps", { detail: p }));
-}
-
-/** From the buddy menu: ask again, with no place to open afterwards. */
-export function chooseMaps() {
-  window.dispatchEvent(new CustomEvent("pinsta:choose-maps", { detail: null }));
 }

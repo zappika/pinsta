@@ -132,7 +132,7 @@ export default function PinstaApp() {
     setDefaultMaps(app);
     if (choosing?.target) openIn(app, choosing.target);
     setChoosing(null);
-    setNotice(`Saved ${MAPS_LABEL[app]} as your default. You can change it anytime in the menu, top right.`);
+    setNotice(`Saved ${MAPS_LABEL[app]} as your default. You can change it anytime in Settings, top right.`);
   }
 
   // Any API call that comes back 401 (key missing or changed) shows the key screen.
