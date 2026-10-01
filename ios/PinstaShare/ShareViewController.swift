@@ -6,16 +6,47 @@ import UniformTypeIdentifiers
 /// Instagram → Share → Pinsta. Pulls the shared URL out of the extension
 /// context and hosts the same SwiftUI save flow the app uses, on the same store.
 final class ShareViewController: UIViewController {
+    // Without this the system presents the extension as a full-height sheet and
+    // the card sits at the bottom of a big empty page. Over full screen, the card
+    // floats over the app that shared, like the in-app save sheet.
+    override init(nibName: String?, bundle: Bundle?) {
+        super.init(nibName: nibName, bundle: bundle)
+        modalPresentationStyle = .overFullScreen
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        modalPresentationStyle = .overFullScreen
+    }
+
+    private let dim = UIColor.black.withAlphaComponent(0.4)
+    private weak var card: UIView?
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        // The system already dims the host app; we draw only a small card at the bottom.
         view.backgroundColor = .clear
-        view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(cancel)))
+        view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapOutside)))
         Task { await present(url: await sharedURL()) }
     }
 
-    @objc private func cancel() {
-        extensionContext?.cancelRequest(withError: NSError(domain: "se.sarper.vicolo", code: 0))
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        UIView.animate(withDuration: 0.25) { self.view.backgroundColor = self.dim }
+    }
+
+    @objc private func tapOutside(_ tap: UITapGestureRecognizer) {
+        if let card, card.frame.contains(tap.location(in: view)) { return }
+        close { $0.cancelRequest(withError: NSError(domain: "se.sarper.vicolo", code: 0)) }
+    }
+
+    /// Slide the card away and lift the dim before handing back to the host app.
+    private func close(_ finish: @escaping (NSExtensionContext) -> Void) {
+        UIView.animate(withDuration: 0.22, animations: {
+            self.view.backgroundColor = .clear
+            self.card?.transform = CGAffineTransform(translationX: 0, y: AddPlaceView.sheetHeight + 40)
+        }, completion: { _ in
+            if let context = self.extensionContext { finish(context) }
+        })
     }
 
     private func sharedURL() async -> String? {
@@ -42,7 +73,7 @@ final class ShareViewController: UIViewController {
         let root = AddPlaceView(
             initialURL: url,
             onFinish: { [weak self] in
-                self?.extensionContext?.completeRequest(returningItems: nil)
+                self?.close { $0.completeRequest(returningItems: nil) }
             },
             allowsPasteboard: false
         )
@@ -62,5 +93,11 @@ final class ShareViewController: UIViewController {
             host.view.heightAnchor.constraint(equalToConstant: AddPlaceView.sheetHeight),
         ])
         host.didMove(toParent: self)
+        card = host.view
+        // Rise in from the bottom edge, like the app's own sheet.
+        host.view.transform = CGAffineTransform(translationX: 0, y: AddPlaceView.sheetHeight + 40)
+        UIView.animate(withDuration: 0.45, delay: 0, usingSpringWithDamping: 0.85, initialSpringVelocity: 0) {
+            host.view.transform = .identity
+        }
     }
 }

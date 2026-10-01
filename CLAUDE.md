@@ -132,7 +132,7 @@ xcodebuild -exportArchive -archivePath build/Vicolo.xcarchive -exportOptionsPlis
 ## Testing iOS
 - Use the second simulator (iPhone 17, `169AC70A-…`) for fresh-install and destructive tests; the main one (iPhone 17 Pro) keeps a list.
 - `xcrun simctl location <id> set 41.39,2.17` + `xcrun simctl privacy <id> grant location se.sarper.vicolo` for Near me.
-- Launch with `-slowNotices` to keep toasts up 30 s while checking them.
+- Launch with `-slowNotices` to keep toasts up 30 s while checking them, and `-addURL <link>` to open the save sheet with a link the way a share does (Safari's Share menu ignores injected taps on the iOS 27 simulator).
 - Test auto-save with a tagged post that still exists (Ästad Vingård `DdJIacKIplU`) or a Maps link; Bar Brutal's post was deleted.
 
 ## Conventions

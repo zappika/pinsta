@@ -31,6 +31,9 @@ struct AddPlaceView: View {
     @State private var saved: Saved?
     @State private var autoSaveDeclined = false
     @State private var error: String?
+    /// Between reading the post and having candidates: the steps stay on screen.
+    @State private var finding = false
+    @State private var readStarted = Date()
     @FocusState private var focus: Field?
 
     private enum Field { case url, query }
@@ -163,12 +166,20 @@ struct AddPlaceView: View {
     private var postSection: some View {
         switch reading {
         case .loading:
-            HStack(spacing: 12) {
-                RoundedRectangle(cornerRadius: 10).fill(Color(.tertiarySystemFill)).frame(width: 48, height: 48)
-                Text("Reading post…").font(.caption).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 12) {
+                    RoundedRectangle(cornerRadius: 10).fill(Color(.tertiarySystemFill)).frame(width: 48, height: 48)
+                        .phaseAnimator([0.45, 1]) { $0.opacity($1) } animation: { _ in .easeInOut(duration: 0.8) }
+                    Text(["instagram": "Instagram post", "tiktok": "TikTok video", "google": "Google Maps link"][SourceURL.parse(validURL ?? "")?.kind.rawValue ?? ""] ?? "Link")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                }
+                LoadingSteps(read: false, tag: nil, started: readStarted)
             }
         case .done(let post):
-            PostRow(post: post, fallbackImage: editing?.imageData)
+            VStack(alignment: .leading, spacing: 14) {
+                PostRow(post: post, fallbackImage: editing?.imageData)
+                if finding { LoadingSteps(read: true, tag: post.locationName, started: readStarted) }
+            }
         case .failed(let message):
             Text("Couldn't read that post (\(message)). Type the place below.")
                 .font(.subheadline).foregroundStyle(.secondary)
@@ -236,13 +247,18 @@ struct AddPlaceView: View {
             return
         }
         reading = .loading
+        readStarted = Date()
+        finding = false
         source = nil
         candidates = []
         query = ""
         error = nil
         // Debounce: while a URL is being typed, every prefix is a "valid" post
-        // link. Only the one that survives 700ms of silence gets read.
-        try? await Task.sleep(for: .milliseconds(700))
+        // link. Only the one that survives 700ms of silence gets read. A shared
+        // link is complete already: read it at once.
+        if initialURL.flatMap({ SourceURL.parse($0)?.url }) != validURL {
+            try? await Task.sleep(for: .milliseconds(700))
+        }
         guard !Task.isCancelled else { return }
         if let existing = existingPlace(for: validURL) {
             reading = .idle
@@ -259,7 +275,11 @@ struct AddPlaceView: View {
                 withAnimation(.snappy) { saved = Saved(place: existing, automatic: false, already: true, changed: false) }
                 return
             }
-            reading = .done(post)
+            withAnimation(.snappy) {
+                reading = .done(post)
+                finding = true
+            }
+            defer { withAnimation(.snappy) { finding = false } }
             let cityHints = Set((try? context.fetch(FetchDescriptor<Place>()))?.compactMap(\.city) ?? [])
             if post.kind == "google", let name = post.locationName {
                 let pin = post.near.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lng) }
@@ -449,6 +469,60 @@ private struct Receipt: View {
         .buttonStyle(.plain)
         .padding(16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+    }
+}
+
+/// Reading a post takes 5–20 s (Apify). The wait should read as work: named
+/// steps, the tag being looked up, and a bar that never stops creeping.
+private struct LoadingSteps: View {
+    /// The post is read; the place is being found.
+    let read: Bool
+    let tag: String?
+    let started: Date
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
+                step(read ? "Read the post" : "Reading the post", read ? .done : .active)
+                step(tag.map { "Finding “\($0)”" } ?? "Finding the place", read ? .active : .waiting)
+                step("Saving to your list", .waiting)
+            }
+            TimelineView(.periodic(from: .now, by: 0.1)) { ctx in
+                // Eases toward 70% while reading, then on toward 95%; it only hits 100% by finishing.
+                let t = ctx.date.timeIntervalSince(started)
+                let reading = 0.7 * (1 - exp(-t / 6))
+                let value = read ? 0.7 + 0.25 * (1 - exp(-t / 8)) : reading
+                GeometryReader { geo in
+                    Capsule().fill(Color(.tertiarySystemFill))
+                        .overlay(alignment: .leading) {
+                            Capsule().fill(Color.primary.opacity(0.8))
+                                .frame(width: geo.size.width * min(value, 0.95))
+                                .animation(.linear(duration: 0.1), value: value)
+                        }
+                }
+                .frame(height: 4)
+            }
+        }
+    }
+
+    private enum StepState { case waiting, active, done }
+
+    private func step(_ text: String, _ state: StepState) -> some View {
+        HStack(spacing: 10) {
+            Group {
+                switch state {
+                case .done: Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                case .active: ProgressView().controlSize(.small)
+                case .waiting: Image(systemName: "circle").foregroundStyle(.quaternary)
+                }
+            }
+            .frame(width: 20, height: 20)
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(state == .waiting ? .tertiary : state == .done ? .secondary : .primary)
+                .lineLimit(1)
+        }
+        .transition(.opacity)
     }
 }
 

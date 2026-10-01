@@ -26,6 +26,8 @@ private struct PlacesContent: View {
     @State private var city: String?
     @State private var category: PlaceCategory?
     @State private var adding = false
+    /// Testing: `-addURL <link>` opens the save sheet with that link, the way a share arrives.
+    @State private var launchURL = UserDefaults.standard.string(forKey: "addURL")
     private let settings = Settings.shared
     @State private var notice: String?
     @State private var noticeTask: Task<Void, Never>?
@@ -125,7 +127,7 @@ private struct PlacesContent: View {
                     if let place = editing {
                         AddPlaceView(editing: place, onFinish: { editing = nil })
                     } else {
-                        AddPlaceView(onFinish: { adding = false })
+                        AddPlaceView(initialURL: launchURL, onFinish: { adding = false; launchURL = nil })
                     }
                 }
             }
@@ -152,6 +154,7 @@ private struct PlacesContent: View {
         .task {
             // No web import: the web list is Sarp's, and every install starts empty.
             // (WebImporter stays in the tree for a possible owner-only import later.)
+            if launchURL != nil { adding = true }
             await PhotoRetry.run(in: context)
         }
         .onChange(of: city) { old, new in
@@ -319,9 +322,14 @@ private struct PlacesContent: View {
     @ViewBuilder
     private var header: some View {
         if shown.isEmpty {
-            Text("Vicolo")
-                .font(.title.weight(.semibold))
-                .padding(.top, 12)
+            // Settings (appearance, directions) are reachable before the first save too.
+            HStack(alignment: .firstTextBaseline) {
+                Text("Vicolo").font(.title.weight(.semibold))
+                Spacer(minLength: 0)
+                BuddyMenu()
+                    .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 8 }
+            }
+            .padding(.top, 12)
         } else {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Menu {
@@ -371,16 +379,33 @@ private struct PlacesContent: View {
         .layoutPriority(muted ? 0 : 1)
     }
 
+    /// iOS hides a new share extension behind "More" until it is a favourite,
+    /// so the first-run steps say how to pin it once.
     private var emptyState: some View {
-        VStack(spacing: 4) {
-            Text("Nothing saved yet").font(.headline)
-            Text("In Instagram, tap Share on a post and pick Vicolo. First time, find it under More.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Nothing saved yet").font(.title3.weight(.semibold))
+            VStack(alignment: .leading, spacing: 12) {
+                emptyStep(1, "In Instagram or TikTok, tap **Share** on a post of a place.")
+                emptyStep(2, "First time only: scroll the app row to the end, tap **More**, and add **Vicolo** to Favorites.")
+                emptyStep(3, "Tap **Vicolo**. The place lands here.")
+            }
+            Text("Or tap + and paste a link.").font(.subheadline).foregroundStyle(.tertiary)
         }
+        .frame(maxWidth: 300, alignment: .leading)
         .frame(maxWidth: .infinity)
         .padding(.top, 96)
+    }
+
+    private func emptyStep(_ n: Int, _ text: LocalizedStringKey) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Text("\(n)")
+                .font(.caption.weight(.semibold).monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 20, height: 20)
+                .background(Color(.tertiarySystemFill), in: Circle())
+                .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 5 }
+            Text(text).font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     /// Round +, springs on press, turns into × while the save sheet is open and closes it.
