@@ -303,12 +303,12 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
               )}
 
               {extract.status === "loading" && (
-                <div className="mt-3 flex items-center gap-3">
-                  <div className="h-12 w-12 shrink-0 animate-pulse rounded-lg bg-stone-100" />
-                  <div className="flex-1 space-y-1.5">
-                    <div className="h-3 w-1/3 animate-pulse rounded bg-stone-100" />
-                    <p className="text-xs text-stone-400">Reading post…</p>
+                <div className="mt-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 shrink-0 animate-pulse rounded-lg bg-stone-100" />
+                    <p className="text-sm text-stone-500">{({ instagram: "Instagram post", tiktok: "TikTok video", google: "Google Maps link" } as Record<SourceKind, string>)[parseSourceUrl(validUrl ?? "")?.kind ?? "instagram"]}</p>
                   </div>
+                  <LoadingSteps />
                 </div>
               )}
 
@@ -479,5 +479,43 @@ function CandidateList({
         );
       })}
     </ul>
+  );
+}
+
+/**
+ * Reading a post takes 5–20 s (Apify). The wait should read as work: named
+ * steps and a bar that keeps creeping (to 70% while reading). Mirrors
+ * LoadingSteps in the iOS AddPlaceView; the web reads and finds in one call,
+ * so only the first step runs here.
+ */
+function LoadingSteps() {
+  const [t, setT] = useState(0);
+  useEffect(() => {
+    const start = Date.now();
+    const id = setInterval(() => setT((Date.now() - start) / 1000), 100);
+    return () => clearInterval(id);
+  }, []);
+  const value = 0.7 * (1 - Math.exp(-t / 6));
+  const steps: [string, "active" | "waiting"][] = [
+    ["Reading the post", "active"],
+    ["Finding the place", "waiting"],
+    ["Saving to your list", "waiting"],
+  ];
+  return (
+    <div className="mt-3.5 space-y-2.5">
+      {steps.map(([label, state]) => (
+        <div key={label} className="flex items-center gap-2.5 text-sm">
+          {state === "active" ? (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-stone-300 border-t-stone-700" />
+          ) : (
+            <span className="h-4 w-4 rounded-full border-2 border-stone-200" />
+          )}
+          <span className={state === "active" ? "text-stone-900" : "text-stone-400"}>{label}</span>
+        </div>
+      ))}
+      <div className="h-1 overflow-hidden rounded-full bg-stone-100">
+        <div className="h-full rounded-full bg-stone-800 transition-[width] duration-100 ease-linear" style={{ width: `${value * 100}%` }} />
+      </div>
+    </div>
   );
 }

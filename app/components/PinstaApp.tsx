@@ -12,6 +12,7 @@ import PlaceTiles from "./PlaceTiles";
 import PeekCard from "./PeekCard";
 import PlaceList from "./PlaceList";
 import MapsChooser from "./MapsChooser";
+import BuddyMenu from "./BuddyMenu";
 import { MAPS_LABEL, defaultMaps, openIn, setDefaultMaps, type MapsApp } from "@/lib/directions";
 import ViewSwitch, { type View } from "./ViewSwitch";
 import { destinationLabels } from "@/lib/grouping";
@@ -212,8 +213,10 @@ export default function PinstaApp() {
           }}
         />
       ) : (
-        <header className="px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-4">
+        // Settings are reachable before the first save too.
+        <header className="flex items-center px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-4">
           <h1 className="text-2xl font-semibold tracking-tight">Vicolo</h1>
+          <BuddyMenu />
         </header>
       )}
 
@@ -240,11 +243,22 @@ export default function PinstaApp() {
         )}
 
         {places && places.length === 0 && (
-          <div className="mt-24 text-center">
-            <p className="text-lg font-medium">Nothing saved yet</p>
-            <p className="mt-1 text-sm text-stone-500">
-              Paste an Instagram post and pin the place it shows.
-            </p>
+          // Same steps as the iOS app: iOS hides a new share extension under "More".
+          <div className="mx-auto mt-24 max-w-[300px]">
+            <p className="text-xl font-semibold">Nothing saved yet</p>
+            <ol className="mt-4 space-y-3 text-sm text-stone-500">
+              {[
+                <>In Instagram or TikTok, tap <b className="font-semibold text-stone-600">Share</b> on a post of a place.</>,
+                <>First time only: scroll the app row to the end, tap <b className="font-semibold text-stone-600">More</b>, and add <b className="font-semibold text-stone-600">Vicolo</b> to Favorites.</>,
+                <>Tap <b className="font-semibold text-stone-600">Vicolo</b>. The place lands here.</>,
+              ].map((step, i) => (
+                <li key={i} className="flex gap-2.5">
+                  <span className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-stone-200 text-xs font-semibold tabular-nums">{i + 1}</span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-4 text-sm text-stone-400">Or tap + and paste a link.</p>
           </div>
         )}
 
