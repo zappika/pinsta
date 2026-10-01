@@ -447,10 +447,7 @@ private struct PlacesContent: View {
                 .font(.system(size: 22, weight: .semibold))
                 .rotationEffect(.degrees(adding || editing != nil ? 135 : 0))
                 .animation(.spring(response: 0.35, dampingFraction: 0.55), value: adding)
-                .foregroundStyle(Color(.systemBackground))
-                .frame(width: 56, height: 56)
-                .background(Color.primary, in: Circle())
-                .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
+                .modifier(PlusLook())
         }
         .buttonStyle(PressSpring())
         .accessibilityLabel(adding || editing != nil ? "Close" : "Save a place")
@@ -489,6 +486,25 @@ private struct FloatingSheet<Content: View>: View {
                 // Sits above the + (now ×), which stays on top to close it.
                 .padding(.bottom, 76)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+}
+
+/// The round +: Liquid Glass on iOS 26, matching the view pill (Sarp,
+/// 2026-10-01); the web's solid black circle below that.
+private struct PlusLook: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content
+                .foregroundStyle(Color(.label))
+                .frame(width: 56, height: 56)
+                .glassEffect(.regular.interactive(), in: .circle)
+        } else {
+            content
+                .foregroundStyle(Color(.systemBackground))
+                .frame(width: 56, height: 56)
+                .background(Color.primary, in: Circle())
+                .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
         }
     }
 }

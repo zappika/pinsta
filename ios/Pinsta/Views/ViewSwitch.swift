@@ -16,10 +16,18 @@ enum PlacesView: String, CaseIterable {
     }
 }
 
-/// The segmented pill at the bottom. Liquid Glass on iOS 26; a material below.
+/// The segmented pill at the bottom. On iOS 26 it is Liquid Glass like the
+/// system tab bar (Sarp, 2026-10-01): the pill itself is glass and the chosen
+/// view sits in a soft lozenge. Below 26 it keeps the web's look, a material
+/// pill with a solid lozenge.
 struct ViewSwitch: View {
     @Binding var view: PlacesView
     @Namespace private var ns
+
+    private var glass: Bool {
+        if #available(iOS 26, *) { return true }
+        return false
+    }
 
     var body: some View {
         HStack(spacing: 2) {
@@ -30,14 +38,17 @@ struct ViewSwitch: View {
                 } label: {
                     Image(systemName: v.symbol)
                         .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(active ? Color(.systemBackground) : .secondary)
-                        .frame(width: 48, height: 40)
+                        .foregroundStyle(active ? (glass ? Color(.label) : Color(.systemBackground)) : .secondary)
+                        .frame(width: 52, height: 48)
                         .background {
                             if active {
-                                Capsule().fill(Color.primary)
+                                // A solid lozenge under glass refracts into a grey smudge,
+                                // so on glass it is a faint fill, the tab bar's highlight.
+                                Capsule().fill(glass ? Color(.label).opacity(0.1) : Color.primary)
                                     .matchedGeometryEffect(id: "selected", in: ns)
                             }
                         }
+                        .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(v.title)
@@ -45,18 +56,17 @@ struct ViewSwitch: View {
             }
         }
         .padding(4)
-        // The glass is a layer behind the labels, not around them — otherwise the
-        // selected lozenge gets refracted into a grey smudge.
-        .background { GlassPill() }
+        .modifier(GlassPill())
     }
 }
 
-private struct GlassPill: View {
-    var body: some View {
+/// 56pt tall, the same as the round + beside it.
+private struct GlassPill: ViewModifier {
+    func body(content: Content) -> some View {
         if #available(iOS 26, *) {
-            Color.clear.glassEffect(.regular, in: .capsule)
+            content.glassEffect(.regular.interactive(), in: .capsule)
         } else {
-            Capsule().fill(.regularMaterial)
+            content.background(.regularMaterial, in: Capsule())
         }
     }
 }

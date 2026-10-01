@@ -90,6 +90,7 @@ Written in a Linux cloud session: web type check passes, **the iOS changes have 
 - [x] Where shows "Istanbul" / "Copenhagen", not "Beyoğlu" / "Nordhavn" (web + iOS, by coordinates, existing places too).
 - [ ] iOS Where/What pickers are the web's bottom sheet (`FilterPicker.swift`), not system menus.
 - [ ] iOS card buttons use the web's outline arrow and Instagram mark (`Glyphs.swift`).
+- [ ] iOS view pill and round + are Liquid Glass on iOS 26 (tab-bar style: glass pill, soft lozenge on the chosen view, glass + with a dark glyph). Below 26 they keep the web look. Design call: iOS-native here, the web stays black.
 
 ## Next steps
 1. ~~Vercel key~~ done 2026-09-29. ~~Developer account, team, first upload~~ done 2026-10-01.
