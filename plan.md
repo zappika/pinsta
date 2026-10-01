@@ -86,12 +86,12 @@ Sarp tried the app fresh twice: it's flat and boring. Friends and family see it 
 
 ## Next steps
 1. ~~Vercel key~~ done 2026-09-29. ~~Developer account, team, first upload~~ done 2026-10-01.
-2. Build 2 on Sarp's phone: check the share card floats over Instagram (couldn't test on the simulator), the steps while reading, the empty state.
+2. Build 3 on Sarp's phone (2026-10-01; build 2 = share card over the host app, reading steps, first-run steps; build 3 = menu + Settings sheet). Check the share card floats over Instagram: the simulator couldn't test it.
 3. External testing group → Beta App Review → public link → friends.
 4. After the first weekend: check Apify usage (every friend's Instagram save runs on Sarp's account).
 
 ## Waiting on Sarp
-- Build 2 check on the phone; external group + review submission in App Store Connect
+- Build 3 check on the phone; external group + review submission in App Store Connect
 
 ## Roadmap — after the beta
 Ordered roughly by how soon friends will feel it. The category and share-text fixes above were pulled into the beta work; real-device checks remain a beta gate.
