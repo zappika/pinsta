@@ -44,6 +44,9 @@ private struct PlacesContent: View {
     @State private var editing: Place?
     @State private var importing = false
     @State private var openSwipe: UUID?
+    /// Which header picker is open: the web's sheet, not a system Menu.
+    @State private var picking: Picking?
+    private enum Picking { case city, category }
 
     // How the selection is shown; the filters reset per launch, this doesn't.
     @AppStorage("pinsta.view") private var view: PlacesView = .cards
@@ -140,6 +143,8 @@ private struct PlacesContent: View {
         }
         .animation(.snappy, value: peek?.id)
         .overlay(alignment: .bottomTrailing) { if peek == nil || view == .cards { plusButton } }
+        .overlay { picker }
+        .animation(.snappy(duration: 0.25), value: picking)
         .animation(.snappy, value: notice)
         .sheet(isPresented: Bindable(settings).showingSheet) { SettingsSheet() }
         .confirmationDialog("Open directions in", isPresented: Bindable(settings).choosingOpen, titleVisibility: .visible) {
@@ -333,37 +338,61 @@ private struct PlacesContent: View {
             .padding(.top, 12)
         } else {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Menu {
-                    Picker("Where", selection: $city) {
-                        Label("Everywhere · \(shown.count)", systemImage: "globe").tag(String?.none)
-                        Label(here == nil ? "Near me" : "Near me · \(nearIDs.count)", systemImage: "location.fill").tag(String?.some(NearMe.tag))
-                        ForEach(destinations, id: \.0) { name, count in
-                            Text("\(name) · \(count)").tag(String?.some(name))
-                        }
-                    }
-                } label: {
+                Button { picking = .city } label: {
                     HStack(spacing: 6) {
                         if city == NearMe.tag { Image(systemName: "location.fill").font(.title3.weight(.semibold)).foregroundStyle(Color(.label)) }
                         headerLabel(city == NearMe.tag ? "Near me" : (city ?? "Everywhere"), muted: false)
                     }
                 }
+                .buttonStyle(.plain)
+                .layoutPriority(1)
 
-                Menu {
-                    Picker("What", selection: $category) {
-                        Text("Everything · \(categories.reduce(0) { $0 + $1.1 })").tag(PlaceCategory?.none)
-                        ForEach(categories, id: \.0) { cat, count in
-                            Text("\(cat.plural) · \(count)").tag(PlaceCategory?.some(cat))
-                        }
-                    }
-                } label: {
+                Button { picking = .category } label: {
                     headerLabel(category?.plural ?? "Everything", muted: true)
                 }
+                .buttonStyle(.plain)
                 Spacer(minLength: 0)
                 BuddyMenu()
                     .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 8 }
             }
             .padding(.top, 12)
         }
+    }
+
+    @ViewBuilder
+    private var picker: some View {
+        switch picking {
+        case .city: FilterPicker(title: "Where", options: whereOptions, onClose: { picking = nil })
+        case .category: FilterPicker(title: "What", options: whatOptions, onClose: { picking = nil })
+        case nil: EmptyView()
+        }
+    }
+
+    private var whereOptions: [FilterPicker.Option] {
+        var options: [FilterPicker.Option] = [
+            FilterPicker.Option(id: "everywhere", label: "Everywhere", count: shown.count, selected: city == nil) { pick { city = nil } },
+            FilterPicker.Option(id: NearMe.tag, label: "Near me", count: here == nil ? nil : nearIDs.count, locate: true, selected: city == NearMe.tag) { pick { city = NearMe.tag } },
+        ]
+        for (name, count) in destinations {
+            options.append(FilterPicker.Option(id: "city-\(name)", label: name, count: count, selected: city == name) { pick { city = name } })
+        }
+        return options
+    }
+
+    private var whatOptions: [FilterPicker.Option] {
+        let total = categories.reduce(0) { $0 + $1.1 }
+        var options: [FilterPicker.Option] = [
+            FilterPicker.Option(id: "everything", label: "Everything", count: total, selected: category == nil) { pick { category = nil } },
+        ]
+        for (cat, count) in categories {
+            options.append(FilterPicker.Option(id: cat.rawValue, label: cat.plural, count: count, selected: category == cat) { pick { category = cat } })
+        }
+        return options
+    }
+
+    private func pick(_ change: () -> Void) {
+        change()
+        picking = nil
     }
 
     private func headerLabel(_ text: String, muted: Bool) -> some View {

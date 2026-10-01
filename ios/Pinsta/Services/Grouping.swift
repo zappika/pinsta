@@ -3,6 +3,8 @@ import Foundation
 /// Which name goes in the "Where" menu for each place — a port of the web's
 /// `lib/grouping.ts`, same rules, same trade-offs:
 ///
+///   0. First: a place inside a big city (`Metros`) is that city, even
+///      alone. "Beyoğlu" and "Nordhavn" become "Istanbul" and "Copenhagen".
 ///   1. A town with 2+ saved places is a destination in its own right.
 ///   2. A town with 1 place folds into its region — but only if that region
 ///      then bundles 2+ such places. A region row holding one place is
@@ -13,7 +15,13 @@ import Foundation
 enum Grouping {
     static let ownRowAt = 2
 
-    static func destinationLabels(_ places: [Place]) -> [UUID: String] {
+    static func destinationLabels(_ all: [Place]) -> [UUID: String] {
+        var labels: [UUID: String] = [:]
+        var places: [Place] = []
+        for p in all {
+            if let metro = Metros.at(lat: p.latitude, lng: p.longitude) { labels[p.id] = metro } else { places.append(p) }
+        }
+
         var byCity: [String: Int] = [:]
         for p in places { byCity[p.city ?? "", default: 0] += 1 }
 
@@ -24,7 +32,6 @@ enum Grouping {
             singletonsByRegion[regionOf(p), default: 0] += 1
         }
 
-        var labels: [UUID: String] = [:]
         for p in places {
             let city = p.city ?? ""
             if (byCity[city] ?? 0) >= ownRowAt {

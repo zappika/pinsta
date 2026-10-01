@@ -84,6 +84,13 @@ Sarp tried the app fresh twice: it's flat and boring. Friends and family see it 
 - Later another import: **lists you already keep elsewhere** (notes, text lists of places), read and turned into cards.
 - Both imports to be designed properly when their turn comes; parked here as future thinking, like Social.
 
+## Sarp's build 3 feedback (2026-10-01): in code, not yet built
+Written in a Linux cloud session: web type check passes, **the iOS changes have not been compiled**. Build on the Mac before uploading build 4.
+- [ ] Share card: no grey page behind it. Our dim over the system's white sheet made the grey; the superview chain is now cleared and our dim is gone. Check on the phone from Instagram.
+- [x] Where shows "Istanbul" / "Copenhagen", not "Beyoğlu" / "Nordhavn" (web + iOS, by coordinates, existing places too).
+- [ ] iOS Where/What pickers are the web's bottom sheet (`FilterPicker.swift`), not system menus.
+- [ ] iOS card buttons use the web's outline arrow and Instagram mark (`Glyphs.swift`).
+
 ## Next steps
 1. ~~Vercel key~~ done 2026-09-29. ~~Developer account, team, first upload~~ done 2026-10-01.
 2. Build 3 on Sarp's phone (2026-10-01; build 2 = share card over the host app, reading steps, first-run steps; build 3 = menu + Settings sheet). Check the share card floats over Instagram: the simulator couldn't test it.

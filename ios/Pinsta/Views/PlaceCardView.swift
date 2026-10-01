@@ -42,16 +42,16 @@ struct PlaceCardView: View {
                     }
                 }
                 Spacer(minLength: 0)
-                roundAction("arrow.triangle.turn.up.right.diamond", label: "Directions") { Settings.shared.directions(to: place) }
+                roundAction(.directions, label: "Directions") { Settings.shared.directions(to: place) }
                 if postURLs.count == 1, let url = postURLs.first {
-                    roundAction("camera", label: "Post") { open(url) }
+                    roundAction(.post, label: "Post") { open(url) }
                 } else if postURLs.count > 1 {
                     Menu {
                         ForEach(Array(postURLs.enumerated()), id: \.offset) { i, url in
                             Button("Post \(i + 1) · \(SourceURL.parse(url)?.kind == .tiktok ? "TikTok" : "Instagram")") { open(url) }
                         }
                     } label: {
-                        roundIcon("camera")
+                        roundIcon(.post)
                     }
                     .accessibilityLabel("Posts")
                 }
@@ -64,7 +64,11 @@ struct PlaceCardView: View {
                 ForEach(Array(postURLs.enumerated()), id: \.offset) { i, url in
                     Button { open(url) } label: {
                         HStack {
-                            Image(systemName: SourceURL.parse(url)?.kind == .tiktok ? "play.rectangle" : "camera")
+                            if SourceURL.parse(url)?.kind == .tiktok {
+                                Image(systemName: "play.rectangle")
+                            } else {
+                                Glyph.post.view(size: 17)
+                            }
                             Text(postURLs.count > 1 ? "Post \(i + 1)" : "Open the post")
                             Spacer()
                             Image(systemName: "arrow.up.right").foregroundStyle(.tertiary)
@@ -80,16 +84,15 @@ struct PlaceCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
-    private func roundIcon(_ symbol: String) -> some View {
-        Image(systemName: symbol)
-            .font(.system(size: 16, weight: .medium))
+    private func roundIcon(_ glyph: Glyph) -> some View {
+        glyph.view()
             .foregroundStyle(.primary)
             .frame(width: 40, height: 40)
             .background(Color(.tertiarySystemFill), in: Circle())
     }
 
-    private func roundAction(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) { roundIcon(symbol) }
+    private func roundAction(_ glyph: Glyph, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) { roundIcon(glyph) }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
     }

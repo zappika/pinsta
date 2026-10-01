@@ -6,9 +6,8 @@ import UniformTypeIdentifiers
 /// Instagram → Share → Pinsta. Pulls the shared URL out of the extension
 /// context and hosts the same SwiftUI save flow the app uses, on the same store.
 final class ShareViewController: UIViewController {
-    // Without this the system presents the extension as a full-height sheet and
-    // the card sits at the bottom of a big empty page. Over full screen, the card
-    // floats over the app that shared, like the in-app save sheet.
+    // Asks for full screen so the card floats over the app that shared. iOS 26+
+    // ignores this and shows a full-height sheet anyway; see clearSheetBackground.
     override init(nibName: String?, bundle: Bundle?) {
         super.init(nibName: nibName, bundle: bundle)
         modalPresentationStyle = .overFullScreen
@@ -19,7 +18,6 @@ final class ShareViewController: UIViewController {
         modalPresentationStyle = .overFullScreen
     }
 
-    private let dim = UIColor.black.withAlphaComponent(0.4)
     private weak var card: UIView?
 
     override func viewDidLoad() {
@@ -29,9 +27,28 @@ final class ShareViewController: UIViewController {
         Task { await present(url: await sharedURL()) }
     }
 
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        UIView.animate(withDuration: 0.25) { self.view.backgroundColor = self.dim }
+    override func viewIsAppearing(_ animated: Bool) {
+        super.viewIsAppearing(animated)
+        clearSheetBackground()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        clearSheetBackground()
+    }
+
+    /// The system's share sheet paints an opaque white page behind the extension
+    /// (Apple forums 806117, FB20934974). Build 3 dimmed that page, which showed
+    /// as a big grey sheet on Sarp's phone. Clearing every view up the chain makes
+    /// the page see-through, so only the card shows over the host app, which the
+    /// system already dims. No dim of our own: it would draw the sheet's outline.
+    private func clearSheetBackground() {
+        var v: UIView? = view
+        while let current = v {
+            current.backgroundColor = .clear
+            v = current.superview
+        }
+        view.window?.backgroundColor = .clear
     }
 
     @objc private func tapOutside(_ tap: UITapGestureRecognizer) {
@@ -39,10 +56,9 @@ final class ShareViewController: UIViewController {
         close { $0.cancelRequest(withError: NSError(domain: "se.sarper.vicolo", code: 0)) }
     }
 
-    /// Slide the card away and lift the dim before handing back to the host app.
+    /// Slide the card away before handing back to the host app.
     private func close(_ finish: @escaping (NSExtensionContext) -> Void) {
         UIView.animate(withDuration: 0.22, animations: {
-            self.view.backgroundColor = .clear
             self.card?.transform = CGAffineTransform(translationX: 0, y: AddPlaceView.sheetHeight + 40)
         }, completion: { _ in
             if let context = self.extensionContext { finish(context) }

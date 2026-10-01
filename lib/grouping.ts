@@ -5,6 +5,8 @@
  * "Halland" for a vineyard in a village nobody's heard of. Decided purely from
  * what's saved — no lookups, no model:
  *
+ *   0. First: a place inside a big city (lib/metros) is that city, even
+ *      alone. "Beyoğlu" and "Nordhavn" become "Istanbul" and "Copenhagen".
  *   1. A town with 2+ saved places is a destination in its own right.
  *   2. A town with 1 place is folded into its region — but only if that region
  *      then bundles 2+ such places. A region row that would hold one place is
@@ -14,8 +16,12 @@
  * "Skåne"; Ästad alone stays "Ästad". Labels shift as the list grows, which
  * is the accepted trade-off (decided 2026-09-12).
  */
+import { metroAt } from "./metros";
+
 export type Groupable = {
   id: string;
+  lat: number;
+  lng: number;
   city: string | null;
   region: string | null;
   country: string | null;
@@ -24,6 +30,15 @@ export type Groupable = {
 const OWN_ROW_AT = 2;
 
 export function destinationLabels<T extends Groupable>(places: T[]): Map<string, string> {
+  const labels = new Map<string, string>();
+  const rest: T[] = [];
+  for (const p of places) {
+    const metro = metroAt(p.lat, p.lng);
+    if (metro) labels.set(p.id, metro);
+    else rest.push(p);
+  }
+  places = rest;
+
   const byCity = new Map<string, number>();
   for (const p of places) {
     const c = p.city ?? "";
@@ -38,7 +53,6 @@ export function destinationLabels<T extends Groupable>(places: T[]): Map<string,
     singletonsByRegion.set(r, (singletonsByRegion.get(r) ?? 0) + 1);
   }
 
-  const labels = new Map<string, string>();
   for (const p of places) {
     const city = p.city ?? "";
     if ((byCity.get(city) ?? 0) >= OWN_ROW_AT) {

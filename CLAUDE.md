@@ -45,6 +45,8 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   "Where" menu label per place. Town with 2+ places = own row; 1-place town folds
   into its region only if the region then bundles 2+. Same comments both sides —
   change one, change the other.
+  Before that, a place inside a big city (`lib/metros.ts` ↔ `Metros.swift`, by
+  coordinates) is filed under that city: MapKit names districts ("Beyoğlu", "Nordhavn").
 - **Views** (`ViewSwitch.tsx` ↔ `ViewSwitch.swift`): the bottom pill picks Map / Cards / Tiles for the
   current Where·What selection. Map: MapLibre + OpenFreeMap on web, MapKit on iOS, framed to fit the
   selection. Tiles: Instagram profile grid. Pin/tile tap → `PeekCard`. Choice persisted, filters not.
@@ -85,6 +87,7 @@ While the env var is unset the lock is off. Local curl with the key:
 - **This shell is zsh:** unquoted `$VAR` doesn't word-split, and `echo` rewrites `\n` inside JSON. Write API tests as small `node` scripts, not curl pipelines.
 - **Bundle ID changed to `se.sarper.vicolo`.** The old `se.sarper.pinsta` app is a separate install on simulators; its local list stays with it.
 - **iOS scene phase:** dialogs and menus send the app through `.inactive`. The list only rebuilds on a return from `.background`; rebuilding on every `.active` wiped view state (it ate the Directions confirmation).
+- **Share extension background:** iOS 26+ ignores `.overFullScreen` and paints an opaque white sheet behind the extension; `ShareViewController.clearSheetBackground` clears the superview chain so only the card shows. No dim of our own (the system dims).
 - **Share extension compiles `Pinsta/Services` and `Models`.** Anything using `UIApplication.shared` (opening apps) must live in `Pinsta/Views`, which the extension doesn't include.
 - **Pull before you start.** Two sessions (two machines) work on this repo. On
   2026-09-29 a session built on a copy eight commits old and had to rebase.
