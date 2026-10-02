@@ -11,8 +11,8 @@ import { findPriceLevel } from "@/lib/google-places";
  * Each call is logged as "price lookup" so the count shows in Vercel's logs.
  */
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => ({}))) as { name?: string; lat?: number; lng?: number };
-  const name = body.name?.trim().slice(0, 120);
+  const body = ((await req.json().catch(() => null)) ?? {}) as { name?: unknown; lat?: unknown; lng?: unknown };
+  const name = typeof body.name === "string" ? body.name.trim().slice(0, 120) : "";
   if (!name || typeof body.lat !== "number" || typeof body.lng !== "number") {
     return NextResponse.json({ error: "name, lat and lng are required" }, { status: 400 });
   }

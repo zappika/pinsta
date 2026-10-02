@@ -64,16 +64,16 @@ async function read(kind: SourceKind, url: string): Promise<Read> {
 }
 
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => ({}))) as {
-    instagramUrl?: string;
+  const body = ((await req.json().catch(() => null)) ?? {}) as {
+    instagramUrl?: unknown;
     native?: string | boolean;
     /** Cities the caller already knows (its saved places) — used to read #hashtags as city hints. */
-    cityHints?: string[];
+    cityHints?: unknown;
   };
   // The iOS app resolves places with MapKit itself; skip the Google call for it.
   // Anyone but the owner gets native mode too: no Google Places spend from unknown callers.
   const native = body.native === true || body.native === "true" || !isOwner(req);
-  const parsed = parseSourceUrl(body.instagramUrl ?? "");
+  const parsed = parseSourceUrl(typeof body.instagramUrl === "string" ? body.instagramUrl : "");
   if (!parsed) {
     return NextResponse.json({ error: "Not an Instagram, TikTok or Google Maps link" }, { status: 400 });
   }
@@ -81,7 +81,9 @@ export async function POST(req: Request) {
   try {
     const post = await read(parsed.kind, parsed.url);
     const key = `${parsed.kind === "instagram" ? "" : parsed.kind + "-"}${post.url.split(/[/?#]/).filter(Boolean).pop()?.slice(0, 40) ?? "post"}`;
-    const cityHints = Array.isArray(body.cityHints) ? body.cityHints.slice(0, 50) : [];
+    const cityHints = Array.isArray(body.cityHints)
+      ? body.cityHints.filter((c): c is string => typeof c === "string").slice(0, 50)
+      : [];
 
     const source: ExtractResponse["source"] = native
       ? null

@@ -5,8 +5,8 @@ import { requireOwner } from "@/lib/owner";
 export async function POST(req: Request) {
   const locked = requireOwner(req);
   if (locked) return locked;
-  const { query } = (await req.json().catch(() => ({}))) as { query?: string };
-  const q = query?.trim();
+  const { query } = ((await req.json().catch(() => null)) ?? {}) as { query?: unknown };
+  const q = typeof query === "string" ? query.trim() : "";
   if (!q) {
     return NextResponse.json({ error: "query is required" }, { status: 400 });
   }

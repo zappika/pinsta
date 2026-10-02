@@ -14,22 +14,30 @@ import { isSamePlace } from "@/lib/same-place";
 export async function GET(req: Request) {
   const locked = requireOwner(req);
   if (locked) return locked;
-  const rows = await getDb().select().from(places).orderBy(desc(places.createdAt));
-  return NextResponse.json({ places: rows });
+  try {
+    const rows = await getDb().select().from(places).orderBy(desc(places.createdAt));
+    return NextResponse.json({ places: rows });
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "Could not load places" }, { status: 502 });
+  }
 }
 
 export async function POST(req: Request) {
   const locked = requireOwner(req);
   if (locked) return locked;
-  const body = (await req.json().catch(() => ({}))) as {
-    instagramUrl?: string;
-    placeId?: string;
-    imageUrl?: string | null;
-    caption?: string | null;
-    igLocationName?: string | null;
-    ownerUsername?: string | null;
+  const raw = ((await req.json().catch(() => null)) ?? {}) as Record<string, unknown>;
+  // Text fields: a string or nothing, whatever the caller sent.
+  const str = (v: unknown) => (typeof v === "string" && v ? v : undefined);
+  const body = {
+    instagramUrl: str(raw.instagramUrl),
+    placeId: str(raw.placeId),
+    imageUrl: str(raw.imageUrl),
+    caption: str(raw.caption),
+    igLocationName: str(raw.igLocationName),
+    ownerUsername: str(raw.ownerUsername),
     /** The client's read of the post failed: no second Apify run for a photo. */
-    postUnreadable?: boolean;
+    postUnreadable: raw.postUnreadable === true,
   };
 
   // Field keeps its old name; it holds any supported link (Instagram, TikTok, Google Maps).
@@ -102,7 +110,7 @@ export async function POST(req: Request) {
     // The photo is normally found by /api/extract; when the client has none
     // (post unreadable, manual flow), find one here so no place goes without.
     const imageUrl =
-      body.imageUrl || (await findPhoto(instagramUrl, p.placeId, { postUnreadable: body.postUnreadable === true }));
+      body.imageUrl || (await findPhoto(instagramUrl, p.placeId, { postUnreadable: body.postUnreadable }));
     const [row] = await db
       .insert(places)
       .values({

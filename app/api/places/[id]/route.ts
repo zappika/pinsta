@@ -6,6 +6,10 @@ import { getPlace } from "@/lib/google-places";
 import { requireOwner } from "@/lib/owner";
 import { googlePhoto, isGooglePhoto } from "@/lib/photo";
 
+// Anything else would reach Postgres as a uuid cast error (a 500), not a miss.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const notFound = () => NextResponse.json({ error: "Not found" }, { status: 404 });
+
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -13,6 +17,7 @@ export async function DELETE(
   const locked = requireOwner(req);
   if (locked) return locked;
   const { id } = await params;
+  if (!UUID.test(id)) return notFound();
   const deleted = await getDb().delete(places).where(eq(places.id, id)).returning();
   if (deleted.length === 0) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -28,7 +33,12 @@ export async function PATCH(
   const locked = requireOwner(req);
   if (locked) return locked;
   const { id } = await params;
-  const body = (await req.json().catch(() => ({}))) as { placeId?: string; removePost?: string };
+  if (!UUID.test(id)) return notFound();
+  const raw = ((await req.json().catch(() => null)) ?? {}) as Record<string, unknown>;
+  const body = {
+    placeId: typeof raw.placeId === "string" ? raw.placeId : undefined,
+    removePost: typeof raw.removePost === "string" ? raw.removePost : undefined,
+  };
   // "Wrong place?" after a merge: take that one post back off the card.
   if (body.removePost) {
     const [row] = await getDb().select().from(places).where(eq(places.id, id));
