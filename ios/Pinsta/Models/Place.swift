@@ -32,6 +32,15 @@ final class Place {
     var priceLevel: Int?
     /// The price lookup ran (with or without an answer), so it isn't asked again.
     var priceChecked: Bool = false
+    /// Failed price lookups so far, and when the next one may run (`Backoff`).
+    var priceAttempts: Int = 0
+    var priceNextTry: Date?
+
+    /// Photo retries (`PhotoRetry`): failures so far, when to try next, and
+    /// whether the post is gone for good (deleted or private), so it's never paid for again.
+    var photoAttempts: Int = 0
+    var photoNextTry: Date?
+    var photoGaveUp: Bool = false
 
     /// "$" for the card, or nil.
     var priceLabel: String? {
@@ -81,5 +90,15 @@ final class Place {
     var category: PlaceCategory {
         get { PlaceCategory(rawValue: categoryRaw) ?? .other }
         set { categoryRaw = newValue.rawValue }
+    }
+}
+
+extension Place {
+    /// The place with this id if it still exists. After an await, the one in hand
+    /// may have been removed (Undo, "Wrong place?"), and writing to it can trap.
+    static func find(_ id: UUID, in context: ModelContext) -> Place? {
+        var d = FetchDescriptor<Place>(predicate: #Predicate { $0.id == id })
+        d.fetchLimit = 1
+        return try? context.fetch(d).first
     }
 }
