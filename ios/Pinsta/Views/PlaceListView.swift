@@ -28,8 +28,8 @@ struct PlaceListView: View {
     private func row(_ p: Place) -> some View {
         HStack(spacing: 16) {
             Group {
-                if let data = p.imageData, let image = UIImage(data: data) {
-                    Image(uiImage: image).resizable().scaledToFill()
+                if p.imageData != nil {
+                    PlacePhoto(place: p, points: 80)
                 } else {
                     Text(p.category.emoji).font(.title2)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)

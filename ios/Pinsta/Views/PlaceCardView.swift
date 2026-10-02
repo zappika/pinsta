@@ -27,16 +27,13 @@ struct PlaceCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if let data = place.imageData, let image = UIImage(data: data) {
-                // The photo fills a fixed box; drawn as an overlay so its natural
-                // width never widens the card (it did inside the full sheet's scroll view).
-                // clipped() only clips drawing: a tall photo still covered the sheet's
-                // handle for touches, so the photo takes none.
-                Color.clear
+            if place.imageData != nil {
+                // A fixed box the photo fills (PlacePhoto draws it as an overlay, so its
+                // natural width never widens the card, and it takes no touches: a tall
+                // photo once covered the sheet's handle).
+                PlacePhoto(place: place, points: 420)
                     .frame(height: compact ? 128 : expanded ? 300 : 176)
                     .frame(maxWidth: .infinity)
-                    .overlay { Image(uiImage: image).resizable().scaledToFill().allowsHitTesting(false) }
-                    .clipped()
                     .contentShape(Rectangle())
             }
 

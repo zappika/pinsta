@@ -45,10 +45,8 @@ struct PlaceTilesView: View {
 
     @ViewBuilder
     private func tile(_ place: Place) -> some View {
-        if let data = place.imageData, let image = UIImage(data: data) {
-            Color.clear.overlay {
-                Image(uiImage: image).resizable().scaledToFill()
-            }
+        if place.imageData != nil {
+            PlacePhoto(place: place, points: 200)
         } else {
             place.category.tint.overlay {
                 Text(place.category.emoji).font(.system(size: 30))
