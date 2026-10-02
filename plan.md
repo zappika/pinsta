@@ -2,6 +2,10 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
+## Build 4 uploaded — 2026-10-02
+- Pulled the icon, Liquid Glass and build 3 feedback commits from the other sessions, reviewed them, and confirmed on this Mac that `tsc` passes and the iOS build succeeds. **1.0 (4) archived and uploaded to TestFlight.** Apple takes 10–20 min to process it.
+- Still to check on the phone: the share card from Instagram (no grey page behind it), the Where/What pickers, the card icons, the glass pill and +.
+
 ## Icon update — 2026-10-02
 - Updated the active iOS `AppIcon.appiconset` with the exact 1024px masters from today's `Vicolo-App-Icons.zip`: pink/orange/yellow for Any (light/default), cobalt/lime/lilac for Dark, as Sarp selected. The existing appearance mapping and `AppIcon` build setting remain correct; Xcode generates device sizes from the masters.
 - Synced this Mac to the current GitHub main before editing and regenerated `Pinsta.xcodeproj`. Version remains **1.0 (4)** for the app and share extension.
@@ -91,7 +95,7 @@ Sarp tried the app fresh twice: it's flat and boring. Friends and family see it 
 - Both imports to be designed properly when their turn comes; parked here as future thinking, like Social.
 
 ## Sarp's build 3 feedback (2026-10-01): in code, not yet built
-Written in a Linux cloud session: web type check passes, **the iOS changes have not been compiled**. Build on the Mac before uploading build 4.
+Written in a Linux cloud session. Compiled and uploaded as build 4 on 2026-10-02; the open boxes still need a check on the phone.
 - [ ] Share card: no grey page behind it. Our dim over the system's white sheet made the grey; the superview chain is now cleared and our dim is gone. Check on the phone from Instagram.
 - [x] Where shows "Istanbul" / "Copenhagen", not "Beyoğlu" / "Nordhavn" (web + iOS, by coordinates, existing places too).
 - [ ] iOS Where/What pickers are the web's bottom sheet (`FilterPicker.swift`), not system menus.
