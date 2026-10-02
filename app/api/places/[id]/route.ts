@@ -4,6 +4,11 @@ import { getDb } from "@/lib/db";
 import { places } from "@/lib/db/schema";
 import { getPlace } from "@/lib/google-places";
 import { requireOwner } from "@/lib/owner";
+import { googlePhoto, isGooglePhoto } from "@/lib/photo";
+
+// Anything else would reach Postgres as a uuid cast error (a 500), not a miss.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const notFound = () => NextResponse.json({ error: "Not found" }, { status: 404 });
 
 export async function DELETE(
   req: Request,
@@ -12,6 +17,7 @@ export async function DELETE(
   const locked = requireOwner(req);
   if (locked) return locked;
   const { id } = await params;
+  if (!UUID.test(id)) return notFound();
   const deleted = await getDb().delete(places).where(eq(places.id, id)).returning();
   if (deleted.length === 0) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -27,7 +33,12 @@ export async function PATCH(
   const locked = requireOwner(req);
   if (locked) return locked;
   const { id } = await params;
-  const body = (await req.json().catch(() => ({}))) as { placeId?: string; removePost?: string };
+  if (!UUID.test(id)) return notFound();
+  const raw = ((await req.json().catch(() => null)) ?? {}) as Record<string, unknown>;
+  const body = {
+    placeId: typeof raw.placeId === "string" ? raw.placeId : undefined,
+    removePost: typeof raw.removePost === "string" ? raw.removePost : undefined,
+  };
   // "Wrong place?" after a merge: take that one post back off the card.
   if (body.removePost) {
     const [row] = await getDb().select().from(places).where(eq(places.id, id));
@@ -43,7 +54,18 @@ export async function PATCH(
     return NextResponse.json({ error: "placeId is required" }, { status: 400 });
   }
   try {
-    const p = await getPlace(body.placeId, { price: true });
+    const [current] = await getDb().select().from(places).where(eq(places.id, id));
+    if (!current) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    // A Google photo shows the old place: the new one's replaces it. A new Blob
+    // key, because the same URL would come back from caches with the old bytes.
+    // The post's own image stays; it is what was shared.
+    const shortcode = current.instagramUrl.split(/[/?#]/).filter(Boolean).pop()?.slice(0, 40) ?? "post";
+    const [p, photo] = await Promise.all([
+      getPlace(body.placeId, { price: true }),
+      isGooglePhoto(current.imageUrl) && body.placeId !== current.placeId
+        ? googlePhoto(body.placeId, `${shortcode}-${body.placeId.replace(/[^A-Za-z0-9]/g, "").slice(-10)}`)
+        : Promise.resolve(null),
+    ]);
     const [row] = await getDb()
       .update(places)
       .set({
@@ -58,6 +80,7 @@ export async function PATCH(
         primaryType: p.primaryType,
         category: p.category,
         priceLevel: p.priceLevel,
+        ...(photo ? { imageUrl: photo } : {}),
       })
       .where(eq(places.id, id))
       .returning();

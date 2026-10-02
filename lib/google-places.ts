@@ -35,7 +35,7 @@ const PRICE_LEVELS: Record<string, number> = {
   PRICE_LEVEL_VERY_EXPENSIVE: 4,
 };
 
-export function toPriceLevel(raw: string | undefined | null): number | null {
+function toPriceLevel(raw: string | undefined | null): number | null {
   return (raw && PRICE_LEVELS[raw]) || null;
 }
 

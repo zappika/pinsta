@@ -34,7 +34,7 @@ export default function PlaceTiles({ places, selected, onSelect }: Props) {
             >
               {p.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.imageUrl} alt="" draggable={false} className="h-full w-full object-cover" />
+                <img src={p.imageUrl} alt="" loading="lazy" decoding="async" draggable={false} className="h-full w-full object-cover" />
               ) : (
                 <span className="flex h-full w-full items-center justify-center text-3xl">{emojiFor(p.category)}</span>
               )}

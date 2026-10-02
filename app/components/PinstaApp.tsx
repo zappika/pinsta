@@ -63,7 +63,9 @@ export default function PinstaApp() {
   function undo() {
     if (!toast) return;
     const t = pending.current.get(toast.place.id);
-    if (t) clearTimeout(t);
+    // Already sent (the timer or a page hide beat the tap): bringing it back would show a ghost.
+    if (!t) return setToast(null);
+    clearTimeout(t);
     pending.current.delete(toast.place.id);
     setPlaces((ps) => {
       const next = [...(ps ?? [])];
@@ -88,7 +90,10 @@ export default function PinstaApp() {
 
   // How the selection is shown. Every visit opens on the map of what is near (see below).
   const [view, setViewState] = useState<View>("map");
-  const [peek, setPeek] = useState<Place | null>(null);
+  // The id, not a copy: the sheet then shows the place as it is now (changed, merged, removed).
+  const [peekId, setPeekId] = useState<string | null>(null);
+  const peek = useMemo(() => places?.find((p) => p.id === peekId) ?? null, [places, peekId]);
+  const setPeek = (p: Place | null) => setPeekId(p?.id ?? null);
   function setView(v: View) {
     setViewState(v);
     setPeek(null);
@@ -101,10 +106,12 @@ export default function PinstaApp() {
         setLocked(true);
         return;
       }
-      if (!res.ok) throw new Error(await res.text());
+      // Not res.text(): a Vercel timeout is an HTML page.
+      if (!res.ok) throw new Error(`Could not load places (${res.status})`);
       setLocked(false);
       const data = (await res.json()) as { places: Place[] };
-      setPlaces(data.places);
+      // A removal still in its Undo window is not back just because the server has it.
+      setPlaces(data.places.filter((p) => !pending.current.has(p.id)));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load places");
     }
@@ -147,6 +154,7 @@ export default function PinstaApp() {
   // "Near me": asked for only when chosen, never on load.
   const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
   const [locError, setLocError] = useState<string | null>(null);
+  const wherePick = useRef(0);
   const nearIds = useMemo(
     () => (here ? new Set((places ?? []).filter((p) => kmBetween(here, p) <= NEAR_KM).map((p) => p.id)) : null),
     [here, places],
@@ -164,6 +172,7 @@ export default function PinstaApp() {
     currentPosition()
       .then((pos) => {
         setHere(pos);
+        if (wherePick.current > 0) return; // a pick (even "everywhere") came first
         if (places.some((p) => kmBetween(pos, p) <= NEAR_KM)) setCity((c) => c ?? NEAR);
         else setNotice(`Nothing saved within ${NEAR_KM} km, so here is everything.`);
       })
@@ -211,12 +220,16 @@ export default function PinstaApp() {
           city={city}
           category={category}
           onCity={async (c) => {
+            // Locating can take seconds; a Where picked meanwhile wins over a late fix.
+            const pick = ++wherePick.current;
             setLocError(null);
             if (c === NEAR) {
               try {
-                setHere(await currentPosition());
+                const pos = await currentPosition();
+                if (pick !== wherePick.current) return;
+                setHere(pos);
               } catch {
-                setLocError("Location is off. Allow it for this site to use Near me.");
+                if (pick === wherePick.current) setLocError("Location is off. Allow it for this site to use Near me.");
                 return;
               }
             }
@@ -288,7 +301,7 @@ export default function PinstaApp() {
         {places && places.length > 0 && view === "map" && (
           <PlacesMap
             places={visible}
-            selected={peek?.id ?? null}
+            selected={peekId}
             onSelect={setPeek}
             onFail={() => {
               setView("list");
@@ -298,42 +311,45 @@ export default function PinstaApp() {
         )}
 
         {view === "tiles" && (
-          <PlaceTiles places={visible} selected={peek?.id ?? null} onSelect={(p) => setPeek((c) => (c?.id === p.id ? null : p))} />
+          <PlaceTiles places={visible} selected={peekId} onSelect={(p) => setPeekId((c) => (c === p.id ? null : p.id))} />
         )}
 
         {view === "list" && (
           <PlaceList
             places={visible}
-            selected={peek?.id ?? null}
-            onSelect={(p) => setPeek((c) => (c?.id === p.id ? null : p))}
+            selected={peekId}
+            onSelect={(p) => setPeekId((c) => (c === p.id ? null : p.id))}
             here={here}
             hideCategory={category !== null}
             hideCity={(p) => city !== null && p.city === city}
           />
         )}
 
-        <ul className={view === "cards" ? "space-y-3" : "hidden"}>
-          {visible.map((p) => (
-            <SwipeCard
-              key={p.id}
-              open={openSwipe === p.id}
-              onOpen={() => setOpenSwipe(p.id)}
-              onClose={() => setOpenSwipe((o) => (o === p.id ? null : o))}
-              onEdit={() => {
-                setOpenSwipe(null);
-                setEditing(p);
-              }}
-              onDelete={() => remove(p)}
-            >
-              <PlaceCard
-                place={p}
-                hideCategory={category !== null}
-                // A region row ("Halland") still wants the town on the card.
-                hideCity={city !== null && p.city === city}
-              />
-            </SwipeCard>
-          ))}
-        </ul>
+        {/* Only in Cards: a hidden list still downloads every photo. */}
+        {view === "cards" && (
+          <ul className="space-y-3">
+            {visible.map((p) => (
+              <SwipeCard
+                key={p.id}
+                open={openSwipe === p.id}
+                onOpen={() => setOpenSwipe(p.id)}
+                onClose={() => setOpenSwipe((o) => (o === p.id ? null : o))}
+                onEdit={() => {
+                  setOpenSwipe(null);
+                  setEditing(p);
+                }}
+                onDelete={() => remove(p)}
+              >
+                <PlaceCard
+                  place={p}
+                  hideCategory={category !== null}
+                  // A region row ("Halland") still wants the town on the card.
+                  hideCity={city !== null && p.city === city}
+                />
+              </SwipeCard>
+            ))}
+          </ul>
+        )}
       </section>
 
       {peek && view !== "cards" && (

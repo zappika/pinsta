@@ -66,7 +66,7 @@ export function destinationLabels<T extends Groupable>(places: T[]): Map<string,
 }
 
 /** "Hallands län" → "Halland", "Skåne County" → "Skåne", "Province of X" → "X". */
-export function cleanRegion(region: string | null | undefined): string | null {
+function cleanRegion(region: string | null | undefined): string | null {
   if (!region) return null;
   let r = region.trim();
   r = r.replace(/^(province|region|state|county|department)\s+of\s+/i, "");

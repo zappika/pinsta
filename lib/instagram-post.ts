@@ -39,13 +39,18 @@ export async function fetchInstagramPost(postUrl: string): Promise<InstagramPost
 
   const endpoint = new URL(`https://api.apify.com/v2/acts/${ACTOR}/run-sync-get-dataset-items`);
   endpoint.searchParams.set("token", token);
-  endpoint.searchParams.set("timeout", "55");
+  // The callers run under maxDuration 60 and still copy the image or search
+  // Google afterwards: Apify gets 40 s, and the fetch gives up at 45 s.
+  endpoint.searchParams.set("timeout", "40");
 
   const [res] = await Promise.all([
     fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ directUrls: [postUrl], resultsType: "posts", resultsLimit: 1 }),
+      signal: AbortSignal.timeout(45_000),
+    }).catch((e) => {
+      throw (e as Error).name === "TimeoutError" ? new Error("the Instagram reader took too long — try again") : e;
     }),
     countCall("apify"),
   ]);

@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { parseSourceUrl, SOURCE_LABEL, type SourceKind } from "@/lib/sources";
 import { api } from "@/lib/api";
 import type { Place, PlaceCandidate } from "./types";
+// Type only: nothing of the server route reaches the client bundle.
+import type { ExtractResponse } from "@/app/api/extract/route";
 
 type Props = {
   places: Place[];
@@ -17,16 +19,11 @@ type Props = {
   onRemoved: (id: string) => void;
 };
 
-type PostInfo = {
-  url: string;
-  kind?: SourceKind;
-  caption: string | null;
-  locationName: string | null;
-  imageUrl: string | null;
-  ownerUsername: string | null;
-};
+// What the sheet uses of /api/extract's post; edit mode builds one from a saved card, without kind.
+type PostInfo = Pick<ExtractResponse["post"], "url" | "caption" | "locationName" | "imageUrl" | "ownerUsername"> &
+  Partial<Pick<ExtractResponse["post"], "kind">>;
 
-type Source = "tag" | "account" | "link" | null;
+type Source = ExtractResponse["source"];
 
 type Extract =
   | { status: "idle" }
@@ -59,7 +56,9 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
       : { status: "idle" },
   );
   const [query, setQuery] = useState(editing?.igLocationName ?? editing?.name ?? "");
+  /** From the post (tag, account or link). Kept apart from search results so they come back. */
   const [candidates, setCandidates] = useState<PlaceCandidate[]>([]);
+  const [results, setResults] = useState<PlaceCandidate[]>([]);
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
   const [saved, setSaved] = useState<Saved | null>(null);
@@ -113,7 +112,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
           }),
           signal: ctrl.signal,
         });
-        const data = (await res.json()) as {
+        const data = (await res.json().catch(() => ({}))) as {
           post?: PostInfo;
           candidates?: PlaceCandidate[];
           source?: Source;
@@ -142,13 +141,19 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validUrl]);
 
-  // Manual search (debounced) — overrides the extracted candidates while typing.
+  // Manual search (debounced) — shown instead of the extracted candidates while
+  // there is a query; clearing it brings those back.
   useEffect(() => {
     const q = query.trim();
-    if (q.length < 2) return;
+    if (q.length < 2) {
+      setSearching(false);
+      setResults([]);
+      return;
+    }
     const ctrl = new AbortController();
+    // Already "searching" during the debounce, so "No matches" doesn't flash first.
+    setSearching(true);
     const t = setTimeout(async () => {
-      setSearching(true);
       setError(null);
       try {
         const res = await api("/api/places/search", {
@@ -157,9 +162,9 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
           body: JSON.stringify({ query: q }),
           signal: ctrl.signal,
         });
-        const data = (await res.json()) as { candidates?: PlaceCandidate[]; error?: string };
+        const data = (await res.json().catch(() => ({}))) as { candidates?: PlaceCandidate[]; error?: string };
         if (!res.ok) throw new Error(data.error ?? "Search failed");
-        setCandidates(data.candidates ?? []);
+        setResults(data.candidates ?? []);
       } catch (e) {
         if ((e as Error).name !== "AbortError") {
           setError(e instanceof Error ? e.message : "Search failed");
@@ -192,7 +197,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ placeId: c.placeId }),
         });
-        const data = (await res.json()) as { place?: Place; error?: string };
+        const data = (await res.json().catch(() => ({}))) as { place?: Place; error?: string };
         if (!res.ok || !data.place) throw new Error(data.error ?? "Could not change place");
         onUpdated?.(data.place);
         setSaved({ place: data.place, automatic: false, already: false, changed: true });
@@ -208,9 +213,11 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
           caption: p?.caption ?? null,
           igLocationName: p?.locationName ?? null,
           ownerUsername: p?.ownerUsername ?? null,
+          // The read just failed: the server shouldn't pay for another one to find a photo.
+          postUnreadable: extract.status === "error",
         }),
       });
-      const data = (await res.json()) as { place?: Place; merged?: boolean; already?: boolean; error?: string };
+      const data = (await res.json().catch(() => ({}))) as { place?: Place; merged?: boolean; already?: boolean; error?: string };
       if (!res.ok || !data.place) throw new Error(data.error ?? "Could not save");
       if (data.merged) onUpdated?.(data.place);
       else if (!data.already) onSaved(data.place);
@@ -223,7 +230,8 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
   }
 
   async function undo() {
-    if (!saved) return;
+    // "Already saved" is an earlier save, not this one: nothing to take back.
+    if (!saved || saved.already) return;
     const { place, merged } = saved;
     setSaved(null);
     setAutoSaveDeclined(true);
@@ -233,7 +241,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ removePost: post?.url ?? validUrl }),
       }).catch(() => null);
-      const data = res ? ((await res.json()) as { place?: Place }) : null;
+      const data = res ? ((await res.json().catch(() => ({}))) as { place?: Place }) : null;
       if (data?.place) onUpdated?.(data.place);
     } else {
       onRemoved(place.id);
@@ -253,7 +261,9 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
   }
 
   const source = extract.status === "done" ? extract.source : null;
-  const showTaggedFirst = candidates.length > 0 && source !== null && query.trim().length < 2;
+  const searchActive = query.trim().length >= 2;
+  const showTaggedFirst = candidates.length > 0 && source !== null && !searchActive;
+  const listed = searchActive ? results : candidates;
   const manualMode =
     extract.status === "error" || (extract.status === "done" && extract.source === null);
 
@@ -350,12 +360,12 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
 
               {error && <p className="mt-3 rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-700">{error}</p>}
 
-              {!showTaggedFirst && <CandidateList candidates={candidates} saving={saving} onPick={(c) => save(c)} />}
+              {!showTaggedFirst && <CandidateList candidates={listed} saving={saving} onPick={(c) => save(c)} />}
 
-              {searching && candidates.length === 0 && (
+              {searching && listed.length === 0 && (
                 <p className="mt-3 text-center text-sm text-stone-400">Searching…</p>
               )}
-              {!searching && query.trim().length >= 2 && candidates.length === 0 && !error && (
+              {!searching && searchActive && results.length === 0 && !error && (
                 <p className="mt-3 text-center text-sm text-stone-400">No matches. Try adding the city.</p>
               )}
               {!editing && manualMode && extract.status === "done" && query.trim().length < 2 && (
@@ -397,7 +407,7 @@ function Receipt({ saved, onUndo, onDone }: { saved: Saved; onUndo: () => void; 
         )}
       </div>
       <div className="mt-3 flex gap-2">
-        {automatic && (
+        {automatic && !already && (
           <button type="button" onClick={onUndo} className="flex-1 rounded-xl border border-stone-200 py-2.5 text-sm font-medium text-stone-700 active:bg-stone-50">
             Wrong place?
           </button>
