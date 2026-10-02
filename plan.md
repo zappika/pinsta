@@ -2,7 +2,13 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
-## Web pass — 2026-10-02 (port to iOS next)
+## iOS port of the web pass — 2026-10-02
+- Ported all three items below: the place sheet ⋯ (Change place / Remove with the same Undo), opening on Map · Near me with the List fallback, and no type dots (`PlaceCategory.dot` removed). The view is no longer remembered; it survives a return from the background but not a relaunch.
+- "MapKit can't draw" is approximated by a connection check (`NearMe.online()`): SwiftUI `Map` reports no load failure. Offline → List.
+- The location prompt text changed (it is now asked on launch). Reworded in `project.yml` and `Info.plist`.
+- Compiled on the GitHub macOS runner (`.github/workflows/ios-build.yml`, now also on `claude/**` branches). **Not run in a simulator or on a phone**: check the location prompt on first launch, the ⋯ on the sheet, and Remove → Undo.
+
+## Web pass — 2026-10-02
 - **Edit and delete from every view.** Until now only a swipe on Cards could do it, so Map, List and Tiles had no way at all. The place sheet now has a ⋯ ("Change or remove") beside Directions and Post: Change place opens the existing re-select sheet, Remove uses the same 5 s Undo. Right-click on a card opens the swipe buttons for a mouse. A delete the server rejects now brings the place back (the 2026-09-29 review item).
 - **Opens on Map · Near me** (supersedes "Near me is not the default, so the page never prompts on load", 2026-09-29). The browser asks for location on the first visit. Falls back to the List of everything when offline, when location is refused or times out, or when the map hasn't drawn within 12 s. Nothing saved within 50 km → the map of everything with a short notice. The view is no longer remembered between visits.
 - **No type dots** on cards and list rows (Sarp: keep the cards clean). `CATEGORY_DOT` / `dotFor` removed; the tints on map pins and photo-less tiles stay.
@@ -10,9 +16,9 @@ _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code 
 - **Price ($ to $$): explored, not built.** Google's `priceLevel` on the one Place Details call at save time is easy on the web; iOS has no free source (MapKit has no price). Waiting on Sarp's call.
 
 ### iOS to-do from this pass
-- [ ] Place sheet: a ⋯ beside Directions/Post with Change place and Remove (same Undo toast as the swipe)
-- [ ] Open on Map · Near me; fall back to List when location is refused, there is no connection, or MapKit can't draw. Nothing within 50 km → map of everything. Stop remembering the view. Location is then asked on first launch, not only when Near me is picked
-- [ ] Remove the type dots from cards and list rows (`PlaceCategory.dot` and its uses); keep the tints
+- [x] Place sheet: a ⋯ beside Directions/Post with Change place and Remove (same Undo toast as the swipe)
+- [x] Open on Map · Near me; fall back to List when location is refused, there is no connection, or MapKit can't draw. Nothing within 50 km → map of everything. Stop remembering the view. Location is then asked on first launch, not only when Near me is picked
+- [x] Remove the type dots from cards and list rows (`PlaceCategory.dot` and its uses); keep the tints
 
 ## Glass pill → system tab bar — 2026-10-02
 - Build 5 still looked like a murky blur next to Music. On iOS 26+ the pill and + are now the real `TabView` tab bar (4 view tabs + the + as the search-role tab), so it gets the same glass, press lens and scroll edge as Music. Tabs now show labels (Map/List/Cards/Tiles), as Music does. iOS 18–25 keep the custom pill. Checked on the iOS 26.5 simulator; not yet on TestFlight.

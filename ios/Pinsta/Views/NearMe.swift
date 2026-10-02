@@ -1,7 +1,8 @@
 import CoreLocation
+import Network
 
-/// "Near me": one location fix, asked for only when the option is picked.
-/// Port of the web's lib/geo.ts (50 km).
+/// "Near me": one location fix, asked for on launch (the opening screen) or
+/// when the option is picked. Port of the web's lib/geo.ts (50 km).
 @MainActor
 final class NearMe: NSObject, CLLocationManagerDelegate {
     static let km: Double = 50
@@ -14,6 +15,21 @@ final class NearMe: NSObject, CLLocationManagerDelegate {
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyKilometer
+    }
+
+    /// Whether there is a connection at all. Offline, MapKit draws an empty grid,
+    /// so the opening screen goes to the list instead.
+    nonisolated static func online() async -> Bool {
+        await withCheckedContinuation { c in
+            let monitor = NWPathMonitor()
+            monitor.pathUpdateHandler = { path in
+                // The first update is the current state; stop before a second one.
+                monitor.pathUpdateHandler = nil
+                monitor.cancel()
+                c.resume(returning: path.status == .satisfied)
+            }
+            monitor.start(queue: DispatchQueue(label: "vicolo.online"))
+        }
     }
 
     /// nil when location is off or refused.

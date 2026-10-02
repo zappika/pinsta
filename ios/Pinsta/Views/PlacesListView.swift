@@ -7,9 +7,13 @@ import CoreLocation
 struct PlacesListView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var refreshID = UUID()
+    // Kept out here so a return from the background (which rebuilds the content)
+    // keeps the chosen view and does not run the opening screen again.
+    @State private var view: PlacesView = .map
+    @State private var started = false
 
     var body: some View {
-        PlacesContent()
+        PlacesContent(view: $view, started: $started)
             .id(refreshID)
             .onChange(of: scenePhase) { old, phase in
                 // Only a real return from the background (share extension, other apps).
@@ -48,8 +52,14 @@ private struct PlacesContent: View {
     @State private var picking: Picking?
     private enum Picking { case city, category }
 
-    // How the selection is shown; the filters reset per launch, this doesn't.
-    @AppStorage("pinsta.view") private var view: PlacesView = .cards
+    // How the selection is shown. Every launch opens on the map of what is near (see start()).
+    @Binding var view: PlacesView
+    @Binding var started: Bool
+
+    init(view: Binding<PlacesView>, started: Binding<Bool>) {
+        _view = view
+        _started = started
+    }
     @State private var peek: Place?
 
     // Removal is deferred behind an "Undo" toast; the row hides at once and
@@ -63,7 +73,7 @@ private struct PlacesContent: View {
     private var labels: [UUID: String] { Grouping.destinationLabels(places) }
     private var shown: [Place] { places.filter { !hidden.contains($0.id) } }
 
-    // "Near me": located only when picked; never on launch.
+    // "Near me": located on launch for the opening screen, or when picked.
     @State private var here: CLLocation?
     @State private var nearMe = NearMe()
     private var nearIDs: Set<UUID> {
@@ -137,8 +147,13 @@ private struct PlacesContent: View {
         }
         .overlay(alignment: .bottom) {
             if let peek, view != .cards {
-                PeekCardView(place: peek) { withAnimation(.snappy) { self.peek = nil } }
-                    .id(peek.id)
+                PeekCardView(
+                    place: peek,
+                    onClose: { withAnimation(.snappy) { self.peek = nil } },
+                    onEdit: { self.peek = nil; editing = peek },
+                    onDelete: { self.peek = nil; remove(peek) }
+                )
+                .id(peek.id)
             }
         }
         .animation(.snappy, value: peek?.id)
@@ -165,12 +180,15 @@ private struct PlacesContent: View {
             // No web import: the web list is Sarp's, and every install starts empty.
             // (WebImporter stays in the tree for a possible owner-only import later.)
             if launchURL != nil { adding = true }
+            start()
             await PhotoRetry.run(in: context)
         }
+        .onChange(of: places.isEmpty) { _, _ in start() }
         .onChange(of: city) { old, new in
             category = nil
             peek = nil
-            guard new == NearMe.tag else { return }
+            // The opening screen may already have a fix.
+            guard new == NearMe.tag, here == nil else { return }
             Task {
                 if let fix = await nearMe.locate() {
                     here = fix
@@ -183,6 +201,27 @@ private struct PlacesContent: View {
         .onChange(of: category) { _, _ in peek = nil }
         .onChange(of: view) { _, _ in peek = nil }
         .onDisappear { commitPending() }
+    }
+
+    // MARK: - Opening screen
+
+    /// The map, Near me. Offline or no location → the list of everything.
+    /// Nothing within reach → the map of everything. Whatever was picked
+    /// meanwhile wins. Once per launch, and only once there is a list.
+    private func start() {
+        guard !started, !places.isEmpty else { return }
+        started = true
+        let toList = { if view == .map { view = .list } }
+        Task {
+            guard await NearMe.online() else { return toList() }
+            guard let fix = await nearMe.locate() else { return toList() }
+            here = fix
+            if shown.contains(where: { fix.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude)) <= NearMe.km * 1000 }) {
+                if city == nil { city = NearMe.tag }
+            } else {
+                showNotice("Nothing saved within \(Int(NearMe.km)) km, so here is everything.")
+            }
+        }
     }
 
     // MARK: - Content: map, cards, or tiles

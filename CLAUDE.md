@@ -49,7 +49,7 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   coordinates) is filed under that city: MapKit names districts ("Beyoğlu", "Nordhavn").
 - **Views** (`ViewSwitch.tsx` ↔ `ViewSwitch.swift`): the bottom pill picks Map / Cards / Tiles for the
   current Where·What selection. Map: MapLibre + OpenFreeMap on web, MapKit on iOS, framed to fit the
-  selection. Tiles: Instagram profile grid. Pin/tile tap → `PeekCard`. Every visit opens on Map · Near me (web; iOS still to port); offline, no location, or a map that hasn't drawn in 12 s → List of everything. Nothing within 50 km → the map of everything.
+  selection. Tiles: Instagram profile grid. Pin/tile tap → `PeekCard`. Every visit/launch opens on Map · Near me (both apps); offline, no location, or a map that hasn't drawn in 12 s → List of everything. Nothing within 50 km → the map of everything.
 - **Photos:** a place never goes without one. Web: `lib/photo.ts` (post image → Google photo) on save.
   iOS: `PhotoRetry` re-reads photo-less posts on launch; no Google there.
 - **Save flow** (`app/components/AddPlace.tsx` ↔ `ios/Pinsta/Views/AddPlaceView.swift`):
@@ -59,8 +59,8 @@ Pinsta. Instagram itself can't be installed in the Simulator.
 - **One place, many posts** (`lib/same-place.ts`): a save that matches an existing place (same Google id, or ≤60 m + a shared name word) appends to its `posts` jsonb instead of inserting. First post stays in the row columns.
 - **Views** (both apps): Map (emoji pins on type tints, grouped when they overlap), List, Cards, Tiles; an icon pill picks one. The round + opens the save sheet and becomes its ×. Tapping a place opens a pull-up sheet (short → full → away).
 - **Settings, per device** (web localStorage / iOS `Settings` in UserDefaults): Directions app (asked on first use), Appearance (System/Light/Dark). Both live in the round buddy menu, top right.
-- **Near me:** a Where option, 50 km. Web asks for location on open (it is the opening screen); iOS still asks only when picked.
-- **Edit / delete:** Cards: swipe right-to-left (or right-click on web) → round change/remove buttons; full swipe removes. Map/List/Tiles: the place sheet has a ⋯ ("Change or remove") → Change place / Remove. A delete the server rejects brings the place back on reload.
+- **Near me:** a Where option, 50 km. Location is asked on open (it is the opening screen), in both apps.
+- **Edit / delete:** Cards: swipe right-to-left (or right-click on web) → round change/remove buttons; full swipe removes. Map/List/Tiles: the place sheet (`PeekCard` ↔ `PeekCardView`) has a ⋯ ("Change or remove") → Change place / Remove. A delete the server rejects brings the place back on reload.
 - **Cards and list rows:** name, then type and town in grey. No type dots (Sarp, 2026-10-02); the type tints stay on map pins and photo-less tiles.
   Delete is deferred 5 s behind an Undo toast (`PinstaApp.tsx` / `PlacesListView.swift`).
 - **iOS data:** SwiftData store in App Group `group.se.sarper.vicolo`, shared with

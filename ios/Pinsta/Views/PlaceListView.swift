@@ -42,10 +42,7 @@ struct PlaceListView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(p.name).font(.headline).lineLimit(1)
                 if !hideCategory {
-                    HStack(spacing: 6) {
-                        Circle().fill(p.category.dot).frame(width: 8, height: 8)
-                        Text(p.category.rawValue).font(.subheadline).foregroundStyle(.secondary)
-                    }
+                    Text(p.category.rawValue).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
                 }
                 let km = here.map { $0.distance(from: CLLocation(latitude: p.latitude, longitude: p.longitude)) / 1000 }
                 let whereText = [km.map { $0 < 10 ? String(format: "%.1f km", $0) : "\(Int($0.rounded())) km" }, hideCity(p) ? nil : p.city]

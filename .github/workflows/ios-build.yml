@@ -1,0 +1,28 @@
+# Compile check for the iOS app on a GitHub macOS runner (Simulator SDK, no
+# signing). Exists so a session without a Mac can verify Swift changes.
+# It cannot archive or upload to TestFlight: that needs Sarp's signing.
+name: iOS build
+on:
+  push:
+    branches: [ci/ios-build, "claude/**"]
+    paths: ["ios/**", ".github/workflows/ios-build.yml"]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Xcode
+        run: |
+          ls -d /Applications/Xcode*.app
+          xcodebuild -version
+      - name: XcodeGen
+        run: brew install xcodegen && cd ios && xcodegen generate
+      - name: Build (Simulator, unsigned)
+        run: |
+          cd ios
+          xcodebuild -project Pinsta.xcodeproj -scheme Pinsta -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build.log | grep -E "error:|warning: .*Swift|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" build.log

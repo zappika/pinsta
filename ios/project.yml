@@ -37,7 +37,7 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         # HTTPS only, no custom crypto: exempt, so TestFlight skips the compliance question.
         ITSAppUsesNonExemptEncryption: false
-        NSLocationWhenInUseUsageDescription: Vicolo uses your location only when you pick Near me, to show saved places within 50 km. It is never stored or sent anywhere.
+        NSLocationWhenInUseUsageDescription: Vicolo opens on the places you saved within 50 km of you, and uses your location for Near me. It is never stored or sent anywhere.
         # Splash (2026-10-02): light and dark art in Assets, 1320pt-wide @3x so it
         # covers the largest iPhone; smaller ones crop the edges. Follows the
         # system appearance, not the in-app one (iOS decides before the app runs).

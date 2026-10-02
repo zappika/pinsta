@@ -27,7 +27,7 @@
 		<string>comgooglemaps</string>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Vicolo uses your location only when you pick Near me, to show saved places within 50 km. It is never stored or sent anywhere.</string>
+	<string>Vicolo opens on the places you saved within 50 km of you, and uses your location for Near me. It is never stored or sent anywhere.</string>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>

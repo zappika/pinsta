@@ -37,23 +37,6 @@ enum PlaceCategory: String, CaseIterable, Identifiable {
         }
     }
 
-    /// The same hue at full strength, for small marks (the dot beside a type).
-    var dot: Color {
-        switch self {
-        case .restaurant: return Color(hex: 0xE8845C)
-        case .cafe: return Color(hex: 0xB98A57)
-        case .bar: return Color(hex: 0xA56BC9)
-        case .vineyard: return Color(hex: 0x7D66C9)
-        case .bakery: return Color(hex: 0xD9A635)
-        case .hotel: return Color(hex: 0x5B93C9)
-        case .shop: return Color(hex: 0xD9708F)
-        case .attraction: return Color(hex: 0xE0705E)
-        case .museum: return Color(hex: 0x7C8394)
-        case .nature: return Color(hex: 0x5AA66B)
-        case .other: return Color(hex: 0xA3A3A3)
-        }
-    }
-
     var emoji: String {
         switch self {
         case .restaurant: return "🍽️"

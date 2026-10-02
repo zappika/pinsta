@@ -11,6 +11,11 @@ struct PlaceCardView: View {
     var compact = false
     /// The place sheet at full height: big photo, every post listed.
     var expanded = false
+    /// Given in the place sheet: a ⋯ button offers Change place and Remove.
+    var onEdit: (() -> Void)? = nil
+    var onDelete: (() -> Void)? = nil
+
+    @State private var showMore = false
 
     private var postURLs: [String] { place.allPostURLs.filter { SourceURL.parse($0)?.kind != .google } }
 
@@ -35,10 +40,7 @@ struct PlaceCardView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(place.name).font(.headline).lineLimit(1)
                     if !meta.isEmpty {
-                        HStack(spacing: 6) {
-                            if !hideCategory { Circle().fill(place.category.dot).frame(width: 8, height: 8) }
-                            Text(meta).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
-                        }
+                        Text(meta).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
                     }
                 }
                 Spacer(minLength: 0)
@@ -55,9 +57,46 @@ struct PlaceCardView: View {
                     }
                     .accessibilityLabel("Posts")
                 }
+                if onEdit != nil || onDelete != nil {
+                    Button { withAnimation(.snappy) { showMore.toggle() } } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(showMore ? Color(.systemBackground) : .primary)
+                            .frame(width: 40, height: 40)
+                            .background(showMore ? Color.primary : Color(.tertiarySystemFill), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Change or remove")
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
+
+            if showMore {
+                HStack(spacing: 8) {
+                    if let onEdit {
+                        Button(action: onEdit) {
+                            Text("Change place")
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                    }
+                    if let onDelete {
+                        Button(action: onDelete) {
+                            Text("Remove")
+                                .foregroundStyle(.red)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .background(Color.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                    }
+                }
+                .font(.subheadline.weight(.medium))
+                .buttonStyle(.plain)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 14)
+            }
 
             if expanded && !postURLs.isEmpty {
                 Divider()

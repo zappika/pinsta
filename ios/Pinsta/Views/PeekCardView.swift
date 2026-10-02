@@ -7,6 +7,8 @@ import SwiftUI
 struct PeekCardView: View {
     let place: Place
     let onClose: () -> Void
+    var onEdit: (() -> Void)? = nil
+    var onDelete: (() -> Void)? = nil
 
     @State private var full = false
     @State private var drag: CGFloat = 0
@@ -23,7 +25,7 @@ struct PeekCardView: View {
                 .accessibilityLabel(full ? "Show less" : "Show more")
                 .accessibilityAddTraits(.isButton)
 
-            PlaceCardView(place: place, compact: !full, expanded: full)
+            PlaceCardView(place: place, compact: !full, expanded: full, onEdit: onEdit, onDelete: onDelete)
                 // Clear the home indicator; the sheet colour runs to the edge below.
                 .padding(.bottom, 20)
         }
