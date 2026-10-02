@@ -13,8 +13,6 @@ struct PlaceCandidate: Identifiable, Hashable {
     let region: String?
     let country: String?
     let category: PlaceCategory
-
-    var whereLabel: String { city ?? country ?? "" }
 }
 
 enum PlaceSearch {
