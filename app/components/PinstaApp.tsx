@@ -148,6 +148,7 @@ export default function PinstaApp() {
   // "Near me": asked for only when chosen, never on load.
   const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
   const [locError, setLocError] = useState<string | null>(null);
+  const wherePick = useRef(0);
   const nearIds = useMemo(
     () => (here ? new Set((places ?? []).filter((p) => kmBetween(here, p) <= NEAR_KM).map((p) => p.id)) : null),
     [here, places],
@@ -165,6 +166,7 @@ export default function PinstaApp() {
     currentPosition()
       .then((pos) => {
         setHere(pos);
+        if (wherePick.current > 0) return; // a pick (even "everywhere") came first
         if (places.some((p) => kmBetween(pos, p) <= NEAR_KM)) setCity((c) => c ?? NEAR);
         else setNotice(`Nothing saved within ${NEAR_KM} km, so here is everything.`);
       })
@@ -212,12 +214,16 @@ export default function PinstaApp() {
           city={city}
           category={category}
           onCity={async (c) => {
+            // Locating can take seconds; a Where picked meanwhile wins over a late fix.
+            const pick = ++wherePick.current;
             setLocError(null);
             if (c === NEAR) {
               try {
-                setHere(await currentPosition());
+                const pos = await currentPosition();
+                if (pick !== wherePick.current) return;
+                setHere(pos);
               } catch {
-                setLocError("Location is off. Allow it for this site to use Near me.");
+                if (pick === wherePick.current) setLocError("Location is off. Allow it for this site to use Near me.");
                 return;
               }
             }
