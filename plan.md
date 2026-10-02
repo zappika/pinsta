@@ -2,6 +2,9 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
+## Glass pill → system tab bar — 2026-10-02
+- Build 5 still looked like a murky blur next to Music. On iOS 26+ the pill and + are now the real `TabView` tab bar (4 view tabs + the + as the search-role tab), so it gets the same glass, press lens and scroll edge as Music. Tabs now show labels (Map/List/Cards/Tiles), as Music does. iOS 18–25 keep the custom pill. Checked on the iOS 26.5 simulator; not yet on TestFlight.
+
 ## Build 5 uploaded — 2026-10-02
 - Sarp on iOS 27 with build 4: the glass pill read as flat white, and views jumped on switch. Cause: an opaque bottom fade behind the pill (removed on iOS 26+) and `withAnimation` around the whole view swap (now only the lozenge animates). Simulator only has iOS 26.5; check on the phone.
 - Mac disk is at 2.3 GB free — clear space before the next big Xcode job.
