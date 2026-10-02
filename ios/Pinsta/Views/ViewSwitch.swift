@@ -62,6 +62,7 @@ struct ViewSwitch: View {
 
 /// 56pt tall, the same as the round + beside it.
 private struct GlassPill: ViewModifier {
+    @ViewBuilder
     func body(content: Content) -> some View {
         if #available(iOS 26, *) {
             content.glassEffect(.regular.interactive(), in: .capsule)

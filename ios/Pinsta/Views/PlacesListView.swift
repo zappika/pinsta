@@ -493,6 +493,7 @@ private struct FloatingSheet<Content: View>: View {
 /// The round +: Liquid Glass on iOS 26, matching the view pill (Sarp,
 /// 2026-10-01); the web's solid black circle below that.
 private struct PlusLook: ViewModifier {
+    @ViewBuilder
     func body(content: Content) -> some View {
         if #available(iOS 26, *) {
             content
