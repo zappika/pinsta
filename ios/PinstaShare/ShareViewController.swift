@@ -86,16 +86,28 @@ final class ShareViewController: UIViewController {
 
     @MainActor
     private func present(url: String?) {
-        let root = AddPlaceView(
-            initialURL: url,
-            onFinish: { [weak self] in
+        // A store that won't open shows why, rather than saving somewhere the app can't see.
+        let root: AnyView
+        switch Persistence.opened {
+        case .success(let container):
+            root = AnyView(AddPlaceView(
+                initialURL: url,
+                onFinish: { [weak self] in
+                    self?.close { $0.completeRequest(returningItems: nil) }
+                },
+                allowsPasteboard: false
+            )
+            .modelContainer(container))
+        case .failure:
+            root = AnyView(StoreErrorView().onTapGesture { [weak self] in
                 self?.close { $0.completeRequest(returningItems: nil) }
-            },
-            allowsPasteboard: false
-        )
-        .modelContainer(Persistence.container)
+            })
+        }
 
         let host = UIHostingController(rootView: root)
+        // The card itself follows the keyboard (keyboardLayoutGuide below); without
+        // this the hosted view avoided it a second time and its content jumped.
+        host.safeAreaRegions = .container
         addChild(host)
         host.view.layer.cornerRadius = 20
         host.view.layer.cornerCurve = .continuous

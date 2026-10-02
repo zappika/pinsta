@@ -11,7 +11,10 @@ struct PinstaApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
-                PlacesListView()
+                switch Persistence.opened {
+                case .success(let container): PlacesListView().modelContainer(container)
+                case .failure: StoreErrorView()
+                }
                 if splash {
                     SplashView()
                         .transition(.opacity.combined(with: .scale(scale: 1.06)))
@@ -24,7 +27,6 @@ struct PinstaApp: App {
                 withAnimation(.easeOut(duration: 0.55)) { splash = false }
             }
         }
-        .modelContainer(Persistence.container)
     }
 }
 
