@@ -59,7 +59,9 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
       : { status: "idle" },
   );
   const [query, setQuery] = useState(editing?.igLocationName ?? editing?.name ?? "");
+  /** From the post (tag, account or link). Kept apart from search results so they come back. */
   const [candidates, setCandidates] = useState<PlaceCandidate[]>([]);
+  const [results, setResults] = useState<PlaceCandidate[]>([]);
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
   const [saved, setSaved] = useState<Saved | null>(null);
@@ -142,13 +144,19 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validUrl]);
 
-  // Manual search (debounced) — overrides the extracted candidates while typing.
+  // Manual search (debounced) — shown instead of the extracted candidates while
+  // there is a query; clearing it brings those back.
   useEffect(() => {
     const q = query.trim();
-    if (q.length < 2) return;
+    if (q.length < 2) {
+      setSearching(false);
+      setResults([]);
+      return;
+    }
     const ctrl = new AbortController();
+    // Already "searching" during the debounce, so "No matches" doesn't flash first.
+    setSearching(true);
     const t = setTimeout(async () => {
-      setSearching(true);
       setError(null);
       try {
         const res = await api("/api/places/search", {
@@ -159,7 +167,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
         });
         const data = (await res.json().catch(() => ({}))) as { candidates?: PlaceCandidate[]; error?: string };
         if (!res.ok) throw new Error(data.error ?? "Search failed");
-        setCandidates(data.candidates ?? []);
+        setResults(data.candidates ?? []);
       } catch (e) {
         if ((e as Error).name !== "AbortError") {
           setError(e instanceof Error ? e.message : "Search failed");
@@ -256,7 +264,9 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
   }
 
   const source = extract.status === "done" ? extract.source : null;
-  const showTaggedFirst = candidates.length > 0 && source !== null && query.trim().length < 2;
+  const searchActive = query.trim().length >= 2;
+  const showTaggedFirst = candidates.length > 0 && source !== null && !searchActive;
+  const listed = searchActive ? results : candidates;
   const manualMode =
     extract.status === "error" || (extract.status === "done" && extract.source === null);
 
@@ -353,12 +363,12 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
 
               {error && <p className="mt-3 rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-700">{error}</p>}
 
-              {!showTaggedFirst && <CandidateList candidates={candidates} saving={saving} onPick={(c) => save(c)} />}
+              {!showTaggedFirst && <CandidateList candidates={listed} saving={saving} onPick={(c) => save(c)} />}
 
-              {searching && candidates.length === 0 && (
+              {searching && listed.length === 0 && (
                 <p className="mt-3 text-center text-sm text-stone-400">Searching…</p>
               )}
-              {!searching && query.trim().length >= 2 && candidates.length === 0 && !error && (
+              {!searching && searchActive && results.length === 0 && !error && (
                 <p className="mt-3 text-center text-sm text-stone-400">No matches. Try adding the city.</p>
               )}
               {!editing && manualMode && extract.status === "done" && query.trim().length < 2 && (
