@@ -20,7 +20,7 @@ npx tsc --noEmit       # the type check that stands in for tests
 Secrets live in `.env.local` (Apify, Google Places, Neon, Blob). Pushing to
 `main` deploys production.
 
-**iOS** (SwiftUI + SwiftData, Simulator only until the developer account exists)
+**iOS** (SwiftUI + SwiftData; Simulator for development, TestFlight for the phone)
 ```bash
 cd ios && xcodegen generate    # ALWAYS after adding/removing Swift files (brew install xcodegen if missing)
 xcodebuild -project Pinsta.xcodeproj -scheme Pinsta -sdk iphonesimulator \
@@ -47,28 +47,33 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   change one, change the other.
   Before that, a place inside a big city (`lib/metros.ts` ↔ `Metros.swift`, by
   coordinates) is filed under that city: MapKit names districts ("Beyoğlu", "Nordhavn").
-- **Views** (`ViewSwitch.tsx` ↔ `ViewSwitch.swift`): the bottom pill picks Map / Cards / Tiles for the
-  current Where·What selection. Map: MapLibre + OpenFreeMap on web, MapKit on iOS, framed to fit the
+- **Views** (`ViewSwitch.tsx` ↔ `ViewSwitch.swift`): the bottom pill picks Map / List / Cards / Tiles for the
+  current Where·What selection (iOS 26+: the system tab bar, the + as its search-role tab). Map pins are emoji on type tints, grouped when they overlap. The round + opens the save sheet and becomes its ×. Tapping a place opens a pull-up sheet (short → full → away); the full sheet embeds the posts (web: embed.js; iOS: `PostEmbedView`, the platform's embed page in a web view sized to its content). Map: MapLibre + OpenFreeMap on web, MapKit on iOS, framed to fit the
   selection. Tiles: Instagram profile grid. Pin/tile tap → `PeekCard`. Every visit/launch opens on Map · Near me (both apps); offline, no location, or a map that hasn't drawn in 12 s → List of everything. Nothing within 50 km → the map of everything.
-- **Photos:** a place never goes without one. Web: `lib/photo.ts` (post image → Google photo) on save.
-  iOS: `PhotoRetry` re-reads photo-less posts on launch; no Google there.
+- **Photos:** a place never goes without one. Web: `lib/photo.ts` (post image → Google photo) on save; a client whose read failed sends `postUnreadable` so the save doesn't pay Apify again.
+  iOS: `PhotoRetry` re-reads photo-less posts on launch/foreground, with `Backoff` (6 h doubling to 2 weeks, six tries; the least-tried first) and `photoGaveUp` once `/api/extract` says `permanent: true` (deleted/private post, 404). `PriceLookup` uses the same backoff. No Google there.
+  Shown through `PlacePhoto` (downsampled once, off the main thread, cached) — never `UIImage(data:)` in a view body.
 - **Save flow** (`app/components/AddPlace.tsx` ↔ `ios/Pinsta/Views/AddPlaceView.swift`):
   fixed-height bottom sheet; one tag match saves itself → receipt with
   "Wrong place?"; several → tap; none → account suggestions → search. Same link
   twice → "Already saved". Edit mode re-selects the place behind a card.
 - **One place, many posts** (`lib/same-place.ts`): a save that matches an existing place (same Google id, or ≤60 m + a shared name word) appends to its `posts` jsonb instead of inserting. First post stays in the row columns.
-- **Views** (both apps): Map (emoji pins on type tints, grouped when they overlap), List, Cards, Tiles; an icon pill picks one. The round + opens the save sheet and becomes its ×. Tapping a place opens a pull-up sheet (short → full → away).
 - **Usage (cost tracker):** every paid call bumps a per-day row in `usage` via `countCall()` (`lib/usage.ts`, which also holds the SKU prices and free allowances): Apify reads, Google Text Search Pro (`searchPlaces`) / Enterprise (`findPriceLevel`), Place Details Pro / Enterprise (`getPlace` without / with price), Place Photos (the media call in `lib/photo.ts`; its details call asks only `photos`, the free IDs Only SKU). A new paid call needs a `countCall` and, for a new SKU, an entry in `SERVICES`. Owner-only `GET /api/usage` sums the month, and Apify's real dollars come from its API (`/users/me/usage/monthly` + plan credit from `/users/me`). Buddy menu → Usage.
 - **Settings, per device** (web localStorage / iOS `Settings` in UserDefaults): Directions app (asked on first use), Appearance (System/Light/Dark). Both live in the round buddy menu, top right.
 - **Near me:** a Where option, 50 km. Location is asked on open (it is the opening screen), in both apps.
-- **Edit / delete:** Cards: swipe right-to-left (or right-click on web) → round change/remove buttons; full swipe removes. Map/List/Tiles: the place sheet (`PeekCard` ↔ `PeekCardView`) has a ⋯ ("Change or remove") → Change place / Remove. A delete the server rejects brings the place back on reload.
+- **Edit / delete:** Cards: swipe right-to-left (or right-click on web) → round change/remove buttons; full swipe removes. Map/List/Tiles: the place sheet (`PeekCard` ↔ `PeekCardView`) has a ⋯ ("Change or remove") → Change place / Remove. Delete is deferred 5 s behind an Undo toast (`PinstaApp.tsx` / `PlacesListView.swift`); a delete the server rejects brings the place back on reload; opening the save sheet commits a pending delete first.
 - **Cards and list rows:** name, then type · price · town in grey. No type dots (Sarp, 2026-10-02); the type tints stay on map pins and photo-less tiles.
 - **Price ($–$$$$):** Google `priceLevel` → `price_level` 1–4. Web: only `getPlace(id, { price: true })` on save/change asks (Enterprise tier); keep it off searches. iOS: `PriceLookup` (in `PostReader.swift`) calls open `POST /api/price` for food and drink places after a save and on foreground; `priceChecked` stops repeats.
 - **iOS splash:** `SplashView` in `PinstaApp.swift` repeats the `UILaunchScreen` art, holds 1.2 s, fades out. Change the art in both places.
-  Delete is deferred 5 s behind an Undo toast (`PinstaApp.tsx` / `PlacesListView.swift`).
 - **iOS data:** SwiftData store in App Group `group.se.sarper.vicolo`, shared with
-  the extension. First launch imports the web DB once (`WebImporter`). The list
-  refetches on foreground because SwiftData doesn't see the extension's writes.
+  the extension. Every install starts empty (no web import). `Persistence.opened` is the
+  store or its error — it never opens a different store in its place (an empty stand-in
+  looked like a lost list); a failure shows `StoreErrorView`. SwiftData doesn't see the
+  extension's writes, so the extension stamps `lastWrite` in the App Group defaults and the
+  list rebuilds on foreground only when that changed, never under an open sheet. What the
+  screen shows (filters, open sheet, location) lives in `Screen`, outside the rebuilt view.
+- **New `Place` fields need a default** (`= 0`, `= false`, or optional): that is what lets
+  SwiftData migrate an existing store by itself. Test with the worktree upgrade below.
 
 ## iOS app icon
 The active `AppIcon.appiconset` uses the 1024px masters from `Vicolo-App-Icons.zip` (2026-10-02): pink/orange/yellow for Any (light/default), cobalt/lime/lilac for Dark. Xcode generates device renditions from these opaque PNGs; `ios/project.yml` selects `AppIcon`. Home Screen icon appearance is controlled by iOS, independently of the in-app Appearance preference.
@@ -80,7 +85,7 @@ No `dark:` classes. `globals.css` flips Tailwind's stone palette variables (and 
 The web list is Sarp's alone (`lib/owner.ts`). Every `/api/places*` route and
 `/api/places/search` need header `x-pinsta-key: $PINSTA_OWNER_KEY`; the web app
 asks for it once and keeps it in localStorage (`lib/api.ts`). `/api/extract` is
-open for the iOS app, but only the owner gets Google candidates from it. `/api/price` is open too (one Google call per iOS food/drink save). The key
+open for the iOS app, but only the owner gets Google candidates from it. `/api/price` is open too (one Google call per iOS food/drink save). Both are paid and unthrottled; a firewall rate limit is proposed in plan.md. The key
 lives in `.env.local` and Vercel env — **never in the repo, which is public**.
 While the env var is unset the lock is off. Local curl with the key:
 `curl -H "x-pinsta-key: $(grep PINSTA_OWNER_KEY .env.local | cut -d= -f2)" localhost:3010/api/places`
@@ -120,13 +125,18 @@ While the env var is unset the lock is off. Local curl with the key:
   failed silently too. Check a deploy with `npx vercel ls` / `npx vercel inspect`, one request at a time.
   `npx vercel firewall persistent-actions list` shows an active challenge; it expires by itself (~10 min).
 - **Disk:** Xcode + Simulator eat space; the Mac ran out once mid-build. Keep 10 GB free.
+- **SwiftUI `clipped()` clips drawing, not touches.** A fill-scaled photo that overflows its
+  box still takes taps above and below it (it ate the place sheet's handle). Photos get
+  `.allowsHitTesting(false)` (`PlacePhoto` does it).
+- **The iOS Simulator tool's screenshot can be stale** after taps; `xcrun simctl io <device> screenshot` shows the truth.
+- **Hidden browser pane = no map.** MapLibre never fires `load` when the Browser pane isn't on screen, so map checks need the pane visible.
 - **Testing deletes:** never on real rows. The Undo window is 5 s and tool latency
   is often longer — a test once deleted a real place. Restore via read+save.
 
 ## Data operations
 - Schema: `lib/db/schema.ts` → `npx drizzle-kit push` (needs `.env.local` sourced).
 - One-off scripts in `scripts/*.mts`, run with `set -a; source .env.local; set +a; npx tsx scripts/<name>.mts`
-  (`.mts` because top-level await). Existing: `backfill-region`, `backfill-images`, `backfill-price`, `fix-rows`, `merge-places` (fold a duplicate card into another).
+  (`.mts` because top-level await). Existing: `backfill-region`, `backfill-images`, `backfill-price`, `fix-rows`, `merge-places <keep> <duplicate>` (ids or exact names; refuses ambiguous names and a card into itself).
 - Inspect prod data: same curl as above against `https://pinsta-two.vercel.app/api/places`, with the key once the lock is on. One request at a time (see the Vercel polling gotcha).
 
 ## Shipping a TestFlight build

@@ -2,116 +2,56 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
-## Shipped the web pass + cost tracker — 2026-10-02 (evening)
-- **Merged `claude/web-save-management-map-view-gp4ri0` into main and deployed** (Vercel production Ready). `price_level` pushed and backfilled before the deploy: 8 of 11 places got a price.
-- **Web checked locally on real data:** map draws (OpenFreeMap, light and dark), Near me frames the places around a stubbed Barcelona location, refused location falls back to the List, sheet ⋯ → Remove → Undo (DELETE stubbed, nothing reached the server), Change place opens the editor, "Bar · $$ · Barcelona" on rows and sheet.
-- **iOS checked on the iPhone 17 Pro simulator:** splash holds and goes (up at 1.7 s after launch, gone by 2.6 s; the fade itself wasn't caught on a frame), light and dark, and stays dark with in-app Appearance Light on a dark phone. SwiftData migration: a place saved with the pre-price build survived the upgrade and got "$$" from the launch pass; a new restaurant save got its $ within seconds. Opens on Map · Near me. Not checked: the sheet ⋯ on iOS.
-- **1.0 (7) archived and uploaded to TestFlight** (delivery ab5c4157, 21:53) after Sarp signed into Xcode on this Mac. The upload sat in Apple's `swinfo` step for ~11 min before finishing; that's normal here, don't kill it. Apple takes 10–20 min to process. On the phone, check: splash, Map · Near me on open, $ on a new restaurant save, the sheet ⋯.
-- **Cost tracker (web, owner-only):** buddy menu → Usage shows this month's calls per paid service, free allowance left, estimated cost and a total. Google is estimated from our own counts (table `usage`, +1 per call, from today on, so the 11 backfill calls aren't in it); Apify is its real month-to-date figure for its own cycle (Sep 10 – Oct 9), with only the part above the plan's $5 credit counted as cost. Prices per 1,000 / free a month: Text Search Pro $32 / 5,000, Text Search Enterprise $35 / 1,000, Place Details Pro $17 / 5,000, Place Details Enterprise $20 / 1,000, Place Photos $7 / 1,000.
+## Last session — 2026-10-02 (late): hygiene, review fixes, embeds
+Everything below is on `main` and deployed. iOS changes are in code and checked on the simulator, **not yet in a TestFlight build** (build 7 predates them).
+- **Code review (web + iOS) and fixes.** Two read-only reviews found 32 issues; all fixed except web rate limiting (needs Sarp, see below). Highlights:
+  - *Data safety:* iOS never opens an empty stand-in store when the shared one fails (it showed as a lost list); web "Wrong place?" on an "Already saved" receipt could hard-delete the existing card; a reload could bring back a place pending delete.
+  - *Money:* iOS photo and price retries back off (6 h → 2 weeks, six tries) instead of paying again on every foreground; posts that are gone are given up on (`/api/extract` now says `permanent: true`); `/api/price` reports Google failures as errors instead of "no price". Web saves check for a duplicate link before any paid call, and don't re-run Apify for a photo when the client's read already failed. Usage sheet counts every paid call.
+  - *Reliability:* Apify can't outlast the 60 s function; non-JSON server errors read cleanly (web and iOS); malformed API input gets 4xx; a Maps link with a bad place id falls back to its name.
+  - *State:* iOS no longer closes the save sheet or resets filters on return to the app (it rebuilds only when the share extension saved); web map no longer drops a Where pick made while tiles load; Near me races fixed on both.
+  - *Performance:* iOS photos decoded once, downsampled, off the main thread; web cards and images load only where shown (`loading="lazy"`).
+  - *Dead code:* `WebImporter.swift`, unused exports/types, `note` field handling.
+- **iOS full sheet embeds the posts** (as the web does): the platform's embed page in a web view sized to its content. Fixed on the way: a tall photo covered the sheet's handle for touches, so tapping the handle did nothing.
+- **iOS keyboard jump:** focus waits for the sheet to rise and only the sheet follows the keyboard; the share card no longer avoids it twice. Needs a look on the phone (the simulator can't show the jump at speed).
+- **Privacy page** (`/privacy`) updated: location asked on open, price lookups send a place's name and pin.
+- Verified: `tsc`, `next build`, iOS simulator build; migration over an existing list with the new fields; duplicate save makes no paid call (usage unchanged); gone post → 404 permanent; bad input → 400/404. Not verified here: the web map redraw fix (the browser pane was hidden, so MapLibre never painted), the share extension end to end.
 
-## iOS port of the web pass — 2026-10-02
-- Ported all three items below: the place sheet ⋯ (Change place / Remove with the same Undo), opening on Map · Near me with the List fallback, and no type dots (`PlaceCategory.dot` removed). The view is no longer remembered; it survives a return from the background but not a relaunch.
-- "MapKit can't draw" is approximated by a connection check (`NearMe.online()`): SwiftUI `Map` reports no load failure. Offline → List.
-- The location prompt text changed (it is now asked on launch). Reworded in `project.yml` and `Info.plist`.
-- Compiled on the GitHub macOS runner (`.github/workflows/ios-build.yml`, now also on `claude/**` branches). **Not run in a simulator or on a phone**: check the location prompt on first launch, the ⋯ on the sheet, and Remove → Undo.
+## Waiting on Sarp
+1. **Build 8 to TestFlight** with tonight's iOS fixes (bump `CURRENT_PROJECT_VERSION` to 8; CLAUDE.md "Shipping a TestFlight build"). Then on the phone: Share from inside Instagram (never tested on a device), the share card over Instagram (no grey page behind it), the Where/What pickers, card icons and the glass tab bar, splash, Map · Near me on open, $ on a restaurant save, the sheet ⋯ and the embedded post, the keyboard when the save sheet opens, swipe thresholds and Undo timing, real `vm.tiktok.com` / `maps.app.goo.gl` links.
+2. **App Store Connect:** beta info (short description, feedback email), privacy policy URL `https://pinsta-two.vercel.app/privacy`, external testing group, submit for Beta App Review → public link.
+3. **Rate limit the open paid endpoints?** `/api/extract` (Apify) and `/api/price` (Google) are open to anyone who reads this public repo. Proposal: a Vercel Firewall rule, 20 requests a minute per IP on both. A production config change, so it's Sarp's call.
+4. After the first weekend: Usage sheet (buddy menu) for what friends' saves cost.
 
-## Web pass — 2026-10-02
-- **Edit and delete from every view.** Until now only a swipe on Cards could do it, so Map, List and Tiles had no way at all. The place sheet now has a ⋯ ("Change or remove") beside Directions and Post: Change place opens the existing re-select sheet, Remove uses the same 5 s Undo. Right-click on a card opens the swipe buttons for a mouse. A delete the server rejects now brings the place back (the 2026-09-29 review item).
-- **Opens on Map · Near me** (supersedes "Near me is not the default, so the page never prompts on load", 2026-09-29). The browser asks for location on the first visit. Falls back to the List of everything when offline, when location is refused or times out, or when the map hasn't drawn within 12 s. Nothing saved within 50 km → the map of everything with a short notice. The view is no longer remembered between visits.
-- **No type dots** on cards and list rows (Sarp: keep the cards clean). `CATEGORY_DOT` / `dotFor` removed; the tints on map pins and photo-less tiles stay.
-- Checked in Chromium with stubbed places and location: Near me list, map-failure fallback, refused location, sheet ⋯ → Remove → Undo toast, failed delete restored, Change place opens the editor. Not checked: the map itself drawing (OpenFreeMap is blocked in the cloud container) and real data.
-- **Price ($ to $$$$), web and iOS (Sarp: "implement in both", cost tracking comes soon anyway).** Shown after the type: "Restaurant · $$ · Barcelona"; nothing when Google doesn't know.
-  - Web: the one Place Details call per save (and per Change place) also asks for `priceLevel`, which puts that call on Google's Enterprise tier (1,000 free a month, then about $20 per 1,000). Searches for candidates stay on the cheaper tier. New column `price_level`; `scripts/backfill-price.mts` fills existing rows.
-  - iOS: MapKit has no price, so the app asks the new open `POST /api/price` (name + pin → one Google Text Search, nearest result within 150 m). Only restaurants, cafes, bars and bakeries ask. Right after a save, plus a pass on launch/foreground for anything unchecked (share-extension saves, older places; 20 at a time). Each server call logs "price lookup" for counting in Vercel. This spends Sarp's Google quota on friends' saves, which the 2026-09-29 decision avoided; accepted by Sarp today.
-- **iOS splash:** the launch art is drawn again over the app, held 1.2 s, then fades out with a slight zoom (0.55 s). It follows the phone's appearance, like the system launch screen, so it doesn't flip when the in-app Appearance differs.
-
-### Before merging this branch to main (Sarp, on the Mac) — done 2026-10-02, see above
-1. `set -a; source .env.local; set +a; npx drizzle-kit push` adds `price_level`. **Do this before the deploy:** the web reads every column, so without it the list fails to load.
-2. `npx tsx scripts/backfill-price.mts` (one Google call per saved place).
-3. iOS: compiled on the GitHub macOS runner (run 37018449930, 2026-10-02) but **not run in a simulator or on a phone**. New SwiftData fields `priceLevel` / `priceChecked` have defaults, so the store migrates by itself; check an existing list survives on the main simulator.
-4. iOS checks: splash holds and fades (light and dark, and with in-app Appearance set opposite to the phone); a new restaurant save gets its $ within seconds; a share-extension save gets it on the next app open.
-
-### iOS to-do from this pass
-- [x] Place sheet: a ⋯ beside Directions/Post with Change place and Remove (same Undo toast as the swipe)
-- [x] Open on Map · Near me; fall back to List when location is refused, there is no connection, or MapKit can't draw. Nothing within 50 km → map of everything. Stop remembering the view. Location is then asked on first launch, not only when Near me is picked
-- [x] Remove the type dots from cards and list rows (`PlaceCategory.dot` and its uses); keep the tints
-
-## Glass pill → system tab bar — 2026-10-02
-- Build 5 still looked like a murky blur next to Music. On iOS 26+ the pill and + are now the real `TabView` tab bar (4 view tabs + the + as the search-role tab), so it gets the same glass, press lens and scroll edge as Music. Tabs now show labels (Map/List/Cards/Tiles), as Music does. iOS 18–25 keep the custom pill. Checked on the iOS 26.5 simulator; not yet on TestFlight.
-
-## Build 5 uploaded — 2026-10-02
-- Sarp on iOS 27 with build 4: the glass pill read as flat white, and views jumped on switch. Cause: an opaque bottom fade behind the pill (removed on iOS 26+) and `withAnimation` around the whole view swap (now only the lozenge animates). Simulator only has iOS 26.5; check on the phone.
-- Mac disk is at 2.3 GB free — clear space before the next big Xcode job.
-
-## Build 4 uploaded — 2026-10-02
-- Pulled the icon, Liquid Glass and build 3 feedback commits from the other sessions, reviewed them, and confirmed on this Mac that `tsc` passes and the iOS build succeeds. **1.0 (4) archived and uploaded to TestFlight.** Apple takes 10–20 min to process it.
-- Still to check on the phone: the share card from Instagram (no grey page behind it), the Where/What pickers, the card icons, the glass pill and +.
-
-## Icon update — 2026-10-02
-- Updated the active iOS `AppIcon.appiconset` with the exact 1024px masters from today's `Vicolo-App-Icons.zip`: pink/orange/yellow for Any (light/default), cobalt/lime/lilac for Dark, as Sarp selected. The existing appearance mapping and `AppIcon` build setting remain correct; Xcode generates device sizes from the masters.
-- Synced this Mac to the current GitHub main before editing and regenerated `Pinsta.xcodeproj`. Version remains **1.0 (4)** for the app and share extension.
-- Verified both source hashes against the ZIP, 1024×1024 opaque RGB PNGs, asset JSON references/appearance mapping, and clean diff formatting.
-- Full Release simulator build attempted but blocked by the Codex sandbox: `sandbox-exec: sandbox_apply: Operation not permitted` prevents the Swift macro service from running; CoreSimulator also could not connect. **Build/archive in Xcode on the Mac before uploading build 4. No TestFlight upload was performed in this session.**
-
-## Latest handoff — 2026-09-29
-- The web and iOS feature pass is complete. The web owner lock is **on** in Vercel (verified: 401 without the key). Friends' iOS lists remain local.
-- Beta reliability fixes now in code: iOS name-first vineyard/bakery categories, short links inside shared text, canonical duplicate detection, Near me category counts, photo-retry filtering, coordinate-based Google Maps links, and a web owner-key fallback when browser storage rejects writes.
-- Verification: `npm run build` (including TypeScript), local mocked short-link redirect checks (`node --import tsx scripts/check-links.mts`), Swift syntax checks, and isolated Swift type checks passed. **A full iOS build and real-link/device tests are still pending.** This Codex shell could not run Xcode's SwiftUI macro service. Do not treat the earlier simulator build as verification of these new changes.
-- Sarp confirmed the paid Apple Developer membership is **not yet active**. Once active: set the real team in `ios/project.yml`, run a full signed build, test the share flow and Google Maps opening on his phone, then proceed to internal and external TestFlight.
-- The code review backlog below lists new reliability and performance findings. The iOS keyboard jump remains deferred; the Maps-link photo and inline-post decisions remain open.
+## Open decisions
+- **iCloud backup — deferred until after the beta (CTO call, 2026-10-02).** SwiftData + CloudKit means dropping `@Attribute(.unique)` on `Place.id`, a CloudKit container, and deploying the schema to production in the CloudKit dashboard, or TestFlight builds silently don't sync. None of it can be checked on the simulator without an iCloud sign-in, and a wrong migration the night before friends install is the worst kind of bug. Revisit when a friend loses a list, or right after the beta settles.
+- **First experience — needs a design pass with Sander before any code** (CLAUDE.md: design calls aren't made alone). Brief below under "First experience".
+- **Apify: keep, cache, or replace** — decide from the Usage sheet after the beta weekend.
 
 ## Phase 6 — Friends & family beta (TestFlight) 🟡 target: link out Sat 2026-10-03
 Goal: friends install Vicolo from a TestFlight public link and use it on their own, with their own list.
-
-Code (mine):
-- [x] Web list owner-only; `/api/extract` stays open for the app, no Google spend from strangers
+- [x] Web list owner-only; `/api/extract` open for the app, no Google candidates for strangers
 - [x] iOS: no web import; every install starts empty; empty state explains Share → Vicolo
-- [x] iOS: `ITSAppUsesNonExemptEncryption = NO`, `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` shared by app + extension, privacy manifests
-- [x] Build + Simulator check of the above (2026-09-29, clean iPhone 17 simulator)
-- [x] Add-sheet issue from 2026-09-15: keyboard jump deferred by Sarp; double-bordered Paste and the Save sliver are gone with the round + redesign.
-- [x] iOS category precedence: an explicit vineyard or bakery word in the name beats MapKit's category (2026-09-29). Ästad still needs a device check for its city label.
-- [x] Share-text links: web and iOS accept a supported URL inside shared caption text; the share extension selects that URL (2026-09-29).
-- [x] iOS checks the canonical URL again after resolving a short link, so sharing the same post twice shows Already saved (2026-09-29).
-- [x] iOS Near me category counts reflect nearby places; photo retry skips Maps saves before its five-post limit (2026-09-29).
-- [x] Web owner key works for the current page even when browser storage rejects writes (2026-09-29).
-- [x] iOS Google Maps action uses a place ID when available, otherwise the saved coordinates instead of an ambiguous name search (2026-09-29); confirm app opening on a phone.
-- [ ] Try real `vm.tiktok.com` and `maps.app.goo.gl` links on a phone. Local redirect checks pass with simulated responses, but no real links were available for an end-to-end check.
-- [x] Full iOS build after these changes passes (2026-10-01).
-- [x] Real team in `project.yml` (8D6ML34D52, automatic signing) → archive → upload: build 1.0 (1) uploaded 2026-10-01. `UIRequiresFullScreen` added; portrait-only fails validation without it.
-- [ ] Sarp's own phone via internal TestFlight: **Share from inside Instagram** (never tested on a real device), swipe thresholds, undo timing
-- [ ] Submit for external Beta App Review by Thu 2026-10-01 → public link
-
-Apple (Sarp's — needs his identity and payment):
-- [x] (2026-10-01) Apple Developer Program, paid ($99/yr). The free team can't distribute: cable installs only, expire in 7 days.
-- [x] (2026-10-01) App Store Connect app record. Name: Vicolo. It must be unique store-wide; if taken, try "Vicolo — Places" (the home-screen name can stay Vicolo).
-- [ ] TestFlight beta info: short description, feedback email, possibly a privacy policy URL (one page on the web app would do).
+- [x] iOS: export compliance, shared version numbers for app + extension, privacy manifests
+- [x] Paid developer account, team 8D6ML34D52, App Store Connect record "Vicolo"; builds 1–7 uploaded (2026-10-01/02)
+- [x] Category precedence, links inside shared text, canonical duplicate checks, Near me counts, Maps action by place id (2026-09-29)
+- [x] Privacy page for TestFlight (`/privacy`)
+- [ ] Phone checks and App Store Connect steps: see "Waiting on Sarp"
 
 Acceptance: a friend with no connection to Sarp installs from the link, shares a post from Instagram, and sees it saved in their own empty list — while Sarp's web list stays private.
 
 Known limits for the beta (tell friends):
-- The list lives only on the phone. Deleting the app deletes it; TestFlight updates keep it. iCloud backup comes after the paid account.
-- Every friend's save runs on Sarp's Apify account. The free plan allows 5 reads at a time; busy shows "try again in a minute". Check Apify usage after the first weekend.
+- The list lives only on the phone. Deleting the app deletes it; TestFlight updates keep it.
+- Every friend's save runs on Sarp's Apify account (free plan: 5 reads at a time, $5 a month). Busy shows "try again in a minute".
 
-## iOS port of the 2026-09-29 web pass — done
-Each chunk is built, checked on the simulator, committed and pushed on its own, then ticked here. A new session continues at the first unticked chunk.
-- [x] 1. Links (2026-09-29): TikTok + Google Maps links in the app and the share extension; Maps links searched in MapKit around their pin, a match on the pin auto-saves; caption pattern + stricter account match for untagged posts. Maps-link saves have no photo on iOS (that would need Google, paid).
-- [x] 2. Bottom bar (2026-09-29): SF Symbol view pill with List; round + with a springy press that turns into × above the save sheet; List view (photo rows, tap → sheet)
-- [x] 3. Map (2026-09-29): emoji pins on type tints (`PlaceCategory.tint` / `.dot`, same hex as web); pins within 44pt group into a count, tap zooms until it splits; no grouping below ~1 km span
-- [x] 4. Cards (2026-09-29): round Directions + Post icons, no button row; Directions asks once, remembers, confirms (5 s); buddy menu with Appearance (System/Light/Dark) + Directions. Launch arg `-slowNotices` keeps notices 30 s for testing.
-- [x] 5. Data + colour (2026-09-29): one place many posts (`Place.extraPostURLs`, `SamePlace` port; receipt "Added to this place", undo removes just that link; card "2 posts", Post menu); type dots on cards and list, tints behind photo-less thumbnails and tiles; tiles padded to six with a nudge
-- [x] 6. Pull-up sheet, Near me, dark mode (2026-09-29): place sheet on the bottom edge with a handle, short → full (300pt photo, post links) → away; Near me in Where (50 km, asks only when picked, distances in List, a plain notice if refused, `NSLocationWhenInUseUsageDescription` added); dark fixes: buddy icon, raised save sheet with inset fields, stronger dim, visible Near me arrow
+## Expansion: First experience — the one to nail (Sarp, 2026-10-01) — not started
+Sarp tried the app fresh twice: it's flat and boring. Friends and family see it next, so the first minutes have to be great. Design it properly first (web prototype, then iOS); don't patch it.
+- Questions for the design pass: what the first screen shows before anything is saved, how the first share is taught (share sheet → More → Favorites is a real hurdle), what the first save feels like (a moment, not a receipt), and when the list starts to feel like *yours*.
+- Folds in the "What's New" idea: an Apple-style splash with a few highlights, on first launch and after meaningful updates, never on every launch.
 
-## Before friends get it (agreed 2026-09-29)
-- [x] Save from TikTok and Google Maps links too (web, 2026-09-29). Google Maps: the link names the place (name + pin, or a place id), auto-saves one clear match, photo from Google. TikTok: the page's own data gives caption, author and the location tag when there is one; oEmbed for the thumbnail. No new paid service. Untagged posts: a caption pattern ("at Cal Pep in Barcelona") and the account, suggestions only.
-- [x] Icon buttons on cards: directions and post as round icons beside the name; the text button row is gone
-- [x] Group nearby map pins (web): pins within 44 px merge into a count on the tint of their most common type; tap zooms in; from zoom 16 no grouping, overlapping pins fan out with names hidden
-- [x] One place, many posts (web): same Google id, or within ~60 m with a shared name word, adds the post to that card (`posts` jsonb). Card shows "2 posts" and embeds all; "Wrong place?" removes just that post. Bar Brutal / Can Cisa merged into one card with both posts (2026-09-29, `scripts/merge-places.mts`).
-- [x] Directions: one button; first tap asks Apple Maps or Google Maps, remembers it, and confirms: "Saved Google Maps as your default. You can change it anytime in the menu, top right."
-
-## Design ideas from 2026-09-29 — done
-- [x] Type colors everywhere (web): soft tint behind photo-less tiles and list rows; a full-strength dot beside the type in List and Cards (`CATEGORY_DOT`)
-- [x] Place preview as a pull-up sheet (web): opens short, drag or tap the handle for the full card (big photo, posts open), drag down to go back or away; the map stays live behind it
-- [x] Dark mode (web): System / Light / Dark under the buddy menu (System follows the phone); the stone palette is flipped once in `globals.css`, the map uses OpenFreeMap "dark"
+## Expansion: Menu, Settings and Imports (Sarp, 2026-10-01)
+- [x] The buddy button opens a real menu; Settings (Appearance, Directions) and Usage are sheets inside it.
+- [ ] **Import from Google** (placeholder in the menu): saved Google Maps places/lists become Vicolo cards.
+- [ ] Later: **lists you already keep elsewhere** (notes, text lists of places), read and turned into cards.
 
 ## Expansion: Social (after the beta)
 - Send a place to a friend: name, Maps link, the Instagram post
@@ -124,62 +64,20 @@ Each chunk is built, checked on the simulator, committed and pushed on its own, 
 
 **Accounts belong to Social (Sarp, 2026-09-29).** The app knows its user locally and works fully without an account. Creating one (username + login) is the step into "I want to be social now". Open for CTO when Social starts: how a local-first list joins an account later.
 
-## First experience — the one to nail (Sarp, 2026-10-01) — not started
-Sarp tried the app fresh twice: it's flat and boring. Friends and family see it next, so the first minutes have to be great. Design it properly first (web prototype, see "How we design" below); don't patch it.
-- Questions to answer: what the first screen shows before anything is saved, how the first share is taught (share sheet → More → Favorites is a real hurdle), what the first save feels like (a moment, not a receipt), and when the list starts to feel like *yours*.
-- Folds in the old "What's New" idea: an Apple-style splash with a few highlights, on first launch and after meaningful updates, never on every launch.
-
-## Expansion: Menu, Settings and Imports (Sarp, 2026-10-01) — not started
-- The buddy button opens a real menu. Appearance and Directions move into a **Settings** screen inside it.
-- In that menu, a placeholder for now: **Import from Google**. Idea: people's saved Google Maps places/lists become Vicolo cards.
-- Later another import: **lists you already keep elsewhere** (notes, text lists of places), read and turned into cards.
-- Both imports to be designed properly when their turn comes; parked here as future thinking, like Social.
-
-## Sarp's build 3 feedback (2026-10-01): in code, not yet built
-Written in a Linux cloud session. Compiled and uploaded as build 4 on 2026-10-02; the open boxes still need a check on the phone.
-- [ ] Share card: no grey page behind it. Our dim over the system's white sheet made the grey; the superview chain is now cleared and our dim is gone. Check on the phone from Instagram.
-- [x] Where shows "Istanbul" / "Copenhagen", not "Beyoğlu" / "Nordhavn" (web + iOS, by coordinates, existing places too).
-- [ ] iOS Where/What pickers are the web's bottom sheet (`FilterPicker.swift`), not system menus.
-- [ ] iOS card buttons use the web's outline arrow and Instagram mark (`Glyphs.swift`).
-- [ ] iOS view pill and round + are Liquid Glass on iOS 26 (tab-bar style: glass pill, soft lozenge on the chosen view, glass + with a dark glyph). Below 26 they keep the web look. Design call: iOS-native here, the web stays black.
-
-## Next steps
-1. ~~Vercel key~~ done 2026-09-29. ~~Developer account, team, first upload~~ done 2026-10-01.
-2. Build 3 on Sarp's phone (2026-10-01; build 2 = share card over the host app, reading steps, first-run steps; build 3 = menu + Settings sheet). Check the share card floats over Instagram: the simulator couldn't test it.
-3. External testing group → Beta App Review → public link → friends.
-4. After the first weekend: check Apify usage (every friend's Instagram save runs on Sarp's account).
-
-## Waiting on Sarp
-- Build 3 check on the phone; external group + review submission in App Store Connect
-
 ## Roadmap — after the beta
-Ordered roughly by how soon friends will feel it. The category and share-text fixes above were pulled into the beta work; real-device checks remain a beta gate.
-
 **Reliability**
-- iCloud backup (CloudKit) so a friend's list survives deleting the app. Needs the paid account. Then add iCloud/Background Modes capabilities, check the SwiftData schema and App Group store migration, enable the CloudKit configuration, and verify sync plus reinstall on real devices. Local-first stays; no app accounts.
-- Cheaper, sturdier Instagram reads. Apify is the one paid dependency on every save; watch cost and failure rate from the beta, then decide (keep, cache, or an alternative).
-
-**Small fixes**
-- Web embeds posts inside the full place sheet; iOS shows links. Decide whether iOS should embed too.
-- Keyboard jump in the iOS add sheet (deferred by Sarp).
+- iCloud backup (CloudKit), see "Open decisions". Local-first stays; no app accounts.
+- Cheaper, sturdier Instagram reads: decide from beta usage.
 
 **Reading posts better**
 - Untagged posts: the caption pattern covers "at X in Y". Reading captions with Claude would catch more, but it's paid; only if tags turn out to be missing often (decided: low-tech first).
 
-**Expansion packages** (sections above)
-- Social: send a place to a friend; later, see friends' saves. Accounts arrive here, optional, as the step into being social.
-- Check-ins: Been there / Want to go, check in, and "Nika wants to go here" where it meets Social.
-- First experience (top priority of these): see its section above; includes the What's New splash.
-- Menu, Settings and Imports: real menu, Settings screen, Import from Google, import from notes/lists.
-- Before Social or Check-ins: decide how a local-first list joins an account later.
+**Expansions** (sections above): First experience first, then Menu/Imports, Check-ins, Social.
 
-## Code review — 2026-09-29
-Items to address after the local fixes above, ordered by user impact:
-- ~~Web deletion ignores a failed DELETE~~ fixed 2026-10-02: a rejected delete reloads the list, so the place comes back.
-- iOS photo retry still tries permanently unavailable Instagram posts on every foreground and can keep later missing photos outside its five-post batch (`PhotoRetry.swift`). Track attempts and back off, while rotating through eligible places.
-- A signed iOS build should not silently switch from the App Group store to a private store when opening the shared container fails (`Persistence.swift`); that can look like a lost list.
-- `/api/extract` is intentionally public for friends' iOS apps and can spend Apify/Blob resources for any caller. Add abuse and cost controls before sharing the public TestFlight link.
-- Performance: a web save may re-read the same Instagram post when the extracted image is missing (`/api/places` → `findPhoto`); reuse the extraction result or avoid the second paid read. iOS decodes full image data in every card and tile render; cache scaled thumbnails if lists grow.
+## Build log
+- **1.0 (7), 2026-10-02:** price, splash, Map · Near me, sheet ⋯. Uploaded from this Mac once Sarp signed into Xcode; Apple's `swinfo` step took ~11 min, normal.
+- **1.0 (6):** splash screen, light and dark. **(5):** glass pill shows the content behind it; no jump on view change. **(4):** icons, Liquid Glass, build 3 feedback (share card background, metro names, web pickers and icons on iOS). **(2–3):** share card over the host app, reading steps, first-run steps, menu + Settings sheet. **(1), 2026-10-01:** first upload.
+- On iOS 26+ the view pill and + are the system `TabView` tab bar (same glass as Music); iOS 18–25 keep the custom pill.
 
 ## What it is
 
@@ -285,7 +183,7 @@ fall back to the Phase 1 manual flow.
 **Verified 2026-09-10:** instagram.com/p/DafW4ZTNT-l (tagged "Bar Brutal") →
 thumbnail + 3 candidates in ~7s, saved without typing.
 
-## Phase 5 — Native iOS ✅ working in Simulator (real device pending developer account)
+## Phase 5 — Native iOS ✅ done (TestFlight since 2026-10-01)
 
 **Goal:** the full app native, local-first. The phone is the source of truth;
 the cloud does exactly one thing — read the Instagram post.
@@ -302,7 +200,7 @@ The web app stays live until the native one is trusted.
 - [x] Xcode project (`ios/`, XcodeGen) · SwiftData `Place` · category buckets
 - [x] List with `City ▾ Type ▾` header menus · cards with photo · Apple/Google Maps · Post
 - [x] Add sheet: paste → read post → MapKit candidates from tag → tap to save; typing fallback
-- [x] One-shot import of the web database on first launch
+- [x] ~~One-shot import of the web database on first launch~~ removed 2026-09-29 (every install starts empty); code deleted 2026-10-02
 - [x] Build + run in Simulator, verify end to end
 - [x] Share Extension: Share → Pinsta opens the save flow, saves into the shared App Group store
       (verified from Safari in the Simulator; Instagram itself needs a real device)
@@ -311,7 +209,8 @@ The web app stays live until the native one is trusted.
       receipt + undo, MapKit tag cascade + account fallback, destination
       grouping, Vineyard, card rules, swipe edit/delete with undo toast
 
-- [ ] Real device + CloudKit (needs Apple Developer Program)
+- [x] Real device via TestFlight (2026-10-01)
+- [ ] CloudKit backup: deferred, see "Open decisions"
 
 **Acceptance:** from inside Instagram, Share → Pinsta opens the save flow
 pre-loaded with the shared post and saves to the same list the app shows.
@@ -346,3 +245,9 @@ pre-loaded with the shared post and saves to the same list the app shows.
 - **2026-10-02 — Opens on Map · Near me, List as the fallback (Sarp).** Supersedes the 2026-09-29 "never prompts on load"; the view is no longer remembered.
 - **2026-10-02 — No type dots on cards or list rows (Sarp).** Clean cards beat the colour cue; pins and tiles keep the tints.
 - **2026-10-01 — iOS Maps-link saves keep the emoji tile, no Look Around photo (Sarp).** Look Around images aren't good enough to stand in for a place photo.
+- **2026-10-02 — Price level shown, web and iOS (Sarp).** iOS asks Google through `/api/price` for food and drink places; this spends Sarp's quota on friends' saves, accepted.
+- **2026-10-02 — Cost tracker in the buddy menu (Sarp).** Google estimated from counted calls, Apify from its own API.
+- **2026-10-02 — iOS embeds posts in the full sheet**, like the web (it was a "decide" item; the web version is the settled one).
+- **2026-10-02 — iCloud backup deferred past the beta (CTO).** Can't be verified without a device and iCloud sign-in; a migration mistake the night before friends install costs more than the feature gives.
+- **2026-10-02 — Keyboard jump in the add sheet fixed** (Sarp asked for the after-beta fixes; supersedes "not fixing for now", 2026-09-29).
+- **2026-10-02 — Background retries back off; gone posts are never retried.** Each retry is a paid call on Sarp's accounts.
