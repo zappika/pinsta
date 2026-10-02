@@ -2,6 +2,12 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
+## Icon update — 2026-10-02
+- Updated the active iOS `AppIcon.appiconset` with the exact 1024px masters from today's `Vicolo-App-Icons.zip`: pink/orange/yellow for Any (light/default), cobalt/lime/lilac for Dark, as Sarp selected. The existing appearance mapping and `AppIcon` build setting remain correct; Xcode generates device sizes from the masters.
+- Synced this Mac to the current GitHub main before editing and regenerated `Pinsta.xcodeproj`. Version remains **1.0 (4)** for the app and share extension.
+- Verified both source hashes against the ZIP, 1024×1024 opaque RGB PNGs, asset JSON references/appearance mapping, and clean diff formatting.
+- Full Release simulator build attempted but blocked by the Codex sandbox: `sandbox-exec: sandbox_apply: Operation not permitted` prevents the Swift macro service from running; CoreSimulator also could not connect. **Build/archive in Xcode on the Mac before uploading build 4. No TestFlight upload was performed in this session.**
+
 ## Latest handoff — 2026-09-29
 - The web and iOS feature pass is complete. The web owner lock is **on** in Vercel (verified: 401 without the key). Friends' iOS lists remain local.
 - Beta reliability fixes now in code: iOS name-first vineyard/bakery categories, short links inside shared text, canonical duplicate detection, Near me category counts, photo-retry filtering, coordinate-based Google Maps links, and a web owner-key fallback when browser storage rejects writes.
