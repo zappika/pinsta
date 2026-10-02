@@ -30,8 +30,16 @@ export async function findPhoto(
   return googlePhoto(placeId, shortcode);
 }
 
-/** First photo Google has for the place — Places API (New) Photo media. */
-async function googlePhoto(placeId: string, key: string): Promise<string | null> {
+/** A photo googlePhoto stored (its Blob key ends "-g"), not the post's own image. */
+export function isGooglePhoto(url: string | null): boolean {
+  return !!url && /-g\.(jpg|png|webp)(\?|$)/.test(url);
+}
+
+/**
+ * First photo Google has for the place — Places API (New) Photo media.
+ * `key` names the Blob file; "-g" is appended to it.
+ */
+export async function googlePhoto(placeId: string, key: string): Promise<string | null> {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey) return null;
   try {
