@@ -33,9 +33,10 @@ struct ViewSwitch: View {
         HStack(spacing: 2) {
             ForEach(PlacesView.allCases, id: \.self) { v in
                 let active = v == view
-                Button {
-                    withAnimation(.snappy(duration: 0.25)) { view = v }
-                } label: {
+                // No withAnimation here: it animated the whole content swap, so the
+                // list slid and resized into the map. Only the lozenge animates
+                // (the .animation below); the view itself changes in one frame.
+                Button { view = v } label: {
                     Image(systemName: v.symbol)
                         .font(.system(size: 17, weight: .medium))
                         .foregroundStyle(active ? (glass ? Color(.label) : Color(.systemBackground)) : .secondary)
@@ -55,6 +56,7 @@ struct ViewSwitch: View {
                 .accessibilityAddTraits(active ? .isSelected : [])
             }
         }
+        .animation(.snappy(duration: 0.25), value: view)
         .padding(4)
         .modifier(GlassPill())
     }

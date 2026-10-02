@@ -455,7 +455,15 @@ private struct PlacesContent: View {
         .padding(.bottom, 8)
     }
 
+    /// Below iOS 26: a fade so cards don't run into the material pill. On 26+
+    /// none: glass needs the content behind it, and the opaque fade made the
+    /// pill read as a flat white capsule (Sarp, build 4 on iOS 27).
+    @ViewBuilder
     private var bottomFade: some View {
+        if #unavailable(iOS 26) { fade }
+    }
+
+    private var fade: some View {
         LinearGradient(
             colors: [Color(.systemGroupedBackground).opacity(0), Color(.systemGroupedBackground)],
             startPoint: .top, endPoint: .bottom
