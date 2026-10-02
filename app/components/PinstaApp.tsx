@@ -88,7 +88,10 @@ export default function PinstaApp() {
 
   // How the selection is shown. Every visit opens on the map of what is near (see below).
   const [view, setViewState] = useState<View>("map");
-  const [peek, setPeek] = useState<Place | null>(null);
+  // The id, not a copy: the sheet then shows the place as it is now (changed, merged, removed).
+  const [peekId, setPeekId] = useState<string | null>(null);
+  const peek = useMemo(() => places?.find((p) => p.id === peekId) ?? null, [places, peekId]);
+  const setPeek = (p: Place | null) => setPeekId(p?.id ?? null);
   function setView(v: View) {
     setViewState(v);
     setPeek(null);
@@ -295,7 +298,7 @@ export default function PinstaApp() {
         {places && places.length > 0 && view === "map" && (
           <PlacesMap
             places={visible}
-            selected={peek?.id ?? null}
+            selected={peekId}
             onSelect={setPeek}
             onFail={() => {
               setView("list");
@@ -305,14 +308,14 @@ export default function PinstaApp() {
         )}
 
         {view === "tiles" && (
-          <PlaceTiles places={visible} selected={peek?.id ?? null} onSelect={(p) => setPeek((c) => (c?.id === p.id ? null : p))} />
+          <PlaceTiles places={visible} selected={peekId} onSelect={(p) => setPeekId((c) => (c === p.id ? null : p.id))} />
         )}
 
         {view === "list" && (
           <PlaceList
             places={visible}
-            selected={peek?.id ?? null}
-            onSelect={(p) => setPeek((c) => (c?.id === p.id ? null : p))}
+            selected={peekId}
+            onSelect={(p) => setPeekId((c) => (c === p.id ? null : p.id))}
             here={here}
             hideCategory={category !== null}
             hideCity={(p) => city !== null && p.city === city}
