@@ -29,9 +29,15 @@ export default function PinstaApp() {
   const [toast, setToast] = useState<{ place: Place; index: number } | null>(null);
   const pending = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
+  // A delete that did not go through brings the place back with the next load.
+  const reload = useRef<() => void>(() => {});
   const commitDelete = useCallback((id: string) => {
     pending.current.delete(id);
-    api(`/api/places/${id}`, { method: "DELETE", keepalive: true }).catch(() => undefined);
+    api(`/api/places/${id}`, { method: "DELETE", keepalive: true })
+      .then((res) => {
+        if (!res.ok && res.status !== 404) reload.current();
+      })
+      .catch(() => reload.current());
   }, []);
 
   useEffect(() => {
@@ -80,21 +86,12 @@ export default function PinstaApp() {
   const [city, setCity] = useState<string | null>(null);
   const [category, setCategory] = useState<string | null>(null);
 
-  // How the selection is shown. Remembered across visits; the filters are not.
-  const [view, setViewState] = useState<View>("cards");
+  // How the selection is shown. Every visit opens on the map of what is near (see below).
+  const [view, setViewState] = useState<View>("map");
   const [peek, setPeek] = useState<Place | null>(null);
-  useEffect(() => {
-    try {
-      const v = localStorage.getItem("pinsta.view");
-      if (v === "map" || v === "list" || v === "cards" || v === "tiles") setViewState(v);
-    } catch {}
-  }, []);
   function setView(v: View) {
     setViewState(v);
     setPeek(null);
-    try {
-      localStorage.setItem("pinsta.view", v);
-    } catch {}
   }
 
   const load = useCallback(async () => {
@@ -112,6 +109,8 @@ export default function PinstaApp() {
       setError(e instanceof Error ? e.message : "Could not load places");
     }
   }, []);
+
+  reload.current = load;
 
   useEffect(() => {
     load();
@@ -152,6 +151,24 @@ export default function PinstaApp() {
     () => (here ? new Set((places ?? []).filter((p) => kmBetween(here, p) <= NEAR_KM).map((p) => p.id)) : null),
     [here, places],
   );
+
+  // Opening screen: the map, Near me. Offline, no location, or a map that does not
+  // load → the list of everything. Nothing within reach → the map of everything.
+  // Whatever was picked meanwhile wins.
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current || !places || places.length === 0) return;
+    started.current = true;
+    const toList = () => setViewState((v) => (v === "map" ? "list" : v));
+    if (!navigator.onLine) return toList();
+    currentPosition()
+      .then((pos) => {
+        setHere(pos);
+        if (places.some((p) => kmBetween(pos, p) <= NEAR_KM)) setCity((c) => c ?? NEAR);
+        else setNotice(`Nothing saved within ${NEAR_KM} km, so here is everything.`);
+      })
+      .catch(toList);
+  }, [places]);
 
   const visible = useMemo(() => {
     if (!places) return [];
@@ -269,7 +286,15 @@ export default function PinstaApp() {
         )}
 
         {places && places.length > 0 && view === "map" && (
-          <PlacesMap places={visible} selected={peek?.id ?? null} onSelect={setPeek} />
+          <PlacesMap
+            places={visible}
+            selected={peek?.id ?? null}
+            onSelect={setPeek}
+            onFail={() => {
+              setView("list");
+              setNotice("The map didn't load, so here is the list.");
+            }}
+          />
         )}
 
         {view === "tiles" && (
@@ -311,7 +336,20 @@ export default function PinstaApp() {
         </ul>
       </section>
 
-      {peek && view !== "cards" && <PeekCard place={peek} onClose={() => setPeek(null)} />}
+      {peek && view !== "cards" && (
+        <PeekCard
+          place={peek}
+          onClose={() => setPeek(null)}
+          onEdit={() => {
+            setPeek(null);
+            setEditing(peek);
+          }}
+          onDelete={() => {
+            setPeek(null);
+            remove(peek);
+          }}
+        />
+      )}
 
       {notice && !toast && (
         <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-40 mx-auto max-w-md px-5">

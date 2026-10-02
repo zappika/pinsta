@@ -1,6 +1,6 @@
 "use client";
 
-import { dotFor, emojiFor, tintFor } from "@/lib/categories";
+import { emojiFor, tintFor } from "@/lib/categories";
 import { kmBetween } from "@/lib/geo";
 import type { Place } from "./types";
 
@@ -45,10 +45,7 @@ export default function PlaceList({ places, selected, onSelect, here, hideCatego
               <div className="min-w-0 flex-1">
                 <p className="truncate text-base font-semibold">{p.name}</p>
                 {!hideCategory && p.category && (
-                  <p className="flex items-center gap-1.5 truncate text-sm text-stone-500">
-                    <span aria-hidden className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: dotFor(p.category) }} />
-                    {p.category}
-                  </p>
+                  <p className="truncate text-sm text-stone-500">{p.category}</p>
                 )}
                 {where && <p className="truncate text-sm text-stone-500">{where}</p>}
               </div>

@@ -17,6 +17,7 @@ type Props = {
 /**
  * Swipe right-to-left: the card slides over to reveal two round buttons,
  * edit and delete. Keep going, all the way, and the card flies off — deleted.
+ * A right-click does the same for a mouse.
  */
 export default function SwipeCard({ children, open, onOpen, onClose, onEdit, onDelete }: Props) {
   const [x, setXState] = useState(0);
@@ -119,6 +120,11 @@ export default function SwipeCard({ children, open, onOpen, onClose, onEdit, onD
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        // With a mouse, a right-click opens the same two buttons.
+        onContextMenu={(e) => {
+          e.preventDefault();
+          open ? onClose() : onOpen();
+        }}
         onClickCapture={(e) => {
           if (justDragged.current) {
             e.preventDefault();

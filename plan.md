@@ -2,6 +2,18 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
+## Web pass — 2026-10-02 (port to iOS next)
+- **Edit and delete from every view.** Until now only a swipe on Cards could do it, so Map, List and Tiles had no way at all. The place sheet now has a ⋯ ("Change or remove") beside Directions and Post: Change place opens the existing re-select sheet, Remove uses the same 5 s Undo. Right-click on a card opens the swipe buttons for a mouse. A delete the server rejects now brings the place back (the 2026-09-29 review item).
+- **Opens on Map · Near me** (supersedes "Near me is not the default, so the page never prompts on load", 2026-09-29). The browser asks for location on the first visit. Falls back to the List of everything when offline, when location is refused or times out, or when the map hasn't drawn within 12 s. Nothing saved within 50 km → the map of everything with a short notice. The view is no longer remembered between visits.
+- **No type dots** on cards and list rows (Sarp: keep the cards clean). `CATEGORY_DOT` / `dotFor` removed; the tints on map pins and photo-less tiles stay.
+- Checked in Chromium with stubbed places and location: Near me list, map-failure fallback, refused location, sheet ⋯ → Remove → Undo toast, failed delete restored, Change place opens the editor. Not checked: the map itself drawing (OpenFreeMap is blocked in the cloud container) and real data.
+- **Price ($ to $$): explored, not built.** Google's `priceLevel` on the one Place Details call at save time is easy on the web; iOS has no free source (MapKit has no price). Waiting on Sarp's call.
+
+### iOS to-do from this pass
+- [ ] Place sheet: a ⋯ beside Directions/Post with Change place and Remove (same Undo toast as the swipe)
+- [ ] Open on Map · Near me; fall back to List when location is refused, there is no connection, or MapKit can't draw. Nothing within 50 km → map of everything. Stop remembering the view. Location is then asked on first launch, not only when Near me is picked
+- [ ] Remove the type dots from cards and list rows (`PlaceCategory.dot` and its uses); keep the tints
+
 ## Glass pill → system tab bar — 2026-10-02
 - Build 5 still looked like a murky blur next to Music. On iOS 26+ the pill and + are now the real `TabView` tab bar (4 view tabs + the + as the search-role tab), so it gets the same glass, press lens and scroll edge as Music. Tabs now show labels (Map/List/Cards/Tiles), as Music does. iOS 18–25 keep the custom pill. Checked on the iOS 26.5 simulator; not yet on TestFlight.
 
@@ -141,7 +153,7 @@ Ordered roughly by how soon friends will feel it. The category and share-text fi
 
 ## Code review — 2026-09-29
 Items to address after the local fixes above, ordered by user impact:
-- Web deletion is optimistic and ignores a failed DELETE response (`PinstaApp.tsx`); a failed request can make a place disappear until reload. Keep it visible or restore it on failure.
+- ~~Web deletion ignores a failed DELETE~~ fixed 2026-10-02: a rejected delete reloads the list, so the place comes back.
 - iOS photo retry still tries permanently unavailable Instagram posts on every foreground and can keep later missing photos outside its five-post batch (`PhotoRetry.swift`). Track attempts and back off, while rotating through eligible places.
 - A signed iOS build should not silently switch from the App Group store to a private store when opening the shared container fails (`Persistence.swift`); that can look like a lost list.
 - `/api/extract` is intentionally public for friends' iOS apps and can spend Apify/Blob resources for any caller. Add abuse and cost controls before sharing the public TestFlight link.
@@ -309,4 +321,6 @@ pre-loaded with the shared post and saves to the same list the app shows.
 - **2026-09-29 — Renamed to Vicolo** (supersedes "name stays Pinsta"). Visible name on web and iOS; iOS bundle ID `se.sarper.vicolo` and App Group `group.se.sarper.vicolo`, changed before the App Store Connect record exists. Internal names (repo, folder, Vercel project `pinsta-two`, file/CSS/storage names) unchanged.
 - **2026-09-29 — Vicolo accepts TikTok and Google Maps links** alongside Instagram, with no new paid service: TikTok page data + oEmbed, Google Maps links parsed from the URL. The DB field `instagram_url` keeps its name but holds any supported link.
 - **2026-10-01 — How we design: iterate on the web, port to iOS once settled (Sarp).** Iterating on iOS (build, install, simulator taps) is too slow for design. Web is the sketchbook; iOS gets the agreed version in one pass.
+- **2026-10-02 — Opens on Map · Near me, List as the fallback (Sarp).** Supersedes the 2026-09-29 "never prompts on load"; the view is no longer remembered.
+- **2026-10-02 — No type dots on cards or list rows (Sarp).** Clean cards beat the colour cue; pins and tiles keep the tints.
 - **2026-10-01 — iOS Maps-link saves keep the emoji tile, no Look Around photo (Sarp).** Look Around images aren't good enough to stand in for a place photo.

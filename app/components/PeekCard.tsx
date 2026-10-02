@@ -9,7 +9,9 @@ import type { Place } from "./types";
  * style). Opens short: photo strip, name, actions. Drag up → the full card;
  * drag down → back to short, or away. The map behind stays live; tapping it closes.
  */
-export default function PeekCard({ place, onClose }: { place: Place; onClose: () => void }) {
+type Props = { place: Place; onClose: () => void; onEdit: () => void; onDelete: () => void };
+
+export default function PeekCard({ place, onClose, onEdit, onDelete }: Props) {
   const [full, setFull] = useState(false);
   const [dy, setDy] = useState(0);
   const drag = useRef<{ y: number; moved: boolean } | null>(null);
@@ -62,7 +64,7 @@ export default function PeekCard({ place, onClose }: { place: Place; onClose: ()
           <span className="h-1.5 w-10 rounded-full bg-stone-300" />
         </div>
         <div className={full ? "overflow-y-auto" : "overflow-hidden"}>
-          <PlaceCard key={full ? "full" : "short"} place={place} compact={!full} expanded={full} />
+          <PlaceCard key={full ? "full" : "short"} place={place} compact={!full} expanded={full} onEdit={onEdit} onDelete={onDelete} />
         </div>
       </div>
     </div>

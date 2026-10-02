@@ -117,25 +117,6 @@ export const CATEGORY_TINT: Record<Category, string> = {
   Other: "#ececec",
 };
 
-/** The same hues at full strength, for small marks (the dot beside a type). */
-export const CATEGORY_DOT: Record<Category, string> = {
-  Restaurant: "#e8845c",
-  Cafe: "#b98a57",
-  Bar: "#a56bc9",
-  Vineyard: "#7d66c9",
-  Bakery: "#d9a635",
-  Hotel: "#5b93c9",
-  Shop: "#d9708f",
-  Attraction: "#e0705e",
-  Museum: "#7c8394",
-  Nature: "#5aa66b",
-  Other: "#a3a3a3",
-};
-
-export function dotFor(category: string | null | undefined): string {
-  return CATEGORY_DOT[(category ?? "Other") as Category] ?? CATEGORY_DOT.Other;
-}
-
 export function tintFor(category: string | null | undefined): string {
   return CATEGORY_TINT[(category ?? "Other") as Category] ?? CATEGORY_TINT.Other;
 }

@@ -19,6 +19,8 @@ type Props = {
   places: Place[];
   selected: string | null;
   onSelect: (p: Place | null) => void;
+  /** The base map could not load (bad connection): the app falls back to the list. */
+  onFail?: () => void;
 };
 
 /**
@@ -26,19 +28,30 @@ type Props = {
  * category emoji on a soft type tint; overlapping pins group into a count.
  * Tap a pin → PeekCard; tap a group → zoom in until it splits.
  */
-export default function PlacesMap({ places, selected, onSelect }: Props) {
+/** A map that has not drawn by then is treated as offline. */
+const LOAD_TIMEOUT_MS = 12_000;
+
+export default function PlacesMap({ places, selected, onSelect, onFail }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markers = useRef<Map<string, { marker: maplibregl.Marker; pin: HTMLDivElement }>>(new Map());
   const unsubscribe = useRef<() => void>(() => {});
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
+  const onFailRef = useRef(onFail);
+  onFailRef.current = onFail;
 
   // maplibre touches `window` on import, so it only loads in the browser.
   useEffect(() => {
     let cancelled = false;
+    let loaded = false;
+    const fail = () => {
+      if (!cancelled && !loaded) onFailRef.current?.();
+    };
+    const timer = setTimeout(fail, LOAD_TIMEOUT_MS);
     (async () => {
-      const lib = await import("maplibre-gl");
+      const lib = await import("maplibre-gl").catch(() => null);
+      if (!lib) return fail();
       if (cancelled || !container.current) return;
       // See scripts/copy-maplibre-worker.sh.
       lib.setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
@@ -64,10 +77,19 @@ export default function PlacesMap({ places, selected, onSelect }: Props) {
         window.removeEventListener("pinsta:theme", restyle);
         mq.removeEventListener("change", restyle);
       };
-      m.once("load", () => setPlaces(lib, m));
+      // An error before the style is in (OpenFreeMap unreachable) means no map.
+      m.on("error", () => {
+        if (!m.isStyleLoaded()) fail();
+      });
+      m.once("load", () => {
+        loaded = true;
+        clearTimeout(timer);
+        setPlaces(lib, m);
+      });
     })();
     return () => {
       cancelled = true;
+      clearTimeout(timer);
       unsubscribe.current();
       map.current?.remove();
       map.current = null;
