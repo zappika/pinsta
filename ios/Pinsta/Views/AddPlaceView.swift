@@ -296,7 +296,8 @@ struct AddPlaceView: View {
             } else if let tag = post.locationName {
                 found = Array(await PlaceSearch.resolveTag(
                     tag, ownerFullName: post.ownerFullName, caption: post.caption,
-                    hashtags: post.hashtags ?? [], cityHints: Array(cityHints)
+                    hashtags: post.hashtags ?? [], cityHints: Array(cityHints),
+                    extraQueries: post.city.map { ["\(tag) \($0)"] } ?? []
                 ).prefix(5))
                 from = .tag
             } else {

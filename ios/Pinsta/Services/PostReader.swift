@@ -16,11 +16,13 @@ struct InstagramPost: Decodable {
     var kind: String? = nil
     /// Google Maps links carry the pin; MapKit searches around it.
     var near: Near? = nil
+    /// TikTok: the location tag's city, searched with the tag.
+    var city: String? = nil
 
     struct Near: Decodable, Equatable { let lat: Double; let lng: Double }
 
     enum CodingKeys: String, CodingKey {
-        case url, caption, locationName, ownerUsername, ownerFullName, hashtags, kind, near
+        case url, caption, locationName, ownerUsername, ownerFullName, hashtags, kind, near, city
         case imageURL = "imageUrl"
     }
 }

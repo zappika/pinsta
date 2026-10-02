@@ -20,7 +20,8 @@ export async function POST(req: Request) {
   try {
     return NextResponse.json({ priceLevel: await findPriceLevel(name, { lat: body.lat, lng: body.lng }) });
   } catch (e) {
+    // An error, not "no price": the app marks a place checked only on a real answer.
     console.error(e);
-    return NextResponse.json({ priceLevel: null });
+    return NextResponse.json({ error: "Price lookup failed" }, { status: 502 });
   }
 }

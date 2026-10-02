@@ -23,6 +23,8 @@ export type ExtractResponse = {
     hashtags: string[];
     /** Google Maps links carry the pin; the iOS app searches MapKit around it. */
     near: { lat: number; lng: number } | null;
+    /** TikTok's location tag names its city; the iOS app adds "tag city" to its searches, as resolveTag does here. */
+    city: string | null;
   };
   candidates: PlaceCandidate[];
   /**
@@ -33,7 +35,7 @@ export type ExtractResponse = {
   source: "tag" | "account" | "link" | null;
 };
 
-type Read = Omit<ExtractResponse["post"], "url" | "kind" | "imageUrl"> & {
+type Read = Omit<ExtractResponse["post"], "url" | "kind" | "imageUrl" | "city"> & {
   url: string;
   rawImage: string | null;
   city?: string | null;
@@ -147,6 +149,7 @@ export async function POST(req: Request) {
         ownerFullName: post.ownerFullName,
         hashtags: post.hashtags,
         near: post.near,
+        city: post.city ?? null,
       },
       candidates: source === "link" && candidates.length > 1 && isClear(candidates, post.near) ? candidates.slice(0, 1) : candidates,
       source: candidates.length ? source : null,
@@ -155,6 +158,10 @@ export async function POST(req: Request) {
   } catch (e) {
     console.error(e);
     const msg = e instanceof Error ? e.message : "Could not read that link";
+    // A deleted or private post won't come back: say so, so the app stops paying to retry it.
+    if (/does not exist|not found|not public/i.test(msg)) {
+      return NextResponse.json({ error: msg, permanent: true }, { status: 404 });
+    }
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 }

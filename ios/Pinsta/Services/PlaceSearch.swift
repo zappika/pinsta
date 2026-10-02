@@ -47,7 +47,8 @@ extension PlaceSearch {
         ownerFullName: String?,
         caption: String?,
         hashtags: [String],
-        cityHints: [String]
+        cityHints: [String],
+        extraQueries: [String] = []
     ) async -> [PlaceCandidate] {
         let tag = tag.trimmingCharacters(in: .whitespacesAndNewlines)
         let tagWords = words(tag)
@@ -64,6 +65,10 @@ extension PlaceSearch {
         let hints = Set(cityHints.map { $0.lowercased().replacingOccurrences(of: " ", with: "") })
         if let city = hashtags.map({ $0.lowercased() }).first(where: { hints.contains($0) }) {
             queries.append("\(tag) \(city)")
+        }
+        // More queries to merge in (TikTok gives the tagged place's city).
+        for q in extraQueries.map({ $0.trimmingCharacters(in: .whitespaces) }) where !q.isEmpty && !queries.contains(q) {
+            queries.append(q)
         }
 
         let merged = await runAll(queries)
