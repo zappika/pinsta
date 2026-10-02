@@ -3,6 +3,8 @@
  * Instagram's own APIs don't expose caption/location for arbitrary posts.
  * Server-side only — uses APIFY_TOKEN.
  */
+import { countCall } from "./usage";
+
 export type InstagramPost = {
   url: string;
   type: "Image" | "Video" | "Sidecar" | string;
@@ -39,11 +41,14 @@ export async function fetchInstagramPost(postUrl: string): Promise<InstagramPost
   endpoint.searchParams.set("token", token);
   endpoint.searchParams.set("timeout", "55");
 
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ directUrls: [postUrl], resultsType: "posts", resultsLimit: 1 }),
-  });
+  const [res] = await Promise.all([
+    fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ directUrls: [postUrl], resultsType: "posts", resultsLimit: 1 }),
+    }),
+    countCall("apify"),
+  ]);
   if (!res.ok) {
     console.error("Apify error", res.status, (await res.text()).slice(0, 300));
     if (res.status === 402 || res.status === 429) {

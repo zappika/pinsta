@@ -6,6 +6,8 @@ import {
   integer,
   jsonb,
   timestamp,
+  date,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -54,3 +56,18 @@ export type ExtraPost = {
 
 export type Place = typeof places.$inferSelect;
 export type NewPlace = typeof places.$inferInsert;
+
+/**
+ * Paid API calls per day and service (lib/usage.ts), for the Usage sheet:
+ * Google bills per call with a free monthly allowance, so a count is enough
+ * to estimate the bill. One row per day and service, bumped +1 per call.
+ */
+export const usage = pgTable(
+  "usage",
+  {
+    day: date("day").notNull(),
+    service: text("service").notNull(),
+    calls: integer("calls").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.service] })],
+);

@@ -58,6 +58,7 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   twice → "Already saved". Edit mode re-selects the place behind a card.
 - **One place, many posts** (`lib/same-place.ts`): a save that matches an existing place (same Google id, or ≤60 m + a shared name word) appends to its `posts` jsonb instead of inserting. First post stays in the row columns.
 - **Views** (both apps): Map (emoji pins on type tints, grouped when they overlap), List, Cards, Tiles; an icon pill picks one. The round + opens the save sheet and becomes its ×. Tapping a place opens a pull-up sheet (short → full → away).
+- **Usage (cost tracker):** every paid call bumps a per-day row in `usage` via `countCall()` (`lib/usage.ts`, which also holds the SKU prices and free allowances): Apify reads, Google Text Search Pro (`searchPlaces`) / Enterprise (`findPriceLevel`), Place Details Pro / Enterprise (`getPlace` without / with price), Place Photos (the media call in `lib/photo.ts`; its details call asks only `photos`, the free IDs Only SKU). A new paid call needs a `countCall` and, for a new SKU, an entry in `SERVICES`. Owner-only `GET /api/usage` sums the month, and Apify's real dollars come from its API (`/users/me/usage/monthly` + plan credit from `/users/me`). Buddy menu → Usage.
 - **Settings, per device** (web localStorage / iOS `Settings` in UserDefaults): Directions app (asked on first use), Appearance (System/Light/Dark). Both live in the round buddy menu, top right.
 - **Near me:** a Where option, 50 km. Location is asked on open (it is the opening screen), in both apps.
 - **Edit / delete:** Cards: swipe right-to-left (or right-click on web) → round change/remove buttons; full swipe removes. Map/List/Tiles: the place sheet (`PeekCard` ↔ `PeekCardView`) has a ⋯ ("Change or remove") → Change place / Remove. A delete the server rejects brings the place back on reload.
@@ -125,7 +126,7 @@ While the env var is unset the lock is off. Local curl with the key:
 ## Data operations
 - Schema: `lib/db/schema.ts` → `npx drizzle-kit push` (needs `.env.local` sourced).
 - One-off scripts in `scripts/*.mts`, run with `set -a; source .env.local; set +a; npx tsx scripts/<name>.mts`
-  (`.mts` because top-level await). Existing: `backfill-region`, `backfill-images`, `fix-rows`, `merge-places` (fold a duplicate card into another).
+  (`.mts` because top-level await). Existing: `backfill-region`, `backfill-images`, `backfill-price`, `fix-rows`, `merge-places` (fold a duplicate card into another).
 - Inspect prod data: same curl as above against `https://pinsta-two.vercel.app/api/places`, with the key once the lock is on. One request at a time (see the Vercel polling gotcha).
 
 ## Shipping a TestFlight build
@@ -136,10 +137,11 @@ xcodebuild -project Pinsta.xcodeproj -scheme Pinsta -sdk iphoneos -destination '
 xcodebuild -exportArchive -archivePath build/Vicolo.xcarchive -exportOptionsPlist build/export.plist \
   -exportPath build/export -allowProvisioningUpdates   # export.plist: method app-store-connect, destination upload, teamID 8D6ML34D52
 ```
-`ios/build/` is gitignored; recreate `export.plist` if missing. Team 8D6ML34D52 (paid), Sarp's iPhone 15 is registered. Processing at Apple takes 10–20 min.
+`ios/build/` is gitignored; recreate `export.plist` if missing. Archiving needs an Apple account in Xcode → Settings → Accounts; without one it fails with "No Accounts" / "No profiles for 'se.sarper.vicolo'" (the Mac Sarp worked on 2026-10-02 had none; earlier builds came from the other machine). Team 8D6ML34D52 (paid), Sarp's iPhone 15 is registered. Processing at Apple takes 10–20 min.
 
 ## Testing iOS
-- Use the second simulator (iPhone 17, `169AC70A-…`) for fresh-install and destructive tests; the main one (iPhone 17 Pro) keeps a list.
+- Use the second simulator (iPhone 17) for fresh-install and destructive tests; the main one (iPhone 17 Pro) keeps a list. UDIDs differ per Mac: `xcrun simctl list devices`.
+- SwiftData migration test: build the previous commit in a `git worktree`, install it, save a place, then install the new build over it (`simctl install` keeps the data).
 - `xcrun simctl location <id> set 41.39,2.17` + `xcrun simctl privacy <id> grant location se.sarper.vicolo` for Near me.
 - Launch with `-slowNotices` to keep toasts up 30 s while checking them, and `-addURL <link>` to open the save sheet with a link the way a share does (Safari's Share menu ignores injected taps on the iOS 27 simulator).
 - Test auto-save with a tagged post that still exists (Ästad Vingård `DdJIacKIplU`) or a Maps link; Bar Brutal's post was deleted.

@@ -2,6 +2,13 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
+## Shipped the web pass + cost tracker — 2026-10-02 (evening)
+- **Merged `claude/web-save-management-map-view-gp4ri0` into main and deployed** (Vercel production Ready). `price_level` pushed and backfilled before the deploy: 8 of 11 places got a price.
+- **Web checked locally on real data:** map draws (OpenFreeMap, light and dark), Near me frames the places around a stubbed Barcelona location, refused location falls back to the List, sheet ⋯ → Remove → Undo (DELETE stubbed, nothing reached the server), Change place opens the editor, "Bar · $$ · Barcelona" on rows and sheet.
+- **iOS checked on the iPhone 17 Pro simulator:** splash holds and goes (up at 1.7 s after launch, gone by 2.6 s; the fade itself wasn't caught on a frame), light and dark, and stays dark with in-app Appearance Light on a dark phone. SwiftData migration: a place saved with the pre-price build survived the upgrade and got "$$" from the launch pass; a new restaurant save got its $ within seconds. Opens on Map · Near me. Not checked: the sheet ⋯ on iOS.
+- **TestFlight build 7 not uploaded.** `CURRENT_PROJECT_VERSION` is 7, but the archive failed: this Mac has no Apple account in Xcode ("No Accounts"). Sarp: sign in under Xcode → Settings → Accounts (team 8D6ML34D52), or archive on the other Mac, then run the two commands in CLAUDE.md "Shipping a TestFlight build".
+- **Cost tracker (web, owner-only):** buddy menu → Usage shows this month's calls per paid service, free allowance left, estimated cost and a total. Google is estimated from our own counts (table `usage`, +1 per call, from today on, so the 11 backfill calls aren't in it); Apify is its real month-to-date figure for its own cycle (Sep 10 – Oct 9), with only the part above the plan's $5 credit counted as cost. Prices per 1,000 / free a month: Text Search Pro $32 / 5,000, Text Search Enterprise $35 / 1,000, Place Details Pro $17 / 5,000, Place Details Enterprise $20 / 1,000, Place Photos $7 / 1,000.
+
 ## iOS port of the web pass — 2026-10-02
 - Ported all three items below: the place sheet ⋯ (Change place / Remove with the same Undo), opening on Map · Near me with the List fallback, and no type dots (`PlaceCategory.dot` removed). The view is no longer remembered; it survives a return from the background but not a relaunch.
 - "MapKit can't draw" is approximated by a connection check (`NearMe.online()`): SwiftUI `Map` reports no load failure. Offline → List.
@@ -18,7 +25,7 @@ _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code 
   - iOS: MapKit has no price, so the app asks the new open `POST /api/price` (name + pin → one Google Text Search, nearest result within 150 m). Only restaurants, cafes, bars and bakeries ask. Right after a save, plus a pass on launch/foreground for anything unchecked (share-extension saves, older places; 20 at a time). Each server call logs "price lookup" for counting in Vercel. This spends Sarp's Google quota on friends' saves, which the 2026-09-29 decision avoided; accepted by Sarp today.
 - **iOS splash:** the launch art is drawn again over the app, held 1.2 s, then fades out with a slight zoom (0.55 s). It follows the phone's appearance, like the system launch screen, so it doesn't flip when the in-app Appearance differs.
 
-### Before merging this branch to main (Sarp, on the Mac)
+### Before merging this branch to main (Sarp, on the Mac) — done 2026-10-02, see above
 1. `set -a; source .env.local; set +a; npx drizzle-kit push` adds `price_level`. **Do this before the deploy:** the web reads every column, so without it the list fails to load.
 2. `npx tsx scripts/backfill-price.mts` (one Google call per saved place).
 3. iOS: compiled on the GitHub macOS runner (run 37018449930, 2026-10-02) but **not run in a simulator or on a phone**. New SwiftData fields `priceLevel` / `priceChecked` have defaults, so the store migrates by itself; check an existing list survives on the main simulator.

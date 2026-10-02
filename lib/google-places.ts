@@ -3,6 +3,7 @@
  * Never import this from a client component — it uses the secret key.
  */
 import { categorize, type Category } from "./categories";
+import { countCall } from "./usage";
 
 const KEY = () => {
   const k = process.env.GOOGLE_PLACES_API_KEY;
@@ -99,6 +100,7 @@ function toCandidate(p: RawPlace): PlaceCandidate {
 }
 
 export async function searchPlaces(query: string, near?: { lat: number; lng: number } | null): Promise<PlaceCandidate[]> {
+  const counted = countCall("google.textSearchPro");
   const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
     method: "POST",
     headers: {
@@ -115,6 +117,7 @@ export async function searchPlaces(query: string, near?: { lat: number; lng: num
       ...(near ? { locationBias: { circle: { center: { latitude: near.lat, longitude: near.lng }, radius: 2000 } } } : {}),
     }),
   });
+  await counted;
   if (!res.ok) {
     throw new Error(`Places search failed: ${res.status} ${await res.text()}`);
   }
@@ -124,12 +127,12 @@ export async function searchPlaces(query: string, near?: { lat: number; lng: num
 
 /** `price`: also ask for the price level (Enterprise tier). Only on save. */
 export async function getPlace(placeId: string, opts: { price?: boolean } = {}): Promise<PlaceCandidate> {
-  const res = await fetch(
-    `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?languageCode=en`,
-    {
+  const [res] = await Promise.all([
+    fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?languageCode=en`, {
       headers: { "X-Goog-Api-Key": KEY(), "X-Goog-FieldMask": opts.price ? `${FIELDS},${PRICE_FIELD}` : FIELDS },
-    },
-  );
+    }),
+    countCall(opts.price ? "google.detailsEnterprise" : "google.detailsPro"),
+  ]);
   if (!res.ok) {
     throw new Error(`Place details failed: ${res.status} ${await res.text()}`);
   }
@@ -143,6 +146,7 @@ export async function getPlace(placeId: string, opts: { price?: boolean } = {}):
  * counts, so a namesake across town never lends its price.
  */
 export async function findPriceLevel(name: string, at: { lat: number; lng: number }): Promise<number | null> {
+  const counted = countCall("google.textSearchEnterprise");
   const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
     method: "POST",
     headers: {
@@ -156,6 +160,7 @@ export async function findPriceLevel(name: string, at: { lat: number; lng: numbe
       locationBias: { circle: { center: { latitude: at.lat, longitude: at.lng }, radius: 300 } },
     }),
   });
+  await counted;
   if (!res.ok) throw new Error(`Price search failed: ${res.status} ${await res.text()}`);
   const data = (await res.json()) as { places?: RawPlace[] };
   const near = (data.places ?? []).find((p) => p.location && metersBetween(at, p.location) <= 150);

@@ -1,6 +1,7 @@
 import { storeImage } from "./blob";
 import { fetchInstagramPost } from "./instagram-post";
 import { sourceKind } from "./sources";
+import { countCall } from "./usage";
 
 /**
  * A place never goes without a photo. The post's own image is what you saw
@@ -37,10 +38,14 @@ async function googlePhoto(placeId: string, key: string): Promise<string | null>
     const name = data.photos?.[0]?.name;
     if (!name) return null;
     // skipHttpRedirect returns the CDN URL as JSON instead of 302ing to it.
-    const media = await fetch(
-      `https://places.googleapis.com/v1/${name}/media?maxWidthPx=1200&skipHttpRedirect=true`,
-      { headers: { "X-Goog-Api-Key": apiKey } },
-    );
+    // Only this call is billed (Place Photos); the one above asks only for photo
+    // names, which is the free IDs Only SKU, so it isn't counted.
+    const [media] = await Promise.all([
+      fetch(`https://places.googleapis.com/v1/${name}/media?maxWidthPx=1200&skipHttpRedirect=true`, {
+        headers: { "X-Goog-Api-Key": apiKey },
+      }),
+      countCall("google.photos"),
+    ]);
     if (!media.ok) return null;
     const { photoUri } = (await media.json()) as { photoUri?: string };
     return photoUri ? storeImage(photoUri, `${key}-g`) : null;

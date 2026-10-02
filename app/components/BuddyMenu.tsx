@@ -2,15 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import SettingsSheet from "./SettingsSheet";
+import UsageSheet from "./UsageSheet";
 
 /**
  * The round "you" button, top right: a short menu. Settings (appearance,
- * directions) open as their own sheet; imports are placeholders for the
+ * directions) and Usage (what the paid APIs cost this month) open as their own sheets; imports are placeholders for the
  * roadmap (plan.md: Menu, Settings and Imports); Lock forgets the owner key.
  */
 export default function BuddyMenu() {
   const [open, setOpen] = useState(false);
   const [settings, setSettings] = useState(false);
+  const [usage, setUsage] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,6 +53,14 @@ export default function BuddyMenu() {
             }}
           />
           <Item
+            icon={<><path d="M4 20V10" /><path d="M10 20V4" /><path d="M16 20v-7" /><path d="M22 20H2" /></>}
+            label="Usage"
+            onClick={() => {
+              setOpen(false);
+              setUsage(true);
+            }}
+          />
+          <Item
             icon={<><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></>}
             label="Import from Google"
             soon
@@ -69,6 +79,7 @@ export default function BuddyMenu() {
         </div>
       )}
       {settings && <SettingsSheet onClose={() => setSettings(false)} />}
+      {usage && <UsageSheet onClose={() => setUsage(false)} />}
     </div>
   );
 }
