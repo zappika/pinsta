@@ -12,6 +12,8 @@ struct PlacesMapView: View {
 
     @State private var camera: MapCameraPosition = .automatic
     @State private var groups: [PinGroup] = []
+    /// Where the map last came to rest; `camera.region` is nil once the user pans or zooms.
+    @State private var lastRegion: MKCoordinateRegion?
 
     /// Pins closer than this on screen are shown as one numbered circle.
     private let clusterPoints: CGFloat = 44
@@ -44,8 +46,16 @@ struct PlacesMapView: View {
             .mapStyle(.standard(pointsOfInterest: .excludingAll))
             .onTapGesture { withAnimation(.snappy) { selected = nil } }
             .onAppear { frame(animated: false) }
-            .onChange(of: places.map(\.id)) { _, _ in frame(animated: true) }
-            .onMapCameraChange(frequency: .onEnd) { ctx in regroup(proxy: proxy, span: ctx.region.span) }
+            .onChange(of: places.map(\.id)) { _, _ in
+                // Pins follow the selection at once; the camera may not move at all
+                // (a pin removed from the middle), so don't wait for it to settle.
+                if let span = lastRegion?.span { regroup(proxy: proxy, span: span) } else { groups = [] }
+                frame(animated: true)
+            }
+            .onMapCameraChange(frequency: .onEnd) { ctx in
+                lastRegion = ctx.region
+                regroup(proxy: proxy, span: ctx.region.span)
+            }
         }
     }
 
@@ -85,7 +95,7 @@ struct PlacesMapView: View {
         }
     }
 
-    private var currentSpan: MKCoordinateSpan? { camera.region?.span }
+    private var currentSpan: MKCoordinateSpan? { lastRegion?.span ?? camera.region?.span }
 
     /// Fit every pin, with room for the header above and the controls below.
     /// One place → a neighbourhood, not a dot at max zoom.

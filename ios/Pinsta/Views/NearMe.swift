@@ -9,7 +9,9 @@ final class NearMe: NSObject, CLLocationManagerDelegate {
     static let tag = "__near__"
 
     private let manager = CLLocationManager()
-    private var waiting: CheckedContinuation<CLLocation?, Never>?
+    /// Everyone asking while a fix is on its way gets that fix. (A second ask used
+    /// to answer the first with nil, which sent the opening screen to the list.)
+    private var waiting: [CheckedContinuation<CLLocation?, Never>] = []
 
     override init() {
         super.init()
@@ -39,8 +41,8 @@ final class NearMe: NSObject, CLLocationManagerDelegate {
         default: break
         }
         return await withCheckedContinuation { c in
-            waiting?.resume(returning: nil)
-            waiting = c
+            waiting.append(c)
+            guard waiting.count == 1 else { return }
             if manager.authorizationStatus == .notDetermined {
                 manager.requestWhenInUseAuthorization()
             } else {
@@ -51,7 +53,7 @@ final class NearMe: NSObject, CLLocationManagerDelegate {
 
     nonisolated func locationManagerDidChangeAuthorization(_ m: CLLocationManager) {
         Task { @MainActor in
-            guard waiting != nil else { return }
+            guard !waiting.isEmpty else { return }
             switch m.authorizationStatus {
             case .authorizedWhenInUse, .authorizedAlways: m.requestLocation()
             case .denied, .restricted: finish(nil)
@@ -70,7 +72,8 @@ final class NearMe: NSObject, CLLocationManagerDelegate {
     }
 
     private func finish(_ l: CLLocation?) {
-        waiting?.resume(returning: l)
-        waiting = nil
+        let all = waiting
+        waiting = []
+        for c in all { c.resume(returning: l) }
     }
 }
