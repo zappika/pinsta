@@ -63,7 +63,9 @@ export default function PinstaApp() {
   function undo() {
     if (!toast) return;
     const t = pending.current.get(toast.place.id);
-    if (t) clearTimeout(t);
+    // Already sent (the timer or a page hide beat the tap): bringing it back would show a ghost.
+    if (!t) return setToast(null);
+    clearTimeout(t);
     pending.current.delete(toast.place.id);
     setPlaces((ps) => {
       const next = [...(ps ?? [])];
@@ -108,7 +110,8 @@ export default function PinstaApp() {
       if (!res.ok) throw new Error(`Could not load places (${res.status})`);
       setLocked(false);
       const data = (await res.json()) as { places: Place[] };
-      setPlaces(data.places);
+      // A removal still in its Undo window is not back just because the server has it.
+      setPlaces(data.places.filter((p) => !pending.current.has(p.id)));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load places");
     }
