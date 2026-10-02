@@ -19,6 +19,12 @@ export default function PeekCard({ place, onClose, onEdit, onDelete }: Props) {
   // A different place opens short again.
   useEffect(() => setFull(false), [place.id]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   function down(e: React.PointerEvent) {
     drag.current = { y: e.clientY, moved: false };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -58,8 +64,15 @@ export default function PeekCard({ place, onClose, onEdit, onDelete }: Props) {
           onPointerUp={up}
           onPointerCancel={up}
           className="flex shrink-0 cursor-grab touch-none justify-center py-2.5 active:cursor-grabbing"
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" && e.key !== " ") return;
+            e.preventDefault();
+            setFull((f) => !f);
+          }}
           aria-label={full ? "Show less" : "Show more"}
+          aria-expanded={full}
           role="button"
+          tabIndex={0}
         >
           <span className="h-1.5 w-10 rounded-full bg-stone-300" />
         </div>

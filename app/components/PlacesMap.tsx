@@ -169,12 +169,16 @@ export default function PlacesMap({ places, selected, onSelect, onFail }: Props)
         } else {
           seen.push({ x: g.x, y: g.y, n: 0, els: [el] });
         }
-        el.addEventListener("click", (e) => {
-          e.stopPropagation();
+        const open = () => {
           onSelectRef.current(p);
           // Nudge the pin up so the PeekCard doesn't sit on top of it.
           m.easeTo({ center: [p.lng, p.lat], offset: [0, -140] });
+        };
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          open();
         });
+        keyboardButton(el, p.name, open);
         const marker = new lib.Marker({ element: el, offset: [fan * 48, 0] }).setLngLat([p.lng, p.lat]).addTo(m);
         markers.current.set(p.id, { marker, pin });
         continue;
@@ -186,13 +190,16 @@ export default function PlacesMap({ places, selected, onSelect, onFail }: Props)
       el.className = "pinsta-pin pinsta-cluster";
       el.style.backgroundColor = tintFor(top);
       el.textContent = String(g.members.length);
-      el.setAttribute("aria-label", `${g.members.length} places`);
-      el.addEventListener("click", (e) => {
-        e.stopPropagation();
+      const zoomIn = () => {
         const b = new lib.LngLatBounds();
         for (const p of g.members) b.extend([p.lng, p.lat]);
         m.fitBounds(b, { padding: 90, maxZoom: Math.max(m.getZoom() + 2, 17), duration: 500 });
+      };
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        zoomIn();
       });
+      keyboardButton(el, `${g.members.length} places`, zoomIn);
       const at = m.unproject([g.x, g.y]);
       clusterMarkers.current.push(new lib.Marker({ element: el }).setLngLat(at).addTo(m));
     }
@@ -213,6 +220,19 @@ export default function PlacesMap({ places, selected, onSelect, onFail }: Props)
   useEffect(() => {
     for (const [id, { pin }] of markers.current) pin.classList.toggle("active", id === selected);
   }, [selected, places]);
+
+  /** Pins are plain divs: give them a button's role, focus and keys. */
+  function keyboardButton(el: HTMLElement, label: string, act: () => void) {
+    el.setAttribute("role", "button");
+    el.setAttribute("aria-label", label);
+    el.tabIndex = 0;
+    el.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      e.stopPropagation(); // maplibre's keyboard handler would pan or zoom too
+      act();
+    });
+  }
 
   // maplibre's own CSS forces `position: relative` on its container, which would
   // beat Tailwind's `absolute` — so the ref goes on a full-size child instead.
