@@ -9,7 +9,7 @@ struct PlaceCardView: View {
     var hideCity = false
     /// Shorter photo — for the place sheet in its short state.
     var compact = false
-    /// The place sheet at full height: big photo, every post listed.
+    /// The place sheet at full height: big photo, every post embedded.
     var expanded = false
     /// Given in the place sheet: a ⋯ button offers Change place and Remove.
     var onEdit: (() -> Void)? = nil
@@ -28,12 +28,16 @@ struct PlaceCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let data = place.imageData, let image = UIImage(data: data) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
+                // The photo fills a fixed box; drawn as an overlay so its natural
+                // width never widens the card (it did inside the full sheet's scroll view).
+                // clipped() only clips drawing: a tall photo still covered the sheet's
+                // handle for touches, so the photo takes none.
+                Color.clear
                     .frame(height: compact ? 128 : expanded ? 300 : 176)
                     .frame(maxWidth: .infinity)
+                    .overlay { Image(uiImage: image).resizable().scaledToFill().allowsHitTesting(false) }
                     .clipped()
+                    .contentShape(Rectangle())
             }
 
             HStack(spacing: 10) {
@@ -98,26 +102,14 @@ struct PlaceCardView: View {
                 .padding(.bottom, 14)
             }
 
+            // Full sheet: the posts themselves, as the web embeds them.
             if expanded && !postURLs.isEmpty {
                 Divider()
-                ForEach(Array(postURLs.enumerated()), id: \.offset) { i, url in
-                    Button { open(url) } label: {
-                        HStack {
-                            if SourceURL.parse(url)?.kind == .tiktok {
-                                Image(systemName: "play.rectangle")
-                            } else {
-                                Glyph.post.view(size: 17)
-                            }
-                            Text(postURLs.count > 1 ? "Post \(i + 1)" : "Open the post")
-                            Spacer()
-                            Image(systemName: "arrow.up.right").foregroundStyle(.tertiary)
-                        }
-                        .font(.subheadline.weight(.medium))
-                        .padding(.horizontal, 16).padding(.vertical, 12)
-                    }
-                    .buttonStyle(.plain)
+                VStack(spacing: 10) {
+                    ForEach(postURLs, id: \.self) { PostEmbedView(url: $0) }
                 }
-                .padding(.bottom, 24)
+                .padding(8)
+                .padding(.bottom, 16)
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 16))
