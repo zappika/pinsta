@@ -36,6 +36,8 @@ export default function PlacesMap({ places, selected, onSelect, onFail }: Props)
   const map = useRef<maplibregl.Map | null>(null);
   const markers = useRef<Map<string, { marker: maplibregl.Marker; pin: HTMLDivElement }>>(new Map());
   const unsubscribe = useRef<() => void>(() => {});
+  /** The first "load" has fired. m.loaded() can't say this: it's false again whenever tiles are fetching. */
+  const ready = useRef(false);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
   const onFailRef = useRef(onFail);
@@ -83,6 +85,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail }: Props)
       });
       m.once("load", () => {
         loaded = true;
+        ready.current = true;
         clearTimeout(timer);
         setPlaces(lib, m);
       });
@@ -93,6 +96,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail }: Props)
       unsubscribe.current();
       map.current?.remove();
       map.current = null;
+      ready.current = false;
       markers.current.clear();
       clusterMarkers.current = [];
     };
@@ -194,15 +198,14 @@ export default function PlacesMap({ places, selected, onSelect, onFail }: Props)
     }
   }
 
-  // Re-pin when the selection changes.
+  // Re-pin when the selection changes. Before the first load the init handler
+  // draws whatever placesRef holds by then, so nothing is waited on here.
   useEffect(() => {
     const m = map.current;
-    if (!m) return;
+    if (!m || !ready.current) return;
     (async () => {
       const lib = await import("maplibre-gl");
-      if (map.current !== m) return;
-      if (m.loaded()) setPlaces(lib, m);
-      else m.once("load", () => setPlaces(lib, m));
+      if (map.current === m) setPlaces(lib, m);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [places]);
