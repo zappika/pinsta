@@ -21,7 +21,7 @@ _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code 
 ### Before merging this branch to main (Sarp, on the Mac)
 1. `set -a; source .env.local; set +a; npx drizzle-kit push` adds `price_level`. **Do this before the deploy:** the web reads every column, so without it the list fails to load.
 2. `npx tsx scripts/backfill-price.mts` (one Google call per saved place).
-3. iOS: `xcodegen generate` and build. This Swift was written in a Linux cloud session and **has not been compiled**. New SwiftData fields `priceLevel` / `priceChecked` have defaults, so the store migrates by itself; check an existing list survives on the main simulator.
+3. iOS: compiled on the GitHub macOS runner (run 37018449930, 2026-10-02) but **not run in a simulator or on a phone**. New SwiftData fields `priceLevel` / `priceChecked` have defaults, so the store migrates by itself; check an existing list survives on the main simulator.
 4. iOS checks: splash holds and fades (light and dark, and with in-app Appearance set opposite to the phone); a new restaurant save gets its $ within seconds; a share-extension save gets it on the next app open.
 
 ### iOS to-do from this pass
