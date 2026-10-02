@@ -2,24 +2,51 @@ import SwiftUI
 import SwiftData
 import CoreLocation
 
-/// Thin wrapper: re-runs the query whenever the app comes back to the
-/// foreground, so places saved by the share extension show up.
+/// What the screen shows, kept outside the content so a refresh (which rebuilds
+/// it) changes nothing you can see: filters, the open sheet, the location fix.
+@Observable
+final class Screen {
+    var city: String?
+    var category: PlaceCategory?
+    var adding = false
+    var editing: Place?
+    var here: CLLocation?
+    /// Testing: `-addURL <link>` opens the save sheet with that link, the way a share arrives.
+    var launchURL = UserDefaults.standard.string(forKey: "addURL")
+}
+
+/// Thin wrapper: re-runs the query when the app comes back to the foreground
+/// after the share extension saved something, so that save shows up.
 struct PlacesListView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var refreshID = UUID()
-    // Kept out here so a return from the background (which rebuilds the content)
-    // keeps the chosen view and does not run the opening screen again.
+    // Kept out here so a refresh keeps the chosen view and does not run the opening screen again.
     @State private var view: PlacesView = .map
     @State private var started = false
+    @State private var screen = Screen()
+    /// The extension's last write that this list has seen (`Persistence.lastWrite`).
+    @State private var seenWrite = Persistence.lastWrite
 
     var body: some View {
-        PlacesContent(view: $view, started: $started)
+        PlacesContent(view: $view, started: $started, screen: screen)
             .id(refreshID)
             .onChange(of: scenePhase) { old, phase in
                 // Only a real return from the background (share extension, other apps).
                 // Dialogs and menus pass through .inactive and must not reset the screen.
-                if phase == .active && old == .background { refreshID = UUID() }
+                if phase == .active && old == .background { refreshIfShared() }
             }
+            .onChange(of: screen.adding) { _, _ in refreshIfShared() }
+            .onChange(of: screen.editing == nil) { _, _ in refreshIfShared() }
+    }
+
+    /// Rebuild only for a share that landed meanwhile, and never under an open sheet;
+    /// closing the sheet tries again. Each rebuild also re-runs the photo and price passes.
+    private func refreshIfShared() {
+        guard scenePhase == .active, !screen.adding, screen.editing == nil else { return }
+        let last = Persistence.lastWrite
+        guard last != seenWrite else { return }
+        seenWrite = last
+        refreshID = UUID()
     }
 }
 
@@ -27,11 +54,14 @@ private struct PlacesContent: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \Place.createdAt, order: .reverse) private var places: [Place]
 
-    @State private var city: String?
-    @State private var category: PlaceCategory?
-    @State private var adding = false
-    /// Testing: `-addURL <link>` opens the save sheet with that link, the way a share arrives.
-    @State private var launchURL = UserDefaults.standard.string(forKey: "addURL")
+    let screen: Screen
+    // The screen's state lives in `Screen`; these read like local state.
+    private var city: String? { get { screen.city } nonmutating set { screen.city = newValue } }
+    private var category: PlaceCategory? { get { screen.category } nonmutating set { screen.category = newValue } }
+    private var adding: Bool { get { screen.adding } nonmutating set { screen.adding = newValue } }
+    private var editing: Place? { get { screen.editing } nonmutating set { screen.editing = newValue } }
+    private var here: CLLocation? { get { screen.here } nonmutating set { screen.here = newValue } }
+    private var launchURL: String? { get { screen.launchURL } nonmutating set { screen.launchURL = newValue } }
     private let settings = Settings.shared
     @State private var notice: String?
     @State private var noticeTask: Task<Void, Never>?
@@ -45,8 +75,6 @@ private struct PlacesContent: View {
             withAnimation(.snappy) { notice = nil }
         }
     }
-    @State private var editing: Place?
-    @State private var importing = false
     @State private var openSwipe: UUID?
     /// Which header picker is open: the web's sheet, not a system Menu.
     @State private var picking: Picking?
@@ -56,9 +84,10 @@ private struct PlacesContent: View {
     @Binding var view: PlacesView
     @Binding var started: Bool
 
-    init(view: Binding<PlacesView>, started: Binding<Bool>) {
+    init(view: Binding<PlacesView>, started: Binding<Bool>, screen: Screen) {
         _view = view
         _started = started
+        self.screen = screen
     }
     @State private var peek: Place?
 
@@ -73,8 +102,7 @@ private struct PlacesContent: View {
     private var labels: [UUID: String] { Grouping.destinationLabels(places) }
     private var shown: [Place] { places.filter { !hidden.contains($0.id) } }
 
-    // "Near me": located on launch for the opening screen, or when picked.
-    @State private var here: CLLocation?
+    // "Near me": located on launch for the opening screen, or when picked (fix in `screen.here`).
     @State private var nearMe = NearMe()
     private var nearIDs: Set<UUID> {
         guard let here else { return [] }
@@ -92,11 +120,16 @@ private struct PlacesContent: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            if #available(iOS 26, *) {
-                tabs
-            } else {
-                page(view)
+            // Only the save sheet follows the keyboard. The map, the bar and the
+            // toasts behind its dim stay put; them resizing too made the sheet jump.
+            Group {
+                if #available(iOS 26, *) {
+                    tabs
+                } else {
+                    page(view)
+                }
             }
+            .ignoresSafeArea(.keyboard)
 
             VStack(spacing: 10) {
                 if let notice {
@@ -130,6 +163,7 @@ private struct PlacesContent: View {
             }
             .animation(.snappy, value: toast?.id)
             .animation(.snappy, value: peek?.id)
+            .ignoresSafeArea(.keyboard)
         }
         .overlay {
             // Presented like the web (and the share extension): a dimmed backdrop
@@ -178,7 +212,6 @@ private struct PlacesContent: View {
         .animation(.snappy(duration: 0.3), value: editing?.id)
         .task {
             // No web import: the web list is Sarp's, and every install starts empty.
-            // (WebImporter stays in the tree for a possible owner-only import later.)
             if launchURL != nil { adding = true }
             start()
             await PhotoRetry.run(in: context)
@@ -200,6 +233,10 @@ private struct PlacesContent: View {
             }
         }
         .onChange(of: category) { _, _ in peek = nil }
+        // A place waiting behind the Undo toast is gone as far as a new save is
+        // concerned: otherwise a new post could join it and be deleted with it.
+        .onChange(of: adding) { _, open in if open { commitPending() } }
+        .onChange(of: editing == nil) { _, closed in if !closed { commitPending() } }
         .onChange(of: view) { _, _ in peek = nil }
         .onDisappear { commitPending() }
     }
@@ -278,18 +315,7 @@ private struct PlacesContent: View {
 
     @ViewBuilder
     private func content(_ v: PlacesView) -> some View {
-        if importing && places.isEmpty {
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(0..<3, id: \.self) { _ in
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(.secondarySystemGroupedBackground))
-                            .frame(height: 112)
-                    }
-                }
-                .padding(.horizontal, 20)
-            }
-        } else if shown.isEmpty {
+        if shown.isEmpty {
             ScrollView { emptyState }
         } else if v == .map {
             PlacesMapView(places: visible, selected: $peek)
@@ -411,7 +437,8 @@ private struct PlacesContent: View {
 
     private var categories: [(PlaceCategory, Int)] {
         let labels = labels
-        let scoped = city == NearMe.tag ? shown.filter { nearIDs.contains($0.id) }
+        let near = city == NearMe.tag ? nearIDs : []  // once, not per place
+        let scoped = city == NearMe.tag ? shown.filter { near.contains($0.id) }
             : city == nil ? shown : shown.filter { labels[$0.id] == city }
         var counts: [PlaceCategory: Int] = [:]
         for p in scoped { counts[p.category, default: 0] += 1 }

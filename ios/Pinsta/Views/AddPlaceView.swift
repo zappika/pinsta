@@ -119,8 +119,14 @@ struct AddPlaceView: View {
                 urlText = initialURL
                 return
             }
+        }
+        .task {
             // Same as the web: the field starts empty and Paste is a deliberate tap.
             // (Reading the pasteboard here would also raise the system paste prompt.)
+            // Focus once the sheet has risen: the keyboard rising during the slide
+            // made the sheet jump.
+            guard editing == nil, initialURL == nil else { return }
+            try? await Task.sleep(for: .milliseconds(350))
             focus = .url
         }
         .task(id: validURL) { if editing == nil { await readPost() } }
@@ -281,30 +287,37 @@ struct AddPlaceView: View {
             }
             defer { withAnimation(.snappy) { finding = false } }
             let cityHints = Set((try? context.fetch(FetchDescriptor<Place>()))?.compactMap(\.city) ?? [])
+            var found: [PlaceCandidate]
+            var from: Source
             if post.kind == "google", let name = post.locationName {
                 let pin = post.near.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lng) }
-                candidates = await PlaceSearch.resolveLink(name: name, near: pin)
-                source = candidates.isEmpty ? nil : .link
+                found = await PlaceSearch.resolveLink(name: name, near: pin)
+                from = .link
             } else if let tag = post.locationName {
-                candidates = Array(await PlaceSearch.resolveTag(
+                found = Array(await PlaceSearch.resolveTag(
                     tag, ownerFullName: post.ownerFullName, caption: post.caption,
                     hashtags: post.hashtags ?? [], cityHints: Array(cityHints)
                 ).prefix(5))
-                source = candidates.isEmpty ? nil : .tag
+                from = .tag
             } else {
                 // The caption naming a place beats the account; both are suggestions only.
                 var fromCaption: [PlaceCandidate] = []
                 if let q = PlaceSearch.captionPlaceQuery(post.caption) {
                     fromCaption = Array(((try? await PlaceSearch.search(q, limit: 3)) ?? []))
                 }
+                // Three account matches at most, as on the web.
                 let fromAccount = await PlaceSearch.resolveAccount(
                     ownerFullName: post.ownerFullName, ownerUsername: post.ownerUsername
-                )
+                ).prefix(3)
                 var seen = Set<String>()
-                candidates = Array((fromCaption + fromAccount).filter { seen.insert($0.id).inserted }.prefix(4))
-                source = candidates.isEmpty ? nil : .account
+                found = Array((fromCaption + fromAccount).filter { seen.insert($0.id).inserted }.prefix(4))
+                from = .account
             }
-            guard !Task.isCancelled else { return }
+            // The search field is open while this runs: if the user started typing,
+            // their own results win, and nothing saves itself behind their back.
+            guard !Task.isCancelled, query.trimmed.count < 2 else { return }
+            candidates = found
+            source = found.isEmpty ? nil : from
             // Only a location tag or a Maps link is trusted enough to save without a tap.
             if candidates.count == 1, source == .tag || source == .link, !autoSaveDeclined {
                 save(candidates[0], automatically: true)
@@ -352,7 +365,7 @@ struct AddPlaceView: View {
                 // A different place has its own price.
                 editing.priceLevel = nil
                 editing.priceChecked = false
-                try? context.save()
+                persist()
                 Task { await PriceLookup.check(editing, in: context) }
                 saving = nil
                 withAnimation(.snappy) { saved = Saved(place: editing, automatic: false, already: false, changed: true) }
@@ -368,12 +381,11 @@ struct AddPlaceView: View {
                     return
                 }
                 same.extraPostURLs.append(url)
-                try? context.save()
+                persist()
                 saving = nil
                 withAnimation(.snappy) { saved = Saved(place: same, automatic: automatically, already: false, changed: false, mergedURL: url) }
                 return
             }
-            let image = await ImageLoader.data(from: post?.imageURL)
             let place = Place(
                 // The server's canonical link: short links (vm.tiktok.com, maps.app.goo.gl) resolved.
                 instagramURL: post?.url ?? validURL,
@@ -387,15 +399,27 @@ struct AddPlaceView: View {
                 category: c.category,
                 caption: post?.caption,
                 ownerUsername: post?.ownerUsername,
-                igLocationName: post?.locationName,
-                imageData: image
+                igLocationName: post?.locationName
             )
+            // Saved before the photo downloads: closing the share card mid-download
+            // used to lose the save. The photo follows (PhotoRetry covers a failure).
             context.insert(place)
-            try? context.save()
+            persist()
             Task { await PriceLookup.check(place, in: context) }
             saving = nil
             withAnimation(.snappy) { saved = Saved(place: place, automatic: automatically, already: false, changed: false) }
+            let id = place.id
+            if let image = await ImageLoader.data(from: post?.imageURL), let place = Place.find(id, in: context) {
+                place.imageData = image
+                persist()
+            }
         }
+    }
+
+    /// Save, and tell the app when this is the share extension saving.
+    private func persist() {
+        try? context.save()
+        Persistence.noteWrite()
     }
 
     private func existingPlace(for url: String) -> Place? {
@@ -404,13 +428,14 @@ struct AddPlaceView: View {
 
     /// "Wrong place?" — take the save back and hand control to the user.
     private func undo() {
-        guard let saved else { return }
+        // "Already saved" points at an existing place: never take that one back.
+        guard let saved, !saved.already else { return }
         if let url = saved.mergedURL {
             saved.place.extraPostURLs.removeAll { $0 == url }
         } else {
             context.delete(saved.place)
         }
-        try? context.save()
+        persist()
         autoSaveDeclined = true
         withAnimation(.snappy) { self.saved = nil }
         focus = .query
@@ -453,7 +478,7 @@ private struct Receipt: View {
                 }
             }
             HStack(spacing: 10) {
-                if saved.automatic {
+                if saved.automatic && !saved.already {
                     Button(action: onUndo) {
                         Text("Wrong place?")
                             .font(.subheadline.weight(.medium))
