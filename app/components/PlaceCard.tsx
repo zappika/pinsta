@@ -35,7 +35,7 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact, expa
     <>
       {place.imageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={place.imageUrl} alt="" draggable={false} className={`${compact ? "h-32" : expanded ? "h-72" : "h-44"} w-full bg-stone-100 object-cover`} />
+        <img src={place.imageUrl} alt="" loading="lazy" decoding="async" draggable={false} className={`${compact ? "h-32" : expanded ? "h-72" : "h-44"} w-full bg-stone-100 object-cover`} />
       )}
       {/* Name and type on the left; two round actions on the right. No button row. */}
       <div className="flex items-center gap-3 px-4 py-3.5">

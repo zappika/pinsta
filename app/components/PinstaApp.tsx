@@ -313,28 +313,31 @@ export default function PinstaApp() {
           />
         )}
 
-        <ul className={view === "cards" ? "space-y-3" : "hidden"}>
-          {visible.map((p) => (
-            <SwipeCard
-              key={p.id}
-              open={openSwipe === p.id}
-              onOpen={() => setOpenSwipe(p.id)}
-              onClose={() => setOpenSwipe((o) => (o === p.id ? null : o))}
-              onEdit={() => {
-                setOpenSwipe(null);
-                setEditing(p);
-              }}
-              onDelete={() => remove(p)}
-            >
-              <PlaceCard
-                place={p}
-                hideCategory={category !== null}
-                // A region row ("Halland") still wants the town on the card.
-                hideCity={city !== null && p.city === city}
-              />
-            </SwipeCard>
-          ))}
-        </ul>
+        {/* Only in Cards: a hidden list still downloads every photo. */}
+        {view === "cards" && (
+          <ul className="space-y-3">
+            {visible.map((p) => (
+              <SwipeCard
+                key={p.id}
+                open={openSwipe === p.id}
+                onOpen={() => setOpenSwipe(p.id)}
+                onClose={() => setOpenSwipe((o) => (o === p.id ? null : o))}
+                onEdit={() => {
+                  setOpenSwipe(null);
+                  setEditing(p);
+                }}
+                onDelete={() => remove(p)}
+              >
+                <PlaceCard
+                  place={p}
+                  hideCategory={category !== null}
+                  // A region row ("Halland") still wants the town on the card.
+                  hideCity={city !== null && p.city === city}
+                />
+              </SwipeCard>
+            ))}
+          </ul>
+        )}
       </section>
 
       {peek && view !== "cards" && (

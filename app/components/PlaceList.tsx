@@ -37,7 +37,7 @@ export default function PlaceList({ places, selected, onSelect, here, hideCatego
               <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl" style={{ backgroundColor: tintFor(p.category) }}>
                 {p.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.imageUrl} alt="" draggable={false} className="h-full w-full object-cover" />
+                  <img src={p.imageUrl} alt="" loading="lazy" decoding="async" draggable={false} className="h-full w-full object-cover" />
                 ) : (
                   <span className="flex h-full w-full items-center justify-center text-2xl">{emojiFor(p.category)}</span>
                 )}
