@@ -2,6 +2,10 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
+## Build 5 uploaded — 2026-10-02
+- Sarp on iOS 27 with build 4: the glass pill read as flat white, and views jumped on switch. Cause: an opaque bottom fade behind the pill (removed on iOS 26+) and `withAnimation` around the whole view swap (now only the lozenge animates). Simulator only has iOS 26.5; check on the phone.
+- Mac disk is at 2.3 GB free — clear space before the next big Xcode job.
+
 ## Build 4 uploaded — 2026-10-02
 - Pulled the icon, Liquid Glass and build 3 feedback commits from the other sessions, reviewed them, and confirmed on this Mac that `tsc` passes and the iOS build succeeds. **1.0 (4) archived and uploaded to TestFlight.** Apple takes 10–20 min to process it.
 - Still to check on the phone: the share card from Instagram (no grey page behind it), the Where/What pickers, the card icons, the glass pill and +.
