@@ -95,7 +95,14 @@ export async function POST(req: Request) {
 
     const find = async (): Promise<PlaceCandidate[]> => {
       if (source === "link") {
-        if (post.placeId) return [await getPlace(post.placeId)];
+        // An id Google won't resolve (stale, or a legacy CID) still has the name and pin to search by.
+        if (post.placeId) {
+          const byId = await getPlace(post.placeId).catch((e) => {
+            console.warn("extract: link's place id failed, searching by name", e instanceof Error ? e.message : e);
+            return null;
+          });
+          if (byId) return [byId];
+        }
         return post.locationName ? (await searchPlaces(post.locationName, post.near)).slice(0, 3) : [];
       }
       if (source === "tag") {
