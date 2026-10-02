@@ -117,6 +117,11 @@ export const CATEGORY_TINT: Record<Category, string> = {
   Other: "#ececec",
 };
 
+/** Google's 1–4 as "$" to "$$"; nothing when unknown. */
+export function priceLabel(level: number | null | undefined): string | null {
+  return level && level >= 1 && level <= 4 ? "$".repeat(level) : null;
+}
+
 export function tintFor(category: string | null | undefined): string {
   return CATEGORY_TINT[(category ?? "Other") as Category] ?? CATEGORY_TINT.Other;
 }

@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     // The photo is normally found by /api/extract; when the client has none
     // (post unreadable, manual flow), find one here so no place goes without.
     const [p, imageUrl] = await Promise.all([
-      getPlace(body.placeId),
+      getPlace(body.placeId, { price: true }),
       body.imageUrl ? Promise.resolve(body.imageUrl) : findPhoto(instagramUrl, body.placeId),
     ]);
     // One place, many posts: a second post of a place already in the list is
@@ -92,6 +92,7 @@ export async function POST(req: Request) {
         region: p.region,
         primaryType: p.primaryType,
         category: p.category,
+        priceLevel: p.priceLevel,
         note: body.note?.trim() || null,
         imageUrl,
         caption: body.caption || null,

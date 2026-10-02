@@ -20,7 +20,7 @@ struct PlaceCardView: View {
     private var postURLs: [String] { place.allPostURLs.filter { SourceURL.parse($0)?.kind != .google } }
 
     private var meta: String {
-        [hideCategory ? nil : place.category.rawValue, hideCity ? nil : place.city, postURLs.count > 1 ? "\(postURLs.count) posts" : nil]
+        [hideCategory ? nil : place.category.rawValue, place.priceLabel, hideCity ? nil : place.city, postURLs.count > 1 ? "\(postURLs.count) posts" : nil]
             .compactMap { $0 }
             .joined(separator: " · ")
     }

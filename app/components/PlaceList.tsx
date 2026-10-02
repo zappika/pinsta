@@ -1,6 +1,6 @@
 "use client";
 
-import { emojiFor, tintFor } from "@/lib/categories";
+import { emojiFor, priceLabel, tintFor } from "@/lib/categories";
 import { kmBetween } from "@/lib/geo";
 import type { Place } from "./types";
 
@@ -44,8 +44,10 @@ export default function PlaceList({ places, selected, onSelect, here, hideCatego
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-base font-semibold">{p.name}</p>
-                {!hideCategory && p.category && (
-                  <p className="truncate text-sm text-stone-500">{p.category}</p>
+                {((!hideCategory && p.category) || priceLabel(p.priceLevel)) && (
+                  <p className="truncate text-sm text-stone-500">
+                    {[hideCategory ? null : p.category, priceLabel(p.priceLevel)].filter(Boolean).join(" · ")}
+                  </p>
                 )}
                 {where && <p className="truncate text-sm text-stone-500">{where}</p>}
               </div>

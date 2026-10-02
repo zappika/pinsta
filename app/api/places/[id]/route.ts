@@ -43,7 +43,7 @@ export async function PATCH(
     return NextResponse.json({ error: "placeId is required" }, { status: 400 });
   }
   try {
-    const p = await getPlace(body.placeId);
+    const p = await getPlace(body.placeId, { price: true });
     const [row] = await getDb()
       .update(places)
       .set({
@@ -57,6 +57,7 @@ export async function PATCH(
         region: p.region,
         primaryType: p.primaryType,
         category: p.category,
+        priceLevel: p.priceLevel,
       })
       .where(eq(places.id, id))
       .returning();

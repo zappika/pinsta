@@ -28,6 +28,17 @@ final class Place {
     /// More posts of this place, saved later (web: the `posts` column). The first stays in instagramURL.
     var extraPostURLs: [String] = []
 
+    /// 1–4 ($ to $$) from Google via /api/price; nil when unknown.
+    var priceLevel: Int?
+    /// The price lookup ran (with or without an answer), so it isn't asked again.
+    var priceChecked: Bool = false
+
+    /// "$" for the card, or nil.
+    var priceLabel: String? {
+        guard let priceLevel, (1...4).contains(priceLevel) else { return nil }
+        return String(repeating: "$", count: priceLevel)
+    }
+
     /// Every link that points at this place, first post first.
     var allPostURLs: [String] { [instagramURL] + extraPostURLs }
 

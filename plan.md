@@ -13,7 +13,16 @@ _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code 
 - **Opens on Map · Near me** (supersedes "Near me is not the default, so the page never prompts on load", 2026-09-29). The browser asks for location on the first visit. Falls back to the List of everything when offline, when location is refused or times out, or when the map hasn't drawn within 12 s. Nothing saved within 50 km → the map of everything with a short notice. The view is no longer remembered between visits.
 - **No type dots** on cards and list rows (Sarp: keep the cards clean). `CATEGORY_DOT` / `dotFor` removed; the tints on map pins and photo-less tiles stay.
 - Checked in Chromium with stubbed places and location: Near me list, map-failure fallback, refused location, sheet ⋯ → Remove → Undo toast, failed delete restored, Change place opens the editor. Not checked: the map itself drawing (OpenFreeMap is blocked in the cloud container) and real data.
-- **Price ($ to $$): explored, not built.** Google's `priceLevel` on the one Place Details call at save time is easy on the web; iOS has no free source (MapKit has no price). Waiting on Sarp's call.
+- **Price ($ to $$$$), web and iOS (Sarp: "implement in both", cost tracking comes soon anyway).** Shown after the type: "Restaurant · $$ · Barcelona"; nothing when Google doesn't know.
+  - Web: the one Place Details call per save (and per Change place) also asks for `priceLevel`, which puts that call on Google's Enterprise tier (1,000 free a month, then about $20 per 1,000). Searches for candidates stay on the cheaper tier. New column `price_level`; `scripts/backfill-price.mts` fills existing rows.
+  - iOS: MapKit has no price, so the app asks the new open `POST /api/price` (name + pin → one Google Text Search, nearest result within 150 m). Only restaurants, cafes, bars and bakeries ask. Right after a save, plus a pass on launch/foreground for anything unchecked (share-extension saves, older places; 20 at a time). Each server call logs "price lookup" for counting in Vercel. This spends Sarp's Google quota on friends' saves, which the 2026-09-29 decision avoided; accepted by Sarp today.
+- **iOS splash:** the launch art is drawn again over the app, held 1.2 s, then fades out with a slight zoom (0.55 s). It follows the phone's appearance, like the system launch screen, so it doesn't flip when the in-app Appearance differs.
+
+### Before merging this branch to main (Sarp, on the Mac)
+1. `set -a; source .env.local; set +a; npx drizzle-kit push` adds `price_level`. **Do this before the deploy:** the web reads every column, so without it the list fails to load.
+2. `npx tsx scripts/backfill-price.mts` (one Google call per saved place).
+3. iOS: `xcodegen generate` and build. This Swift was written in a Linux cloud session and **has not been compiled**. New SwiftData fields `priceLevel` / `priceChecked` have defaults, so the store migrates by itself; check an existing list survives on the main simulator.
+4. iOS checks: splash holds and fades (light and dark, and with in-app Appearance set opposite to the phone); a new restaurant save gets its $ within seconds; a share-extension save gets it on the next app open.
 
 ### iOS to-do from this pass
 - [x] Place sheet: a ⋯ beside Directions/Post with Change place and Remove (same Undo toast as the swipe)

@@ -37,6 +37,9 @@ enum PlaceCategory: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Where a price means something. Only these spend a Google lookup (/api/price).
+    var hasPrice: Bool { [.restaurant, .cafe, .bar, .bakery].contains(self) }
+
     var emoji: String {
         switch self {
         case .restaurant: return "🍽️"
