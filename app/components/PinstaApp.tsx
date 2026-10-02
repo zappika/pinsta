@@ -101,7 +101,8 @@ export default function PinstaApp() {
         setLocked(true);
         return;
       }
-      if (!res.ok) throw new Error(await res.text());
+      // Not res.text(): a Vercel timeout is an HTML page.
+      if (!res.ok) throw new Error(`Could not load places (${res.status})`);
       setLocked(false);
       const data = (await res.json()) as { places: Place[] };
       setPlaces(data.places);

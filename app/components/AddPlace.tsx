@@ -113,7 +113,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
           }),
           signal: ctrl.signal,
         });
-        const data = (await res.json()) as {
+        const data = (await res.json().catch(() => ({}))) as {
           post?: PostInfo;
           candidates?: PlaceCandidate[];
           source?: Source;
@@ -157,7 +157,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
           body: JSON.stringify({ query: q }),
           signal: ctrl.signal,
         });
-        const data = (await res.json()) as { candidates?: PlaceCandidate[]; error?: string };
+        const data = (await res.json().catch(() => ({}))) as { candidates?: PlaceCandidate[]; error?: string };
         if (!res.ok) throw new Error(data.error ?? "Search failed");
         setCandidates(data.candidates ?? []);
       } catch (e) {
@@ -192,7 +192,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ placeId: c.placeId }),
         });
-        const data = (await res.json()) as { place?: Place; error?: string };
+        const data = (await res.json().catch(() => ({}))) as { place?: Place; error?: string };
         if (!res.ok || !data.place) throw new Error(data.error ?? "Could not change place");
         onUpdated?.(data.place);
         setSaved({ place: data.place, automatic: false, already: false, changed: true });
@@ -212,7 +212,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
           postUnreadable: extract.status === "error",
         }),
       });
-      const data = (await res.json()) as { place?: Place; merged?: boolean; already?: boolean; error?: string };
+      const data = (await res.json().catch(() => ({}))) as { place?: Place; merged?: boolean; already?: boolean; error?: string };
       if (!res.ok || !data.place) throw new Error(data.error ?? "Could not save");
       if (data.merged) onUpdated?.(data.place);
       else if (!data.already) onSaved(data.place);
@@ -236,7 +236,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ removePost: post?.url ?? validUrl }),
       }).catch(() => null);
-      const data = res ? ((await res.json()) as { place?: Place }) : null;
+      const data = res ? ((await res.json().catch(() => ({}))) as { place?: Place }) : null;
       if (data?.place) onUpdated?.(data.place);
     } else {
       onRemoved(place.id);
