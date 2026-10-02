@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { desc, eq } from "drizzle-orm";
+import { and, between, desc, eq, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { places } from "@/lib/db/schema";
 import { getPlace } from "@/lib/google-places";
@@ -24,11 +24,12 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as {
     instagramUrl?: string;
     placeId?: string;
-    note?: string;
     imageUrl?: string | null;
     caption?: string | null;
     igLocationName?: string | null;
     ownerUsername?: string | null;
+    /** The client's read of the post failed: no second Apify run for a photo. */
+    postUnreadable?: boolean;
   };
 
   // Field keeps its old name; it holds any supported link (Instagram, TikTok, Google Maps).
@@ -44,20 +45,40 @@ export async function POST(req: Request) {
   }
 
   try {
-    // Re-fetch by id so the stored row reflects Google's data, not the client's.
-    // The photo is normally found by /api/extract; when the client has none
-    // (post unreadable, manual flow), find one here so no place goes without.
-    const [p, imageUrl] = await Promise.all([
-      getPlace(body.placeId, { price: true }),
-      body.imageUrl ? Promise.resolve(body.imageUrl) : findPhoto(instagramUrl, body.placeId),
-    ]);
-    // One place, many posts: a second post of a place already in the list is
-    // added to that card instead of becoming a duplicate.
     const db = getDb();
-    const existing = (await db.select().from(places)).find((r) => isSamePlace(r, p));
+    // The same link saved before: answered from the DB, before any paid call.
+    const [known] = await db
+      .select()
+      .from(places)
+      .where(
+        or(
+          eq(places.instagramUrl, instagramUrl),
+          sql`${places.posts} @> ${JSON.stringify([{ instagramUrl }])}::jsonb`,
+        ),
+      )
+      .limit(1);
+    if (known) return NextResponse.json({ place: known, already: true });
+
+    // Re-fetch by id so the stored row reflects Google's data, not the client's.
+    const p = await getPlace(body.placeId, { price: true });
+    // One place, many posts: a second post of a place already in the list is
+    // added to that card instead of becoming a duplicate. SQL narrows it to the
+    // same Google id or a box around the pin; isSamePlace makes the call.
+    // The box reaches past 60 m every way: 0.001° of latitude is ~111 m, and a
+    // degree of longitude shrinks with cos(latitude).
+    const dLng = 0.001 / Math.max(Math.cos((p.lat * Math.PI) / 180), 0.1);
+    const nearby = await db
+      .select()
+      .from(places)
+      .where(
+        or(
+          eq(places.placeId, p.placeId),
+          and(between(places.lat, p.lat - 0.001, p.lat + 0.001), between(places.lng, p.lng - dLng, p.lng + dLng)),
+        ),
+      );
+    const existing = nearby.find((r) => isSamePlace(r, p));
     if (existing) {
-      const known = existing.instagramUrl === instagramUrl || existing.posts.some((x) => x.instagramUrl === instagramUrl);
-      if (known) return NextResponse.json({ place: existing, already: true });
+      // The card already has its photo; the extra post keeps whatever the read brought.
       const [merged] = await db
         .update(places)
         .set({
@@ -65,7 +86,7 @@ export async function POST(req: Request) {
             ...existing.posts,
             {
               instagramUrl,
-              imageUrl,
+              imageUrl: body.imageUrl || null,
               caption: body.caption || null,
               ownerUsername: body.ownerUsername || null,
               igLocationName: body.igLocationName || null,
@@ -78,6 +99,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ place: merged, merged: true });
     }
 
+    // The photo is normally found by /api/extract; when the client has none
+    // (post unreadable, manual flow), find one here so no place goes without.
+    const imageUrl =
+      body.imageUrl || (await findPhoto(instagramUrl, p.placeId, { postUnreadable: body.postUnreadable === true }));
     const [row] = await db
       .insert(places)
       .values({
@@ -93,7 +118,6 @@ export async function POST(req: Request) {
         primaryType: p.primaryType,
         category: p.category,
         priceLevel: p.priceLevel,
-        note: body.note?.trim() || null,
         imageUrl,
         caption: body.caption || null,
         igLocationName: body.igLocationName || null,

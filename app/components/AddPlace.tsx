@@ -208,6 +208,8 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
           caption: p?.caption ?? null,
           igLocationName: p?.locationName ?? null,
           ownerUsername: p?.ownerUsername ?? null,
+          // The read just failed: the server shouldn't pay for another one to find a photo.
+          postUnreadable: extract.status === "error",
         }),
       });
       const data = (await res.json()) as { place?: Place; merged?: boolean; already?: boolean; error?: string };

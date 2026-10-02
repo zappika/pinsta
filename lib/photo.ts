@@ -8,10 +8,16 @@ import { countCall } from "./usage";
  * and is always first; if the post can't be read (private, Apify busy), the
  * place's Google photo stands in. Either way the bytes land in our Blob so
  * the URL is ours and doesn't expire.
+ * `postUnreadable`: the client's own read just failed, so a second Apify run
+ * would only cost money and time; go straight to Google.
  */
-export async function findPhoto(instagramUrl: string, placeId: string): Promise<string | null> {
+export async function findPhoto(
+  instagramUrl: string,
+  placeId: string,
+  opts: { postUnreadable?: boolean } = {},
+): Promise<string | null> {
   const shortcode = instagramUrl.split(/[/?#]/).filter(Boolean).pop()?.slice(0, 40) ?? "post";
-  if (sourceKind(instagramUrl) !== "instagram") return googlePhoto(placeId, shortcode);
+  if (sourceKind(instagramUrl) !== "instagram" || opts.postUnreadable) return googlePhoto(placeId, shortcode);
   try {
     const post = await fetchInstagramPost(instagramUrl);
     if (post.imageUrl) {
