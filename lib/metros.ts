@@ -10,7 +10,7 @@
  */
 export type Metro = { name: string; lat: number; lng: number; km: number };
 
-export const METROS: Metro[] = [
+const METROS: Metro[] = [
   { name: "Istanbul", lat: 41.015, lng: 28.98, km: 30 },
   { name: "Copenhagen", lat: 55.676, lng: 12.568, km: 9 },
   { name: "Stockholm", lat: 59.329, lng: 18.069, km: 10 },

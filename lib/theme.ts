@@ -6,7 +6,7 @@
  * reads (an inline script in layout.tsx applies it before first paint).
  */
 export type Theme = "system" | "light" | "dark";
-export const THEME_KEY = "pinsta.theme";
+const THEME_KEY = "pinsta.theme";
 
 export function storedTheme(): Theme {
   try {
@@ -26,7 +26,7 @@ export function setTheme(t: Theme) {
   window.dispatchEvent(new Event("pinsta:theme"));
 }
 
-export function applyTheme(t: Theme) {
+function applyTheme(t: Theme) {
   if (t === "system") delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = t;
 }

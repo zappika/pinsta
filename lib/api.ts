@@ -8,7 +8,7 @@
 const STORAGE = "pinsta-owner-key";
 let pageKey: string | null = null;
 
-export function ownerKey(): string | null {
+function ownerKey(): string | null {
   if (pageKey !== null) return pageKey;
   try {
     return localStorage.getItem(STORAGE);

@@ -88,7 +88,7 @@ export function categorize(primaryType: string | null | undefined): Category {
 }
 
 /** One glyph per bucket — map pins and photo-less tiles. Mirrored in `PlaceCategory.swift`. */
-export const CATEGORY_EMOJI: Record<Category, string> = {
+const CATEGORY_EMOJI: Record<Category, string> = {
   Restaurant: "🍽️",
   Cafe: "☕️",
   Bar: "🍷",
@@ -103,7 +103,7 @@ export const CATEGORY_EMOJI: Record<Category, string> = {
 };
 
 /** Soft fills behind the emoji on map pins: quiet enough for the map, distinct enough to tell apart. */
-export const CATEGORY_TINT: Record<Category, string> = {
+const CATEGORY_TINT: Record<Category, string> = {
   Restaurant: "#fde2d4",
   Cafe: "#f3e3cf",
   Bar: "#ecdcf5",

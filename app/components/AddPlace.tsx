@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { parseSourceUrl, SOURCE_LABEL, type SourceKind } from "@/lib/sources";
 import { api } from "@/lib/api";
 import type { Place, PlaceCandidate } from "./types";
+// Type only: nothing of the server route reaches the client bundle.
+import type { ExtractResponse } from "@/app/api/extract/route";
 
 type Props = {
   places: Place[];
@@ -17,16 +19,11 @@ type Props = {
   onRemoved: (id: string) => void;
 };
 
-type PostInfo = {
-  url: string;
-  kind?: SourceKind;
-  caption: string | null;
-  locationName: string | null;
-  imageUrl: string | null;
-  ownerUsername: string | null;
-};
+// What the sheet uses of /api/extract's post; edit mode builds one from a saved card, without kind.
+type PostInfo = Pick<ExtractResponse["post"], "url" | "caption" | "locationName" | "imageUrl" | "ownerUsername"> &
+  Partial<Pick<ExtractResponse["post"], "kind">>;
 
-type Source = "tag" | "account" | "link" | null;
+type Source = ExtractResponse["source"];
 
 type Extract =
   | { status: "idle" }

@@ -205,7 +205,7 @@ function Picker({
   );
 }
 
-export function pluralize(category: string) {
+function pluralize(category: string) {
   if (category === "Nature" || category === "Other") return category;
   return category.endsWith("y") ? `${category.slice(0, -1)}ies` : `${category}s`;
 }

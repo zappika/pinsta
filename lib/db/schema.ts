@@ -55,7 +55,6 @@ export type ExtraPost = {
 };
 
 export type Place = typeof places.$inferSelect;
-export type NewPlace = typeof places.$inferInsert;
 
 /**
  * Paid API calls per day and service (lib/usage.ts), for the Usage sheet:
