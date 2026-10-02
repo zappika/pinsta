@@ -61,7 +61,9 @@ Pinsta. Instagram itself can't be installed in the Simulator.
 - **Settings, per device** (web localStorage / iOS `Settings` in UserDefaults): Directions app (asked on first use), Appearance (System/Light/Dark). Both live in the round buddy menu, top right.
 - **Near me:** a Where option, 50 km. Location is asked on open (it is the opening screen), in both apps.
 - **Edit / delete:** Cards: swipe right-to-left (or right-click on web) → round change/remove buttons; full swipe removes. Map/List/Tiles: the place sheet (`PeekCard` ↔ `PeekCardView`) has a ⋯ ("Change or remove") → Change place / Remove. A delete the server rejects brings the place back on reload.
-- **Cards and list rows:** name, then type and town in grey. No type dots (Sarp, 2026-10-02); the type tints stay on map pins and photo-less tiles.
+- **Cards and list rows:** name, then type · price · town in grey. No type dots (Sarp, 2026-10-02); the type tints stay on map pins and photo-less tiles.
+- **Price ($–$$$$):** Google `priceLevel` → `price_level` 1–4. Web: only `getPlace(id, { price: true })` on save/change asks (Enterprise tier); keep it off searches. iOS: `PriceLookup` (in `PostReader.swift`) calls open `POST /api/price` for food and drink places after a save and on foreground; `priceChecked` stops repeats.
+- **iOS splash:** `SplashView` in `PinstaApp.swift` repeats the `UILaunchScreen` art, holds 1.2 s, fades out. Change the art in both places.
   Delete is deferred 5 s behind an Undo toast (`PinstaApp.tsx` / `PlacesListView.swift`).
 - **iOS data:** SwiftData store in App Group `group.se.sarper.vicolo`, shared with
   the extension. First launch imports the web DB once (`WebImporter`). The list
@@ -77,7 +79,7 @@ No `dark:` classes. `globals.css` flips Tailwind's stone palette variables (and 
 The web list is Sarp's alone (`lib/owner.ts`). Every `/api/places*` route and
 `/api/places/search` need header `x-pinsta-key: $PINSTA_OWNER_KEY`; the web app
 asks for it once and keeps it in localStorage (`lib/api.ts`). `/api/extract` is
-open for the iOS app, but only the owner gets Google candidates from it. The key
+open for the iOS app, but only the owner gets Google candidates from it. `/api/price` is open too (one Google call per iOS food/drink save). The key
 lives in `.env.local` and Vercel env — **never in the repo, which is public**.
 While the env var is unset the lock is off. Local curl with the key:
 `curl -H "x-pinsta-key: $(grep PINSTA_OWNER_KEY .env.local | cut -d= -f2)" localhost:3010/api/places`

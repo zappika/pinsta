@@ -3,6 +3,7 @@ import {
   uuid,
   text,
   doublePrecision,
+  integer,
   jsonb,
   timestamp,
 } from "drizzle-orm/pg-core";
@@ -27,6 +28,8 @@ export const places = pgTable("places", {
   region: text("region"),
   primaryType: text("primary_type"),
   category: text("category"),
+  // 1–4 ($ to $$) from Google's priceLevel; null when Google doesn't know.
+  priceLevel: integer("price_level"),
   note: text("note"),
   // Phase 4: pulled from the post itself at save time
   imageUrl: text("image_url"),

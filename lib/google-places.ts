@@ -19,6 +19,25 @@ const FIELDS = [
   "addressComponents",
 ].join(",");
 
+/**
+ * `priceLevel` moves a call to Google's Enterprise tier (1,000 free a month, then
+ * about $20 per 1,000), so only the one detail call per save asks for it; the
+ * many searches behind the candidates stay on the cheaper tier.
+ */
+const PRICE_FIELD = "priceLevel";
+
+/** Google's price enum → how many $ to show. Free and unspecified show nothing. */
+const PRICE_LEVELS: Record<string, number> = {
+  PRICE_LEVEL_INEXPENSIVE: 1,
+  PRICE_LEVEL_MODERATE: 2,
+  PRICE_LEVEL_EXPENSIVE: 3,
+  PRICE_LEVEL_VERY_EXPENSIVE: 4,
+};
+
+export function toPriceLevel(raw: string | undefined | null): number | null {
+  return (raw && PRICE_LEVELS[raw]) || null;
+}
+
 type AddressComponent = { longText?: string; types?: string[] };
 
 type RawPlace = {
@@ -28,6 +47,7 @@ type RawPlace = {
   location?: { latitude: number; longitude: number };
   primaryType?: string;
   addressComponents?: AddressComponent[];
+  priceLevel?: string;
 };
 
 export type PlaceCandidate = {
@@ -41,6 +61,8 @@ export type PlaceCandidate = {
   country: string | null;
   city: string | null;
   region: string | null;
+  /** 1–4 ($ to $$), only when asked for (see PRICE_FIELD) and Google knows it. */
+  priceLevel: number | null;
 };
 
 function pick(components: AddressComponent[] | undefined, ...types: string[]) {
@@ -72,6 +94,7 @@ function toCandidate(p: RawPlace): PlaceCandidate {
       "administrative_area_level_1",
     ),
     region: pick(p.addressComponents, "administrative_area_level_1"),
+    priceLevel: toPriceLevel(p.priceLevel),
   };
 }
 
@@ -99,11 +122,12 @@ export async function searchPlaces(query: string, near?: { lat: number; lng: num
   return (data.places ?? []).map(toCandidate);
 }
 
-export async function getPlace(placeId: string): Promise<PlaceCandidate> {
+/** `price`: also ask for the price level (Enterprise tier). Only on save. */
+export async function getPlace(placeId: string, opts: { price?: boolean } = {}): Promise<PlaceCandidate> {
   const res = await fetch(
     `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?languageCode=en`,
     {
-      headers: { "X-Goog-Api-Key": KEY(), "X-Goog-FieldMask": FIELDS },
+      headers: { "X-Goog-Api-Key": KEY(), "X-Goog-FieldMask": opts.price ? `${FIELDS},${PRICE_FIELD}` : FIELDS },
     },
   );
   if (!res.ok) {
@@ -112,6 +136,39 @@ export async function getPlace(placeId: string): Promise<PlaceCandidate> {
   return toCandidate((await res.json()) as RawPlace);
 }
 
+
+/**
+ * The price level of the place named `name` at `at`, for the iOS app (MapKit
+ * has no price). One Text Search around the pin; only a result within 150 m
+ * counts, so a namesake across town never lends its price.
+ */
+export async function findPriceLevel(name: string, at: { lat: number; lng: number }): Promise<number | null> {
+  const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": KEY(),
+      "X-Goog-FieldMask": `places.location,places.${PRICE_FIELD}`,
+    },
+    body: JSON.stringify({
+      textQuery: name,
+      pageSize: 3,
+      locationBias: { circle: { center: { latitude: at.lat, longitude: at.lng }, radius: 300 } },
+    }),
+  });
+  if (!res.ok) throw new Error(`Price search failed: ${res.status} ${await res.text()}`);
+  const data = (await res.json()) as { places?: RawPlace[] };
+  const near = (data.places ?? []).find((p) => p.location && metersBetween(at, p.location) <= 150);
+  return toPriceLevel(near?.priceLevel);
+}
+
+function metersBetween(a: { lat: number; lng: number }, b: { latitude: number; longitude: number }) {
+  const r = (d: number) => (d * Math.PI) / 180;
+  const h =
+    Math.sin(r(b.latitude - a.lat) / 2) ** 2 +
+    Math.cos(r(a.lat)) * Math.cos(r(b.latitude)) * Math.sin(r(b.longitude - a.lng) / 2) ** 2;
+  return 12_742_000 * Math.asin(Math.sqrt(h));
+}
 
 /**
  * Turn an Instagram location tag into place candidates.

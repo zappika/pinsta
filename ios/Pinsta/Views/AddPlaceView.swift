@@ -349,7 +349,11 @@ struct AddPlaceView: View {
                 editing.country = c.country
                 editing.categoryRaw = c.category.rawValue
                 editing.googlePlaceID = nil
+                // A different place has its own price.
+                editing.priceLevel = nil
+                editing.priceChecked = false
                 try? context.save()
+                Task { await PriceLookup.check(editing, in: context) }
                 saving = nil
                 withAnimation(.snappy) { saved = Saved(place: editing, automatic: false, already: false, changed: true) }
                 return
@@ -388,6 +392,7 @@ struct AddPlaceView: View {
             )
             context.insert(place)
             try? context.save()
+            Task { await PriceLookup.check(place, in: context) }
             saving = nil
             withAnimation(.snappy) { saved = Saved(place: place, automatic: automatically, already: false, changed: false) }
         }

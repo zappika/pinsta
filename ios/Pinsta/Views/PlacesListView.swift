@@ -182,6 +182,7 @@ private struct PlacesContent: View {
             if launchURL != nil { adding = true }
             start()
             await PhotoRetry.run(in: context)
+            await PriceLookup.run(in: context)
         }
         .onChange(of: places.isEmpty) { _, _ in start() }
         .onChange(of: city) { old, new in

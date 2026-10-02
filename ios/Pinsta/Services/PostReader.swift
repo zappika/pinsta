@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 
 /// The one cloud dependency: reading the Instagram post. The Apify token can't
 /// live in the app, so the Vercel function proxies it and copies the image
@@ -50,6 +51,50 @@ enum PostReader {
             throw APIError(message: envelope.error ?? "Could not read post")
         }
         return post
+    }
+}
+
+/// Price level ($ to $$). MapKit has none, so the server asks Google once
+/// per place (`/api/price`, web `findPriceLevel`): the name, searched around
+/// the pin. Only food and drink places ask; the rest are marked checked.
+enum PriceLookup {
+    private struct Answer: Decodable { let priceLevel: Int? }
+    private static var running = false
+
+    /// Ask for one place. A failed request leaves it unchecked for the next pass.
+    @MainActor
+    static func check(_ place: Place, in context: ModelContext) async {
+        guard !place.priceChecked else { return }
+        guard place.category.hasPrice else {
+            place.priceChecked = true
+            try? context.save()
+            return
+        }
+        var request = URLRequest(url: PostReader.baseURL.appending(path: "api/price"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 20
+        let body: [String: Any] = ["name": place.name, "lat": place.latitude, "lng": place.longitude]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        guard let reply = try? await URLSession.shared.data(for: request),
+              (reply.1 as? HTTPURLResponse)?.statusCode == 200,
+              let answer = try? JSONDecoder().decode(Answer.self, from: reply.0) else { return }
+        place.priceLevel = answer.priceLevel
+        place.priceChecked = true
+        try? context.save()
+    }
+
+    /// On launch and foreground: places the share extension saved (it may close
+    /// before its own lookup ends) and places from before prices existed.
+    @MainActor
+    static func run(in context: ModelContext) async {
+        guard !running else { return }
+        running = true
+        defer { running = false }
+        let d = FetchDescriptor<Place>(predicate: #Predicate { !$0.priceChecked })
+        for place in ((try? context.fetch(d)) ?? []).prefix(20) {
+            await check(place, in: context)
+        }
     }
 }
 

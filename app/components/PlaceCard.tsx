@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { directions } from "@/lib/directions";
 import { sourceKind } from "@/lib/sources";
+import { priceLabel } from "@/lib/categories";
 import type { Place } from "./types";
 
 type Props = {
@@ -26,7 +27,7 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact, expa
   const allUrls = [place.instagramUrl, ...(place.posts ?? []).map((p) => p.instagramUrl)];
   // Google Maps links are the place, not a post: Directions covers them.
   const postUrls = allUrls.filter((u) => sourceKind(u) !== "google");
-  const meta = [hideCategory ? null : place.category, hideCity ? null : place.city, postUrls.length > 1 ? `${postUrls.length} posts` : null]
+  const meta = [hideCategory ? null : place.category, priceLabel(place.priceLevel), hideCity ? null : place.city, postUrls.length > 1 ? `${postUrls.length} posts` : null]
     .filter(Boolean)
     .join(" · ");
 
