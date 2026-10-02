@@ -223,7 +223,8 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
   }
 
   async function undo() {
-    if (!saved) return;
+    // "Already saved" is an earlier save, not this one: nothing to take back.
+    if (!saved || saved.already) return;
     const { place, merged } = saved;
     setSaved(null);
     setAutoSaveDeclined(true);
@@ -397,7 +398,7 @@ function Receipt({ saved, onUndo, onDone }: { saved: Saved; onUndo: () => void; 
         )}
       </div>
       <div className="mt-3 flex gap-2">
-        {automatic && (
+        {automatic && !already && (
           <button type="button" onClick={onUndo} className="flex-1 rounded-xl border border-stone-200 py-2.5 text-sm font-medium text-stone-700 active:bg-stone-50">
             Wrong place?
           </button>
