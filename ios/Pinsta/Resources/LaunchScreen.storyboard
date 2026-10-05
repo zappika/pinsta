@@ -35,7 +35,7 @@
         </scene>
     </scenes>
     <resources>
-        <image name="VicoloSplashPoster" width="816" height="1764"/>
+        <image name="VicoloSplashPoster" width="1320" height="2854"/>
         <namedColor name="SplashBackground">
             <color red="0.992" green="0.988" blue="0.961" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
