@@ -38,12 +38,11 @@ targets:
         # HTTPS only, no custom crypto: exempt, so TestFlight skips the compliance question.
         ITSAppUsesNonExemptEncryption: false
         NSLocationWhenInUseUsageDescription: Vicolo opens on the places you saved within 50 km of you, and uses your location for Near me. It is never stored or sent anywhere.
-        # Splash (2026-10-02): light and dark art in Assets, 1320pt-wide @3x so it
-        # covers the largest iPhone; smaller ones crop the edges. Follows the
-        # system appearance, not the in-app one (iOS decides before the app runs).
-        UILaunchScreen:
-          UIImageName: Splash
-          UIColorName: SplashBackground
+        # Splash (2026-10-05): the launch screen is the splash movie's first frame,
+        # aspect fill (Resources/LaunchScreen.storyboard), so SplashVideoView can take
+        # over without a jump. Follows the system appearance, not the in-app one
+        # (iOS decides before the app runs).
+        UILaunchStoryboardName: LaunchScreen
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         # Portrait-only passes App Store validation only when iPad multitasking is opted out.
         UIRequiresFullScreen: true
