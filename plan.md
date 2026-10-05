@@ -2,7 +2,11 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
-## Last session — 2026-10-05: animated splash, location question later
+## Last session — 2026-10-05 (late): iOS empty-list tutorial
+- **Empty list is now the approved three-page tutorial** (brief: `exports/vicolo-onboarding-handoff/BUILD-BRIEF.md`): Found a place? → Send it to Vicolo (with "Don’t see Vicolo? More → Edit → Add to Favorites", page 2 only) → Your next favorite, saved. Native SwiftUI, swipe or tap the dots, "Paste a link" opens the save sheet and the page is kept. Replaces the old first-run steps (which also mentioned TikTok; the tutorial is Instagram-only, other links still work).
+- Checked on the simulator (iOS 27 runtime re-downloaded; simulators recreated, all empty): three pages light and dark on iPhone 17, dot taps and swipes, sheet open/close, iPhone SE at accessibility-large text (page scrolls, help chips stack), a populated list (tutorial gone, tab bar back). **Not checked:** VoiceOver by ear, and the real share-sheet path More → Edit → Favorites on a phone with iOS 26/27.
+
+## Session before — 2026-10-05: animated splash, location question later
 - **Animated splash (Take 1) integrated**, replacing the timed still: launch storyboard with the movie's first frame, then the movie (AVPlayerLayer), muted, once, fading into the app. Phone's light/dark, frozen; in-app Appearance after. Skipped with Reduce Motion and on resume; can't block the app (missing file, failure, background, timeouts). Checked on the simulator: light, dark, dark phone + Light in-app, resume, Reduce Motion, iPhone 17 / 17 Pro / 17e.
 - **No hand-off jump, measured.** A frame-by-frame difference over screen recordings found two problems and both are fixed: (1) the splash cut to the app in one frame (SwiftUI's fade never ran; it also did in build 7 — that was the "little jump"), now a 0.45 s UIKit fade; (2) the posters' HDTV colour profile made the launch screen brighter than the movie, a dim at the hand-off; posters relabelled sRGB (`ios/scripts/splash-poster.swift`), poster and movie now match on screen within 0.2 brightness. What remains in the first 0.2 s is iOS's own open-app zoom.
 - **The location question waits** (Sarp): asked on open only once the list has 3 places, and on iOS only after the splash. Below that, the map of everything, no question. Same rule on the web. Picking Near me always may ask; refused still opens the List.
@@ -10,7 +14,7 @@ _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code 
 - **Brand touches (Sarp approved 2026-10-02), web + iOS:** elephant menu button, new first-run and filtered-empty states (resin elephant, coffee cup for Cafe), faint coral/lilac tint on the chosen Where/What row, elephant + version in Settings. Web is `fb24bed` (from `codex/vicolo-brand-touches`, brief in `docs/vicolo-brand-ios-handoff.md`), checked in the browser; iOS port compiles but was **not seen on a simulator**: the iOS simulator runtime vanished from this Mac mid-session (`simctl runtime list` empty; restore with `xcodebuild -downloadPlatform iOS`).
 - **1.0 (8) uploaded to TestFlight 2026-10-05 22:35** with all of the above. An earlier build-8 upload that morning never finished, so this is the first build 8 Apple has.
 
-## Session before — 2026-10-02 (late): hygiene, review fixes, embeds
+## Earlier — 2026-10-02 (late): hygiene, review fixes, embeds
 Everything below is on `main` and deployed. iOS changes are in code and checked on the simulator, **not yet in a TestFlight build** (build 7 predates them).
 - **Code review (web + iOS) and fixes.** Two read-only reviews found 32 issues; all fixed except web rate limiting (needs Sarp, see below). Highlights:
   - *Data safety:* iOS never opens an empty stand-in store when the shared one fails (it showed as a lost list); web "Wrong place?" on an "Already saved" receipt could hard-delete the existing card; a reload could bring back a place pending delete.

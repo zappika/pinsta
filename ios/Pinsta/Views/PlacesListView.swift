@@ -11,6 +11,8 @@ final class Screen {
     var adding = false
     var editing: Place?
     var here: CLLocation?
+    /// The empty list's tutorial page, kept while the save sheet opens and closes.
+    var tutorialPage = 0
     /// Testing: `-addURL <link>` opens the save sheet with that link, the way a share arrives.
     var launchURL = UserDefaults.standard.string(forKey: "addURL")
 }
@@ -194,7 +196,8 @@ private struct PlacesContent: View {
         .overlay(alignment: .bottomTrailing) {
             // On iOS 26 the + is the tab bar's own round button; this one stands in
             // as the × while the save sheet covers the bar, and when there's no bar.
-            if (peek == nil || view == .cards) && (!systemBar || adding || editing != nil || shown.isEmpty) { plusButton }
+            // The empty list has its own "Paste a link", so no + there, only the ×.
+            if (peek == nil || view == .cards) && (adding || editing != nil || (!systemBar && !shown.isEmpty)) { plusButton }
         }
         .overlay { picker }
         .animation(.snappy(duration: 0.25), value: picking)
@@ -284,7 +287,7 @@ private struct PlacesContent: View {
                 .padding(.bottom, 12)
             content(v)
         }
-        .background(Color(.systemGroupedBackground))
+        .background(shown.isEmpty ? Tutorial.background : Color(.systemGroupedBackground))
     }
 
     /// What the tab bar can select: a view, or the round + that opens the save sheet.
@@ -324,7 +327,8 @@ private struct PlacesContent: View {
     @ViewBuilder
     private func content(_ v: PlacesView) -> some View {
         if shown.isEmpty {
-            ScrollView { emptyState }
+            EmptyTutorial(page: Bindable(screen).tutorialPage, onPaste: { adding = true })
+                .ignoresSafeArea(.keyboard)
         } else if v == .map {
             PlacesMapView(places: visible, selected: $peek)
                 .ignoresSafeArea(edges: .bottom)
@@ -532,49 +536,6 @@ private struct PlacesContent: View {
         .layoutPriority(muted ? 0 : 1)
     }
 
-    /// First run: the resin elephant, a line about what Vicolo is for, a way into the
-    /// save sheet, and the share steps. iOS hides a new share extension behind "More"
-    /// until it is a favourite, so the steps say how to pin it once.
-    private var emptyState: some View {
-        VStack(spacing: 0) {
-            Image("ElephantResin")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 112, height: 112)
-                .accessibilityHidden(true)
-            Text("Your next favorite starts here")
-                .font(.title3.weight(.semibold))
-                .multilineTextAlignment(.center)
-                .padding(.top, 20)
-            Text("Save a place you want to try. Keep it for when you’re nearby.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.top, 8)
-            Button { adding = true } label: {
-                Text("Save your first place")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color(.systemBackground))
-                    .padding(.horizontal, 20)
-                    .frame(minHeight: 44)
-                    .background(Color(.label), in: Capsule())
-            }
-            .padding(.top, 20)
-            VStack(alignment: .leading, spacing: 12) {
-                emptyStep(1, "In Instagram or TikTok, tap **Share** on a post of a place.")
-                emptyStep(2, "First time only: scroll the app row to the end, tap **More**, and add **Vicolo** to Favorites.")
-                emptyStep(3, "Tap **Vicolo**. The place lands here.")
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, 32)
-        }
-        .frame(maxWidth: 300)
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 20)
-        .padding(.top, 56)
-        .padding(.bottom, 120)
-    }
-
     /// Places exist, but not for this Where · What. The cup for cafés, else the elephant.
     private var noMatchState: some View {
         VStack(spacing: 0) {
@@ -603,18 +564,6 @@ private struct PlacesContent: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 20)
         .padding(.top, 40)
-    }
-
-    private func emptyStep(_ n: Int, _ text: LocalizedStringKey) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text("\(n)")
-                .font(.caption.weight(.semibold).monospacedDigit())
-                .foregroundStyle(.secondary)
-                .frame(width: 20, height: 20)
-                .background(Color(.tertiarySystemFill), in: Circle())
-                .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 5 }
-            Text(text).font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-        }
     }
 
     /// Round +, springs on press, turns into × while the save sheet is open and closes it.
