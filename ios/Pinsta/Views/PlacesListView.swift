@@ -329,12 +329,7 @@ private struct PlacesContent: View {
             PlacesMapView(places: visible, selected: $peek)
                 .ignoresSafeArea(edges: .bottom)
         } else if visible.isEmpty {
-            Text("No places match.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 48)
-            Spacer()
+            ScrollView { noMatchState }
         } else if v == .list {
             ScrollView {
                 PlaceListView(
@@ -537,21 +532,77 @@ private struct PlacesContent: View {
         .layoutPriority(muted ? 0 : 1)
     }
 
-    /// iOS hides a new share extension behind "More" until it is a favourite,
-    /// so the first-run steps say how to pin it once.
+    /// First run: the resin elephant, a line about what Vicolo is for, a way into the
+    /// save sheet, and the share steps. iOS hides a new share extension behind "More"
+    /// until it is a favourite, so the steps say how to pin it once.
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Nothing saved yet").font(.title3.weight(.semibold))
+        VStack(spacing: 0) {
+            Image("ElephantResin")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 112, height: 112)
+                .accessibilityHidden(true)
+            Text("Your next favorite starts here")
+                .font(.title3.weight(.semibold))
+                .multilineTextAlignment(.center)
+                .padding(.top, 20)
+            Text("Save a place you want to try. Keep it for when you’re nearby.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.top, 8)
+            Button { adding = true } label: {
+                Text("Save your first place")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color(.systemBackground))
+                    .padding(.horizontal, 20)
+                    .frame(minHeight: 44)
+                    .background(Color(.label), in: Capsule())
+            }
+            .padding(.top, 20)
             VStack(alignment: .leading, spacing: 12) {
                 emptyStep(1, "In Instagram or TikTok, tap **Share** on a post of a place.")
                 emptyStep(2, "First time only: scroll the app row to the end, tap **More**, and add **Vicolo** to Favorites.")
                 emptyStep(3, "Tap **Vicolo**. The place lands here.")
             }
-            Text("Or tap + and paste a link.").font(.subheadline).foregroundStyle(.tertiary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 32)
         }
-        .frame(maxWidth: 300, alignment: .leading)
+        .frame(maxWidth: 300)
         .frame(maxWidth: .infinity)
-        .padding(.top, 96)
+        .padding(.horizontal, 20)
+        .padding(.top, 56)
+        .padding(.bottom, 120)
+    }
+
+    /// Places exist, but not for this Where · What. The cup for cafés, else the elephant.
+    private var noMatchState: some View {
+        VStack(spacing: 0) {
+            Image(category == .cafe ? "BrandCoffee" : "ElephantResin")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 112, height: 112)
+                .accessibilityHidden(true)
+            Text("No places here yet")
+                .font(.headline)
+                .padding(.top, 16)
+            Text("Try another area or clear your filters.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.top, 8)
+            Button("Show all places") { city = nil; category = nil }
+                .font(.subheadline.weight(.medium))
+                .underline()
+                .foregroundStyle(Color(.label))
+                .frame(minHeight: 44)
+                .padding(.horizontal, 16)
+                .padding(.top, 4)
+        }
+        .frame(maxWidth: 280)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 20)
+        .padding(.top, 40)
     }
 
     private func emptyStep(_ n: Int, _ text: LocalizedStringKey) -> some View {

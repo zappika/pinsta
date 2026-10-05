@@ -17,6 +17,11 @@ struct FilterPicker: View {
     let title: String
     let options: [Option]
     let onClose: () -> Void
+    @Environment(\.colorScheme) private var scheme
+
+    /// The chosen row gets a faint Vicolo tint (web: `.vicolo-selected`), on top of the
+    /// check and the bold label, so colour is never the only sign.
+    private var selectedFill: Color { Color(hex: scheme == .dark ? 0x302937 : 0xFAEEE9) }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -76,8 +81,10 @@ struct FilterPicker: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
                     .contentShape(Rectangle())
+                    .background(o.selected ? selectedFill : .clear)
                 }
                 .buttonStyle(RowPress())
+                .accessibilityAddTraits(o.selected ? .isSelected : [])
             }
         }
     }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The round "you" button, top right: a short menu, like the web's. Settings
+/// The round elephant button, top right: a short menu, like the web's. Settings
 /// open as their own sheet; Import from Google is a roadmap placeholder
 /// (plan.md: Menu, Settings and Imports). Accounts belong to the Social package.
 struct BuddyMenu: View {
@@ -20,11 +20,15 @@ struct BuddyMenu: View {
             .disabled(true)
         } label: {
             // Explicit colour: a Menu label otherwise takes the tint, which vanished in dark.
-            Image(systemName: "person")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(Color(.secondaryLabel))
-                .frame(width: 36, height: 36)
+            // The flat Vicolo mark (a template image, so it takes the ink), never the resin one at this size.
+            Image("ElephantMark")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 22, height: 22)
+                .foregroundStyle(Color(.label))
+                .frame(width: 44, height: 44)
                 .background(Color(.tertiarySystemFill), in: Circle())
+                .contentShape(Circle())
         }
         .accessibilityLabel("Menu")
     }
@@ -35,6 +39,14 @@ struct BuddyMenu: View {
 struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     private let settings = Settings.shared
+
+    /// "1.0 (8)", from the bundle, so it can't go stale.
+    private static let version: String = {
+        let info = Bundle.main.infoDictionary
+        let short = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return "\(short) (\(build))"
+    }()
 
     var body: some View {
         NavigationStack {
@@ -59,6 +71,22 @@ struct SettingsSheet: View {
                     Text("Directions")
                 } footer: {
                     Text("Which app opens when you tap Directions on a place.")
+                }
+                Section {
+                    HStack(spacing: 12) {
+                        Image("ElephantResin")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 48, height: 48)
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Vicolo").font(.subheadline.weight(.medium))
+                            Text("A little collection of places.").font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 8)
+                        Text(Self.version).font(.caption.monospacedDigit()).foregroundStyle(.tertiary)
+                    }
+                    .accessibilityElement(children: .combine)
                 }
             }
             .navigationTitle("Settings")
