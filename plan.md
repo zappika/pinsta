@@ -4,6 +4,7 @@ _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code 
 
 ## Last session — 2026-10-05 (late): iOS empty-list tutorial
 - **Empty list is now the approved three-page tutorial** (brief: `exports/vicolo-onboarding-handoff/BUILD-BRIEF.md`): Found a place? → Send it to Vicolo (with "Don’t see Vicolo? More → Edit → Add to Favorites", page 2 only) → Your next favorite, saved. Native SwiftUI, swipe or tap the dots, "Paste a link" opens the save sheet and the page is kept. Replaces the old first-run steps (which also mentioned TikTok; the tutorial is Instagram-only, other links still work).
+- **Splash is a still again (Sarp: the movie was wrong on every level).** Sarp's two stills (cobalt night / cream day) on the launch screen, held 1.2 s, then a fade. Movies removed from the app. The stills are 853 × 1844, below the phone's 1206 × 2622 — a full-size export would be sharper.
 - Checked on the simulator (iOS 27 runtime re-downloaded; simulators recreated, all empty): three pages light and dark on iPhone 17, dot taps and swipes, sheet open/close, iPhone SE at accessibility-large text (page scrolls, help chips stack), a populated list (tutorial gone, tab bar back). **Not checked:** VoiceOver by ear, and the real share-sheet path More → Edit → Favorites on a phone with iOS 26/27.
 
 ## Session before — 2026-10-05: animated splash, location question later

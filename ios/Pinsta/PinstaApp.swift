@@ -4,9 +4,9 @@ import UIKit
 
 @main
 struct PinstaApp: App {
-    /// The animated splash plays once per cold launch; a return from the background
+    /// The splash shows once per cold launch; a return from the background
     /// keeps the process, so it never shows again then.
-    @State private var splash = SplashVideoView.shouldPlay
+    @State private var splash = SplashView.shouldShow
 
     var body: some Scene {
         WindowGroup {
@@ -17,7 +17,7 @@ struct PinstaApp: App {
                 }
                 if splash {
                     // It fades itself out, then goes.
-                    SplashVideoView {
+                    SplashView {
                         splash = false
                         Launch.shared.splashDone = true
                     }

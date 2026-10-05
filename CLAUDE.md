@@ -65,7 +65,7 @@ Pinsta. Instagram itself can't be installed in the Simulator.
 - **iOS empty list = tutorial** (`Views/EmptyTutorial.swift`, design in `exports/vicolo-onboarding-handoff`, not in git): three swipeable pages teaching Instagram → Share → Vicolo, the More → Edit → Favorites help on page 2 only, and a "Paste a link" that opens the save sheet (no floating + there). Shown whenever the list has nothing to show — no "seen" flag; filtered-empty stays `noMatchState`. Trattoria Lina is artwork (`OnboardingRestaurant`, `OnboardingAppIcon` assets), never a saved place. Colours are tutorial-local (`Tutorial`), not app tokens.
 - **Cards and list rows:** name, then type · price · town in grey. No type dots (Sarp, 2026-10-02); the type tints stay on map pins and photo-less tiles.
 - **Price ($–$$$$):** Google `priceLevel` → `price_level` 1–4. Web: only `getPlace(id, { price: true })` on save/change asks (Enterprise tier); keep it off searches. iOS: `PriceLookup` (in `PostReader.swift`) calls open `POST /api/price` for food and drink places after a save and on foreground; `priceChecked` stops repeats.
-- **iOS splash (Take 1 movie, ~4 s):** `Resources/LaunchScreen.storyboard` shows the poster (the movie's first frame, aspect fill to the edges); `SplashVideoView` takes over with the same poster, swaps to the movie (`Resources/Splash/*.mp4`, AVPlayerLayer, aspect fill) when its first frame is ready, plays once muted (`.ambient`, mixes with music), and fades *itself* out in UIKit (a SwiftUI removal transition never animated it: build 7's splash cut to the app in one frame). Light/dark = the phone's at launch, frozen; the in-app Appearance applies after. Skipped with Reduce Motion, on `-addURL`, and after a return from the background; missing file, failure, background or 4 s without a first frame / 6 s of playback end it. `Launch.shared.splashDone` tells the list it may start (location question). See "Splash assets" for replacing the movie.
+- **iOS splash (a still, Sarp 2026-10-05; the Take 1 movie is gone):** `Resources/LaunchScreen.storyboard` shows `VicoloSplashPoster` aspect fill to the edges; `SplashView` draws the same still over the app, holds it 1.2 s and fades *itself* out in UIKit (a SwiftUI removal transition never animated it). Light/dark = the phone's at launch, frozen; the in-app Appearance applies after. Skipped on `-addURL` and after a return from the background. `Launch.shared.splashDone` tells the list it may start (location question). See "Splash assets" for replacing it.
 - **iOS data:** SwiftData store in App Group `group.se.sarper.vicolo`, shared with
   the extension. Every install starts empty (no web import). `Persistence.opened` is the
   store or its error — it never opens a different store in its place (an empty stand-in
@@ -77,10 +77,10 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   SwiftData migrate an existing store by itself. Test with the worktree upgrade below.
 
 ## Splash assets
-A new movie/poster pair (from the export in `exports/vicolo-splash/VicoloSplash-iOS`, not in git):
-1. Copy `Media/*.mp4` to `ios/Pinsta/Resources/Splash/` (keep the names) and the poster PNGs into `Assets.xcassets/VicoloSplashPoster.imageset`. Poster and movie must be the same export: the poster is that movie's first frame.
-2. `swift ios/scripts/splash-poster.swift ios/Pinsta/Resources/Assets.xcassets/VicoloSplashPoster.imageset` — relabels the posters sRGB without touching pixels. The exports carry an "HDTV" profile, which the launch screen and UIImageView honour but AVPlayerLayer doesn't, so the poster showed brighter than the movie and the screen dimmed at the hand-off (measured 2026-10-05).
-3. Check: launch with `-splashPosterOnly` and `-splashFrozen` (holds the poster / the movie's first frame), `xcrun simctl io <device> screenshot` each, in light and dark; the two must match (mean brightness within ~0.5). Uninstall first: iOS caches launch screens.
+New light/dark stills:
+1. Convert to PNG (`sips -s format png`) as `light.png` / `dark.png` in `ios/Pinsta/Resources/Assets.xcassets/VicoloSplashPoster.imageset`, and set the storyboard's `<image name="VicoloSplashPoster" width=… height=…>` to their size. `SplashBackground` should match the stills' edges (#FDFCF5 / #041553 now).
+2. `swift ios/scripts/splash-poster.swift ios/Pinsta/Resources/Assets.xcassets/VicoloSplashPoster.imageset` relabels an "HDTV" colour profile as sRGB without touching pixels (earlier exports carried one).
+3. Check: uninstall **and reboot the simulator** first (iOS caches launch screens; a stale one shows as a ghosted double image), then launch with `-splashHold` (keeps the still up) and screenshot in light and dark.
 
 ## iOS app icon
 The active `AppIcon.appiconset` uses the 1024px masters from `Vicolo-App-Icons.zip` (2026-10-02): pink/orange/yellow for Any (light/default), cobalt/lime/lilac for Dark. Xcode generates device renditions from these opaque PNGs; `ios/project.yml` selects `AppIcon`. Home Screen icon appearance is controlled by iOS, independently of the in-app Appearance preference.
@@ -160,7 +160,7 @@ xcodebuild -exportArchive -archivePath build/Vicolo.xcarchive -exportOptionsPlis
 - Use the second simulator (iPhone 17) for fresh-install and destructive tests; the main one (iPhone 17 Pro) keeps a list. UDIDs differ per Mac: `xcrun simctl list devices`.
 - SwiftData migration test: build the previous commit in a `git worktree`, install it, save a place, then install the new build over it (`simctl install` keeps the data).
 - `xcrun simctl location <id> set 41.39,2.17` + `xcrun simctl privacy <id> grant location se.sarper.vicolo` for Near me.
-- `-splashPosterOnly` / `-splashFrozen` hold the splash's poster / the movie's first frame (see "Splash assets").
+- `-splashHold` keeps the splash still up (see "Splash assets").
 - Launch with `-slowNotices` to keep toasts up 30 s while checking them, and `-addURL <link>` to open the save sheet with a link the way a share does (Safari's Share menu ignores injected taps on the iOS 27 simulator).
 - Test auto-save with a tagged post that still exists (Ästad Vingård `DdJIacKIplU`) or a Maps link; Bar Brutal's post was deleted.
 
