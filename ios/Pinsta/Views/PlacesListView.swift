@@ -218,6 +218,7 @@ private struct PlacesContent: View {
             await PriceLookup.run(in: context)
         }
         .onChange(of: places.isEmpty) { _, _ in start() }
+        .onChange(of: Launch.shared.splashDone) { _, _ in start() }
         .onChange(of: city) { old, new in
             category = nil
             peek = nil
@@ -245,13 +246,20 @@ private struct PlacesContent: View {
 
     /// The map, Near me. Offline or no location → the list of everything.
     /// Nothing within reach → the map of everything. Whatever was picked
-    /// meanwhile wins. Once per launch, and only once there is a list.
+    /// meanwhile wins. Once per launch, once there is a list and the splash is
+    /// over. Location is asked here only from `NearMe.askAfter` places on (Sarp,
+    /// 2026-10-05); before that the map of everything opens, no question.
     private func start() {
-        guard !started, !places.isEmpty else { return }
+        guard !started, !places.isEmpty, Launch.shared.splashDone else { return }
         started = true
         let toList = { if view == .map { view = .list } }
         Task {
             guard await NearMe.online() else { return toList() }
+            switch nearMe.onOpen(placeCount: places.count) {
+            case .wait: return  // the map of everything, no question yet
+            case .refused: return toList()
+            case .locate: break
+            }
             guard let fix = await nearMe.locate() else { return toList() }
             here = fix
             if shown.contains(where: { fix.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude)) <= NearMe.km * 1000 }) {

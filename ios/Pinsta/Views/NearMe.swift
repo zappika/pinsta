@@ -34,6 +34,21 @@ final class NearMe: NSObject, CLLocationManagerDelegate {
         }
     }
 
+    /// The opening screen may use location: already allowed, or not yet asked and
+    /// the list has grown to `askAfter` places. A new user's first launches never
+    /// open on a permission question; picking Near me always may ask.
+    static let askAfter = 3
+
+    enum OnOpen { case locate, wait, refused }
+
+    func onOpen(placeCount: Int) -> OnOpen {
+        switch manager.authorizationStatus {
+        case .authorizedWhenInUse, .authorizedAlways: return .locate
+        case .notDetermined: return placeCount >= Self.askAfter ? .locate : .wait
+        default: return .refused
+        }
+    }
+
     /// nil when location is off or refused.
     func locate() async -> CLLocation? {
         switch manager.authorizationStatus {

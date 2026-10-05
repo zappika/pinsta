@@ -16,7 +16,7 @@ import BuddyMenu from "./BuddyMenu";
 import { MAPS_LABEL, defaultMaps, openIn, setDefaultMaps, type MapsApp } from "@/lib/directions";
 import ViewSwitch, { type View } from "./ViewSwitch";
 import { destinationLabels } from "@/lib/grouping";
-import { NEAR, NEAR_KM, currentPosition, kmBetween } from "@/lib/geo";
+import { NEAR, NEAR_KM, currentPosition, kmBetween, locationOnOpen } from "@/lib/geo";
 
 export default function PinstaApp() {
   const [places, setPlaces] = useState<Place[] | null>(null);
@@ -162,15 +162,19 @@ export default function PinstaApp() {
 
   // Opening screen: the map, Near me. Offline, no location, or a map that does not
   // load → the list of everything. Nothing within reach → the map of everything.
-  // Whatever was picked meanwhile wins.
+  // Whatever was picked meanwhile wins. Below ASK_AFTER places, a browser that
+  // hasn't been asked yet opens on the map of everything, without a prompt.
   const started = useRef(false);
   useEffect(() => {
     if (started.current || !places || places.length === 0) return;
     started.current = true;
     const toList = () => setViewState((v) => (v === "map" ? "list" : v));
     if (!navigator.onLine) return toList();
-    currentPosition()
-      .then((pos) => {
+    locationOnOpen(places.length)
+      .then(async (may) => {
+        if (may === "wait") return; // not asked yet and the list is still small: no prompt
+        if (may === "refused") return toList();
+        const pos = await currentPosition();
         setHere(pos);
         if (wherePick.current > 0) return; // a pick (even "everywhere") came first
         if (places.some((p) => kmBetween(pos, p) <= NEAR_KM)) setCity((c) => c ?? NEAR);

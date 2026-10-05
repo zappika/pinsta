@@ -10,6 +10,25 @@ export function kmBetween(a: { lat: number; lng: number }, b: { lat: number; lng
   return 12742 * Math.asin(Math.sqrt(h));
 }
 
+/** The opening screen asks for location only from this many saved places on (Sarp, 2026-10-05). */
+export const ASK_AFTER = 3;
+
+/**
+ * What the opening screen may do with location: "locate" when the browser already
+ * allows it or it hasn't been asked and the list has ASK_AFTER places; "wait" when
+ * it hasn't been asked and the list is smaller (no prompt on a new list); "refused".
+ * Picking Near me always may ask.
+ */
+export async function locationOnOpen(placeCount: number): Promise<"locate" | "wait" | "refused"> {
+  const state = await navigator.permissions
+    ?.query({ name: "geolocation" })
+    .then((p) => p.state)
+    .catch(() => "prompt" as const);
+  if (state === "granted") return "locate";
+  if (state === "denied") return "refused";
+  return placeCount >= ASK_AFTER ? "locate" : "wait";
+}
+
 export function currentPosition(): Promise<{ lat: number; lng: number }> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) return reject(new Error("unsupported"));
