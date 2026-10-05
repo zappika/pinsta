@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import SettingsSheet from "./SettingsSheet";
 import UsageSheet from "./UsageSheet";
+import ElephantMark from "./ElephantMark";
 
 /**
- * The round "you" button, top right: a short menu. Settings (appearance,
- * directions) and Usage (what the paid APIs cost this month) open as their own sheets; imports are placeholders for the
+ * The round elephant menu button, top right: a short menu. Settings (appearance,
+ * directions) and Usage open as their own sheets; imports are placeholders for the
  * roadmap (plan.md: Menu, Settings and Imports); Lock forgets the owner key.
  */
 export default function BuddyMenu() {
@@ -35,12 +36,9 @@ export default function BuddyMenu() {
         aria-label="Menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="flex h-9 w-9 items-center justify-center rounded-full bg-stone-200 text-stone-600 active:bg-stone-300"
+        className="vicolo-menu flex h-11 w-11 items-center justify-center rounded-full bg-stone-200 text-stone-900 active:bg-stone-300"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
-          <circle cx="12" cy="8" r="4" />
-          <path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
-        </svg>
+        <ElephantMark />
       </button>
       {open && (
         <div role="menu" className="absolute right-0 top-11 z-30 w-64 overflow-hidden rounded-2xl bg-white py-1 shadow-lg ring-1 ring-black/5">

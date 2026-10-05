@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import BrandIllustration from "./BrandIllustration";
 import { MAPS_LABEL, clearDefaultMaps, defaultMaps, setDefaultMaps, type MapsApp } from "@/lib/directions";
 import { setTheme, storedTheme, type Theme } from "@/lib/theme";
 
@@ -31,6 +32,11 @@ export default function SettingsSheet({ onClose }: { onClose: () => void }) {
           <button type="button" onClick={onClose} className="-mr-2 rounded-full px-2 py-1 text-sm font-medium text-stone-500 active:bg-stone-100">
             Done
           </button>
+        </div>
+
+        <div className="flex items-center gap-3 px-4 py-3">
+          <div className="shrink-0"><BrandIllustration small /></div>
+          <div><p className="text-sm font-medium">Vicolo</p><p className="text-xs text-stone-500">A little collection of places.</p></div>
         </div>
 
         <div className="divide-y divide-stone-100 px-4 pb-2">

@@ -167,3 +167,17 @@ body {
   .pinsta-rise, .pinsta-fade { animation: none; }
   .pinsta-fab { transition: none; }
 }
+
+/* Vicolo's accent is local to selected picker rows; the app's neutral palette stays intact. */
+:root { --vicolo-selection: #faeee9; }
+:root[data-theme="dark"] { --vicolo-selection: #302937; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --vicolo-selection: #302937; }
+}
+.vicolo-selected, .vicolo-selected:active { background-color: var(--vicolo-selection); }
+.vicolo-menu { transition: transform 140ms ease-out; }
+.vicolo-menu:active { transform: scale(.97); }
+@media (prefers-reduced-motion: reduce) {
+  .vicolo-menu { transition: none; }
+  .vicolo-menu:active { transform: none; }
+}

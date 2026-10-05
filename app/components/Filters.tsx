@@ -181,7 +181,8 @@ function Picker({
                 <button
                   type="button"
                   onClick={() => onSelect(o.value)}
-                  className="flex w-full items-center justify-between px-4 py-3.5 text-left text-base active:bg-stone-50"
+                  aria-pressed={active}
+                  className={`vicolo-picker-row flex w-full items-center justify-between px-4 py-3.5 text-left text-base active:bg-stone-50 ${active ? "vicolo-selected" : ""}`}
                 >
                   <span className={`flex items-center gap-2 ${active ? "font-semibold" : "font-medium"}`}>
                     {o.locate && <LocateGlyph />}

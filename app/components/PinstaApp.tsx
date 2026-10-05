@@ -1,5 +1,7 @@
 "use client";
 
+import BrandIllustration from "./BrandIllustration";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, setOwnerKey } from "@/lib/api";
 import type { Place } from "./types";
@@ -277,29 +279,22 @@ export default function PinstaApp() {
         )}
 
         {places && places.length === 0 && (
-          // Same steps as the iOS app: iOS hides a new share extension under "More".
-          <div className="mx-auto mt-24 max-w-[300px]">
-            <p className="text-xl font-semibold">Nothing saved yet</p>
-            <ol className="mt-4 space-y-3 text-sm text-stone-500">
-              {[
-                <>In Instagram or TikTok, tap <b className="font-semibold text-stone-600">Share</b> on a post of a place.</>,
-                <>First time only: scroll the app row to the end, tap <b className="font-semibold text-stone-600">More</b>, and add <b className="font-semibold text-stone-600">Vicolo</b> to Favorites.</>,
-                <>Tap <b className="font-semibold text-stone-600">Vicolo</b>. The place lands here.</>,
-              ].map((step, i) => (
-                <li key={i} className="flex gap-2.5">
-                  <span className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-stone-200 text-xs font-semibold tabular-nums">{i + 1}</span>
-                  <span>{step}</span>
-                </li>
-              ))}
-            </ol>
-            <p className="mt-4 text-sm text-stone-400">Or tap + and paste a link.</p>
+          <div className="mx-auto mt-10 max-w-[300px] text-center">
+            <BrandIllustration />
+            <h2 className="mt-5 text-xl font-semibold">Your next favorite starts here</h2>
+            <p className="mt-2 text-sm leading-relaxed text-stone-500">Save a place you want to try. Keep it for when you’re nearby.</p>
+            <button type="button" onClick={() => setAdding(true)} className="mt-5 min-h-11 rounded-full bg-stone-900 px-5 py-3 text-sm font-medium text-white active:opacity-80">Save your first place</button>
+            <p className="mt-3 text-xs leading-relaxed text-stone-500">Paste a link from Instagram, TikTok, or Google Maps.</p>
           </div>
         )}
 
         {places && places.length > 0 && visible.length === 0 && view !== "map" && (
-          <p className="mt-12 text-center text-sm text-stone-500">
-            No places match these filters.
-          </p>
+          <div className="mx-auto mt-10 max-w-[280px] text-center">
+            <BrandIllustration coffee={category === "Cafe"} />
+            <h2 className="mt-4 text-base font-medium">No places here yet</h2>
+            <p className="mt-2 text-sm text-stone-500">Try another area or clear your filters.</p>
+            <button type="button" onClick={() => { setCity(null); setCategory(null); }} className="mt-3 min-h-11 rounded-full px-4 text-sm font-medium underline underline-offset-4">Show all places</button>
+          </div>
         )}
 
         {places && places.length > 0 && view === "map" && (
