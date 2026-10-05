@@ -16,9 +16,12 @@ struct PinstaApp: App {
                 case .failure: StoreErrorView()
                 }
                 if splash {
-                    SplashVideoView { withAnimation(.easeOut(duration: 0.45)) { splash = false } }
-                        .transition(.opacity)
-                        .zIndex(1)
+                    // It fades itself out, then goes.
+                    SplashVideoView {
+                        splash = false
+                        Launch.shared.splashDone = true
+                    }
+                    .zIndex(1)
                 }
             }
             // The in-app Appearance applies once the splash is gone: the splash follows

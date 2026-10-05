@@ -10,6 +10,14 @@ import UIKit
 /// movie, like the launch screen, so an opposite in-app Appearance can't flash.
 /// Anything that goes wrong (no file, a failed or stalled movie) finishes at once,
 /// and a hard timeout means the splash can never keep you out of the app.
+/// Whether the splash is over, so the app's own screen can start asking for
+/// things (the location question waits for this).
+@Observable
+final class Launch {
+    static let shared = Launch()
+    var splashDone = !SplashVideoView.shouldPlay
+}
+
 struct SplashVideoView: View {
     let onFinish: () -> Void
 
@@ -121,25 +129,35 @@ final class SplashUIView: UIView {
 
     private var started = false
 
+    private static func testing(_ flag: String) -> Bool { ProcessInfo.processInfo.arguments.contains(flag) }
+
     private func start() {
         guard !started, onFinish != nil else { return }
+        // Testing the colour match (CLAUDE.md, "Splash assets"): hold the poster, or the movie's first frame.
+        if Self.testing("-splashPosterOnly") { timeout?.invalidate(); return }
         started = true
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         movieLayer.opacity = 1
         CATransaction.commit()
+        if Self.testing("-splashFrozen") { timeout?.invalidate(); return }
         player.play()
         timeout?.invalidate()
         timeout = Timer.scheduledTimer(withTimeInterval: Self.playLimit, repeats: false) { [weak self] _ in self?.finish() }
     }
 
     /// Once only, whatever calls it first (end, failure, background, timeout).
+    /// The fade happens here, in UIKit: SwiftUI's removal transition never animated
+    /// this view, so the movie cut to the app in one frame (measured, 2026-10-05).
     private func finish() {
         guard let done = onFinish else { return }
         onFinish = nil
         stop()
-        // Not inside SwiftUI's update (this can run from init when the file is missing).
-        DispatchQueue.main.async(execute: done)
+        // Nothing on screen yet (no movie file, called from init): no fade to show.
+        guard window != nil, started else { DispatchQueue.main.async(execute: done); return }
+        UIView.animate(withDuration: 0.45, delay: 0, options: [.curveEaseOut, .beginFromCurrentState]) {
+            self.alpha = 0
+        } completion: { _ in done() }
     }
 
     func stop() {
