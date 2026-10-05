@@ -2,7 +2,13 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
-## Last session — 2026-10-02 (late): hygiene, review fixes, embeds
+## Last session — 2026-10-05: animated splash, location question later
+- **Animated splash (Take 1) integrated**, replacing the timed still: launch storyboard with the movie's first frame, then the movie (AVPlayerLayer), muted, once, fading into the app. Phone's light/dark, frozen; in-app Appearance after. Skipped with Reduce Motion and on resume; can't block the app (missing file, failure, background, timeouts). Checked on the simulator: light, dark, dark phone + Light in-app, resume, Reduce Motion, iPhone 17 / 17 Pro / 17e.
+- **No hand-off jump, measured.** A frame-by-frame difference over screen recordings found two problems and both are fixed: (1) the splash cut to the app in one frame (SwiftUI's fade never ran; it also did in build 7 — that was the "little jump"), now a 0.45 s UIKit fade; (2) the posters' HDTV colour profile made the launch screen brighter than the movie, a dim at the hand-off; posters relabelled sRGB (`ios/scripts/splash-poster.swift`), poster and movie now match on screen within 0.2 brightness. What remains in the first 0.2 s is iOS's own open-app zoom.
+- **The location question waits** (Sarp): asked on open only once the list has 3 places, and on iOS only after the splash. Below that, the map of everything, no question. Same rule on the web. Picking Near me always may ask; refused still opens the List.
+- **Not yet in a build:** the other agent is re-exporting higher-quality splash movies (the dark one was 544 px wide and lost steam). Integrate them with the "Splash assets" steps in CLAUDE.md, then Build 8.
+
+## Session before — 2026-10-02 (late): hygiene, review fixes, embeds
 Everything below is on `main` and deployed. iOS changes are in code and checked on the simulator, **not yet in a TestFlight build** (build 7 predates them).
 - **Code review (web + iOS) and fixes.** Two read-only reviews found 32 issues; all fixed except web rate limiting (needs Sarp, see below). Highlights:
   - *Data safety:* iOS never opens an empty stand-in store when the shared one fails (it showed as a lost list); web "Wrong place?" on an "Already saved" receipt could hard-delete the existing card; a reload could bring back a place pending delete.
@@ -17,7 +23,7 @@ Everything below is on `main` and deployed. iOS changes are in code and checked 
 - Verified: `tsc`, `next build`, iOS simulator build; migration over an existing list with the new fields; duplicate save makes no paid call (usage unchanged); gone post → 404 permanent; bad input → 400/404. Not verified here: the web map redraw fix (the browser pane was hidden, so MapLibre never painted), the share extension end to end.
 
 ## Waiting on Sarp
-1. **Build 8 to TestFlight** with tonight's iOS fixes (bump `CURRENT_PROJECT_VERSION` to 8; CLAUDE.md "Shipping a TestFlight build"). Then on the phone: Share from inside Instagram (never tested on a device), the share card over Instagram (no grey page behind it), the Where/What pickers, card icons and the glass tab bar, splash, Map · Near me on open, $ on a restaurant save, the sheet ⋯ and the embedded post, the keyboard when the save sheet opens, swipe thresholds and Undo timing, real `vm.tiktok.com` / `maps.app.goo.gl` links.
+1. **New splash export from the other agent**, then integrate (CLAUDE.md "Splash assets") and **Build 8 to TestFlight** with the 2026-10-02 fixes and the splash (bump `CURRENT_PROJECT_VERSION` to 8; CLAUDE.md "Shipping a TestFlight build"). Then on the phone: Share from inside Instagram (never tested on a device), the share card over Instagram (no grey page behind it), the Where/What pickers, card icons and the glass tab bar, splash, Map · Near me on open, $ on a restaurant save, the sheet ⋯ and the embedded post, the keyboard when the save sheet opens, swipe thresholds and Undo timing, real `vm.tiktok.com` / `maps.app.goo.gl` links.
 2. **App Store Connect:** beta info (short description, feedback email), privacy policy URL `https://pinsta-two.vercel.app/privacy`, external testing group, submit for Beta App Review → public link.
 3. **Rate limit the open paid endpoints?** `/api/extract` (Apify) and `/api/price` (Google) are open to anyone who reads this public repo. Proposal: a Vercel Firewall rule, 20 requests a minute per IP on both. A production config change, so it's Sarp's call.
 4. After the first weekend: Usage sheet (buddy menu) for what friends' saves cost.
@@ -250,4 +256,6 @@ pre-loaded with the shared post and saves to the same list the app shows.
 - **2026-10-02 — iOS embeds posts in the full sheet**, like the web (it was a "decide" item; the web version is the settled one).
 - **2026-10-02 — iCloud backup deferred past the beta (CTO).** Can't be verified without a device and iCloud sign-in; a migration mistake the night before friends install costs more than the feature gives.
 - **2026-10-02 — Keyboard jump in the add sheet fixed** (Sarp asked for the after-beta fixes; supersedes "not fixing for now", 2026-09-29).
+- **2026-10-05 — Animated splash (Take 1) replaces the still**; the launch screen becomes a storyboard so the poster can aspect-fill like the movie.
+- **2026-10-05 — Location is asked on open only from 3 saved places, and after the splash (Sarp).** A new user's first launches never open on a permission question.
 - **2026-10-02 — Background retries back off; gone posts are never retried.** Each retry is a paid call on Sarp's accounts.

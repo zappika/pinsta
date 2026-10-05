@@ -49,7 +49,7 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   coordinates) is filed under that city: MapKit names districts ("Beyoğlu", "Nordhavn").
 - **Views** (`ViewSwitch.tsx` ↔ `ViewSwitch.swift`): the bottom pill picks Map / List / Cards / Tiles for the
   current Where·What selection (iOS 26+: the system tab bar, the + as its search-role tab). Map pins are emoji on type tints, grouped when they overlap. The round + opens the save sheet and becomes its ×. Tapping a place opens a pull-up sheet (short → full → away); the full sheet embeds the posts (web: embed.js; iOS: `PostEmbedView`, the platform's embed page in a web view sized to its content). Map: MapLibre + OpenFreeMap on web, MapKit on iOS, framed to fit the
-  selection. Tiles: Instagram profile grid. Pin/tile tap → `PeekCard`. Every visit/launch opens on Map · Near me (both apps); offline, no location, or a map that hasn't drawn in 12 s → List of everything. Nothing within 50 km → the map of everything.
+  selection. Tiles: Instagram profile grid. Pin/tile tap → `PeekCard`. Every visit/launch opens on Map · Near me (both apps); offline, refused location, or a map that hasn't drawn in 12 s → List of everything. Nothing within 50 km → the map of everything. Location is never *asked* on open until the list has 3 places (`ASK_AFTER` in `lib/geo.ts` ↔ `NearMe.askAfter`), and on iOS only after the splash; before that it opens on the map of everything. Picking Near me always may ask.
 - **Photos:** a place never goes without one. Web: `lib/photo.ts` (post image → Google photo) on save; a client whose read failed sends `postUnreadable` so the save doesn't pay Apify again.
   iOS: `PhotoRetry` re-reads photo-less posts on launch/foreground, with `Backoff` (6 h doubling to 2 weeks, six tries; the least-tried first) and `photoGaveUp` once `/api/extract` says `permanent: true` (deleted/private post, 404). `PriceLookup` uses the same backoff. No Google there.
   Shown through `PlacePhoto` (downsampled once, off the main thread, cached) — never `UIImage(data:)` in a view body.
@@ -60,11 +60,11 @@ Pinsta. Instagram itself can't be installed in the Simulator.
 - **One place, many posts** (`lib/same-place.ts`): a save that matches an existing place (same Google id, or ≤60 m + a shared name word) appends to its `posts` jsonb instead of inserting. First post stays in the row columns.
 - **Usage (cost tracker):** every paid call bumps a per-day row in `usage` via `countCall()` (`lib/usage.ts`, which also holds the SKU prices and free allowances): Apify reads, Google Text Search Pro (`searchPlaces`) / Enterprise (`findPriceLevel`), Place Details Pro / Enterprise (`getPlace` without / with price), Place Photos (the media call in `lib/photo.ts`; its details call asks only `photos`, the free IDs Only SKU). A new paid call needs a `countCall` and, for a new SKU, an entry in `SERVICES`. Owner-only `GET /api/usage` sums the month, and Apify's real dollars come from its API (`/users/me/usage/monthly` + plan credit from `/users/me`). Buddy menu → Usage.
 - **Settings, per device** (web localStorage / iOS `Settings` in UserDefaults): Directions app (asked on first use), Appearance (System/Light/Dark). Both live in the round buddy menu, top right.
-- **Near me:** a Where option, 50 km. Location is asked on open (it is the opening screen), in both apps.
+- **Near me:** a Where option, 50 km. Asked on open only from 3 saved places (see Views), or when picked.
 - **Edit / delete:** Cards: swipe right-to-left (or right-click on web) → round change/remove buttons; full swipe removes. Map/List/Tiles: the place sheet (`PeekCard` ↔ `PeekCardView`) has a ⋯ ("Change or remove") → Change place / Remove. Delete is deferred 5 s behind an Undo toast (`PinstaApp.tsx` / `PlacesListView.swift`); a delete the server rejects brings the place back on reload; opening the save sheet commits a pending delete first.
 - **Cards and list rows:** name, then type · price · town in grey. No type dots (Sarp, 2026-10-02); the type tints stay on map pins and photo-less tiles.
 - **Price ($–$$$$):** Google `priceLevel` → `price_level` 1–4. Web: only `getPlace(id, { price: true })` on save/change asks (Enterprise tier); keep it off searches. iOS: `PriceLookup` (in `PostReader.swift`) calls open `POST /api/price` for food and drink places after a save and on foreground; `priceChecked` stops repeats.
-- **iOS splash:** `SplashView` in `PinstaApp.swift` repeats the `UILaunchScreen` art, holds 1.2 s, fades out. Change the art in both places.
+- **iOS splash (Take 1 movie, ~4 s):** `Resources/LaunchScreen.storyboard` shows the poster (the movie's first frame, aspect fill to the edges); `SplashVideoView` takes over with the same poster, swaps to the movie (`Resources/Splash/*.mp4`, AVPlayerLayer, aspect fill) when its first frame is ready, plays once muted (`.ambient`, mixes with music), and fades *itself* out in UIKit (a SwiftUI removal transition never animated it: build 7's splash cut to the app in one frame). Light/dark = the phone's at launch, frozen; the in-app Appearance applies after. Skipped with Reduce Motion, on `-addURL`, and after a return from the background; missing file, failure, background or 4 s without a first frame / 6 s of playback end it. `Launch.shared.splashDone` tells the list it may start (location question). See "Splash assets" for replacing the movie.
 - **iOS data:** SwiftData store in App Group `group.se.sarper.vicolo`, shared with
   the extension. Every install starts empty (no web import). `Persistence.opened` is the
   store or its error — it never opens a different store in its place (an empty stand-in
@@ -74,6 +74,12 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   screen shows (filters, open sheet, location) lives in `Screen`, outside the rebuilt view.
 - **New `Place` fields need a default** (`= 0`, `= false`, or optional): that is what lets
   SwiftData migrate an existing store by itself. Test with the worktree upgrade below.
+
+## Splash assets
+A new movie/poster pair (from the export in `exports/vicolo-splash/VicoloSplash-iOS`, not in git):
+1. Copy `Media/*.mp4` to `ios/Pinsta/Resources/Splash/` (keep the names) and the poster PNGs into `Assets.xcassets/VicoloSplashPoster.imageset`. Poster and movie must be the same export: the poster is that movie's first frame.
+2. `swift ios/scripts/splash-poster.swift ios/Pinsta/Resources/Assets.xcassets/VicoloSplashPoster.imageset` — relabels the posters sRGB without touching pixels. The exports carry an "HDTV" profile, which the launch screen and UIImageView honour but AVPlayerLayer doesn't, so the poster showed brighter than the movie and the screen dimmed at the hand-off (measured 2026-10-05).
+3. Check: launch with `-splashPosterOnly` and `-splashFrozen` (holds the poster / the movie's first frame), `xcrun simctl io <device> screenshot` each, in light and dark; the two must match (mean brightness within ~0.5). Uninstall first: iOS caches launch screens.
 
 ## iOS app icon
 The active `AppIcon.appiconset` uses the 1024px masters from `Vicolo-App-Icons.zip` (2026-10-02): pink/orange/yellow for Any (light/default), cobalt/lime/lilac for Dark. Xcode generates device renditions from these opaque PNGs; `ios/project.yml` selects `AppIcon`. Home Screen icon appearance is controlled by iOS, independently of the in-app Appearance preference.
@@ -153,6 +159,7 @@ xcodebuild -exportArchive -archivePath build/Vicolo.xcarchive -exportOptionsPlis
 - Use the second simulator (iPhone 17) for fresh-install and destructive tests; the main one (iPhone 17 Pro) keeps a list. UDIDs differ per Mac: `xcrun simctl list devices`.
 - SwiftData migration test: build the previous commit in a `git worktree`, install it, save a place, then install the new build over it (`simctl install` keeps the data).
 - `xcrun simctl location <id> set 41.39,2.17` + `xcrun simctl privacy <id> grant location se.sarper.vicolo` for Near me.
+- `-splashPosterOnly` / `-splashFrozen` hold the splash's poster / the movie's first frame (see "Splash assets").
 - Launch with `-slowNotices` to keep toasts up 30 s while checking them, and `-addURL <link>` to open the save sheet with a link the way a share does (Safari's Share menu ignores injected taps on the iOS 27 simulator).
 - Test auto-save with a tagged post that still exists (Ästad Vingård `DdJIacKIplU`) or a Maps link; Bar Brutal's post was deleted.
 
