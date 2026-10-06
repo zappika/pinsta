@@ -7,8 +7,8 @@ import ElephantMark from "./ElephantMark";
 
 /**
  * The round elephant menu button, top right: a short menu. Settings (appearance,
- * directions) and Usage open as their own sheets; imports are placeholders for the
- * roadmap (plan.md: Menu, Settings and Imports); Lock forgets the owner key.
+ * directions) and Usage open as their own sheets; Import from Google is its own
+ * page (/import); Lock forgets the owner key.
  */
 export default function BuddyMenu() {
   const [open, setOpen] = useState(false);
@@ -61,7 +61,10 @@ export default function BuddyMenu() {
           <Item
             icon={<><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></>}
             label="Import from Google"
-            soon
+            onClick={() => {
+              setOpen(false);
+              location.href = "/import";
+            }}
           />
           <div className="my-1 h-px bg-stone-100" />
           <Item

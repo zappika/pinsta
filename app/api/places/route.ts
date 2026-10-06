@@ -5,6 +5,7 @@ import { places } from "@/lib/db/schema";
 import { getPlace } from "@/lib/google-places";
 import { parseSourceUrl } from "@/lib/sources";
 import { findPhoto } from "@/lib/photo";
+import { CATEGORIES, type Category } from "@/lib/categories";
 
 // Finding a missing photo may mean re-reading the post (5–30 s).
 export const maxDuration = 60;
@@ -38,6 +39,8 @@ export async function POST(req: Request) {
     ownerUsername: str(raw.ownerUsername),
     /** The client's read of the post failed: no second Apify run for a photo. */
     postUnreadable: raw.postUnreadable === true,
+    /** Chosen by hand (the Google import's review), over the one Google's type gives. */
+    category: CATEGORIES.includes(raw.category as Category) ? (raw.category as Category) : undefined,
   };
 
   // Field keeps its old name; it holds any supported link (Instagram, TikTok, Google Maps).
@@ -124,7 +127,7 @@ export async function POST(req: Request) {
         city: p.city,
         region: p.region,
         primaryType: p.primaryType,
-        category: p.category,
+        category: body.category ?? p.category,
         priceLevel: p.priceLevel,
         imageUrl,
         caption: body.caption || null,
