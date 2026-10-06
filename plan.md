@@ -3,7 +3,7 @@
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
 ## Last session — 2026-10-06: tutorial on demand, /usage, drawer motion, Google import
-- **iOS: buddy menu → "How to save"** opens the three-page tutorial full screen over any list (× to close; Paste a link opens the save sheet). For testing the first run on a full phone, and for showing a friend. Checked on the simulator; not in a TestFlight build yet.
+- **iOS: buddy menu → "How to save"** opens the three-page tutorial full screen over any list (× to close; Paste a link opens the save sheet). For testing the first run on a full phone, and for showing a friend. Checked on the simulator; in build 10.
 - **/usage** (web, owner key): the month's costs as in the sheet, plus a bar a day for the last 30 days, Instagram reads and Google calls as separate charts. The Usage sheet links to it.
 - **Web drawer motion:** slides up from the edge, slides away however it closes (from where the finger let go), photo grows short ↔ full. Measured frame by frame in the browser; iOS port waits for Sarp's verdict.
 - **/import (web MVP):** shared Google Maps list link → review (untick, change a category, "All as…") → saved through POST /api/places (now takes a category). Reading goes through Google Maps' unofficial getlist endpoint. Read correctly on Sarp's Tokyo Coffee and Tokyo Bars lists (short and long share links); nothing imported by me, the save step is Sarp's to try.
@@ -37,7 +37,7 @@ Everything below is on `main` and deployed. iOS changes are in code and checked 
 - Verified: `tsc`, `next build`, iOS simulator build; migration over an existing list with the new fields; duplicate save makes no paid call (usage unchanged); gone post → 404 permanent; bad input → 400/404. Not verified here: the web map redraw fix (the browser pane was hidden, so MapLibre never painted), the share extension end to end.
 
 ## Waiting on Sarp
-1. **Build 9 on the phone** (uploaded 2026-10-06: share tutorial on an empty list, still splash, no embedded post, view pill and + separate again). From build 8 (2026-10-05): the splash in light and dark (dark movie on a dark phone, no flash at the hand-off), the brand touches (empty list on a fresh install, elephant menu, Settings, picker tint), and the location question only from 3 places. Then: Share from inside Instagram (never tested on a device), the share card over Instagram (no grey page behind it), the Where/What pickers, card icons and the glass pill + separate +, splash, Map · Near me on open, $ on a restaurant save, the sheet ⋯ and the post button (embed removed 2026-10-06), the keyboard when the save sheet opens, swipe thresholds and Undo timing, real `vm.tiktok.com` / `maps.app.goo.gl` links.
+1. **Build 10 on the phone** (uploaded 2026-10-06: menu → How to save opens the tutorial). Build 9 (same day: share tutorial on an empty list, still splash, no embedded post, view pill and + separate again). From build 8 (2026-10-05): the splash in light and dark (dark movie on a dark phone, no flash at the hand-off), the brand touches (empty list on a fresh install, elephant menu, Settings, picker tint), and the location question only from 3 places. Then: Share from inside Instagram (never tested on a device), the share card over Instagram (no grey page behind it), the Where/What pickers, card icons and the glass pill + separate +, splash, Map · Near me on open, $ on a restaurant save, the sheet ⋯ and the post button (embed removed 2026-10-06), the keyboard when the save sheet opens, swipe thresholds and Undo timing, real `vm.tiktok.com` / `maps.app.goo.gl` links.
 2. **App Store Connect:** beta info (short description, feedback email), privacy policy URL `https://pinsta-two.vercel.app/privacy`, external testing group, submit for Beta App Review → public link.
 3. **Rate limit the open paid endpoints?** `/api/extract` (Apify) and `/api/price` (Google) are open to anyone who reads this public repo. Proposal: a Vercel Firewall rule, 20 requests a minute per IP on both. A production config change, so it's Sarp's call.
 4. After the first weekend: Usage sheet (buddy menu) for what friends' saves cost.
@@ -95,6 +95,7 @@ Sarp tried the app fresh twice: it's flat and boring. Friends and family see it 
 **Expansions** (sections above): First experience first, then Menu/Imports, Check-ins, Social.
 
 ## Build log
+- **1.0 (10), 2026-10-06:** buddy menu → How to save (the share tutorial over any list).
 - **1.0 (9), 2026-10-06:** share tutorial on an empty list, still splash, no embedded post, view pill and + separate again.
 - **1.0 (8), 2026-10-05:** brand touches, animated splash (HQ export), location asked only from 3 places, the 2026-10-02 review fixes, embedded posts in the full sheet, keyboard fix.
 - **1.0 (7), 2026-10-02:** price, splash, Map · Near me, sheet ⋯. Uploaded from this Mac once Sarp signed into Xcode; Apple's `swinfo` step took ~11 min, normal.
