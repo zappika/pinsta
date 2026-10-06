@@ -8,16 +8,43 @@ import type { Place } from "./types";
  * One place, as a pull-up sheet over the map, list or tile grid (Apple Maps
  * style). Opens short: photo strip, name, actions. Drag up → the full card;
  * drag down → back to short, or away. The map behind stays live; tapping it closes.
+ *
+ * Motion (Sarp, 2026-10-06: it felt abrupt): it slides up from the edge, slides
+ * back down when closed (however it was closed), and the photo grows between
+ * short and full instead of the card being swapped.
  */
-type Props = { place: Place; onClose: () => void; onEdit: () => void; onDelete: () => void };
+type Props = { place: Place | null; onClose: () => void; onEdit: (p: Place) => void; onDelete: (p: Place) => void };
 
-export default function PeekCard({ place, onClose, onEdit, onDelete }: Props) {
+const EXIT_MS = 260;
+
+export default function PeekCard({ place, ...rest }: Props) {
+  // The last place stays on screen while it slides away.
+  const [shown, setShown] = useState(place);
+  const [leaving, setLeaving] = useState(false);
+  useEffect(() => {
+    if (place) {
+      setShown(place);
+      setLeaving(false);
+      return;
+    }
+    setLeaving(true);
+    const t = setTimeout(() => setShown(null), EXIT_MS);
+    return () => clearTimeout(t);
+  }, [place]);
+  if (!shown) return null;
+  return <Sheet place={shown} leaving={leaving} {...rest} />;
+}
+
+function Sheet({ place, leaving, onClose, onEdit, onDelete }: Omit<Props, "place"> & { place: Place; leaving: boolean }) {
   const [full, setFull] = useState(false);
   const [dy, setDy] = useState(0);
   const drag = useRef<{ y: number; moved: boolean } | null>(null);
 
   // A different place opens short again.
-  useEffect(() => setFull(false), [place.id]);
+  useEffect(() => {
+    setFull(false);
+    setDy(0);
+  }, [place.id]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -40,22 +67,29 @@ export default function PeekCard({ place, onClose, onEdit, onDelete }: Props) {
     const d = dy;
     const moved = drag.current?.moved;
     drag.current = null;
-    setDy(0);
     if (!moved) {
+      setDy(0);
       setFull((f) => !f); // a tap on the handle toggles
       return;
     }
+    // Dragged away: keep the offset, so it leaves from where the finger let go.
+    if (d > 80 && !full) return onClose();
+    setDy(0);
     if (d < -50) setFull(true);
-    else if (d > 80) full ? setFull(false) : onClose();
+    else if (d > 80) setFull(false);
   }
 
   return (
     <div className="pointer-events-none fixed inset-0 z-20 mx-auto flex max-w-md flex-col justify-end" role="dialog" aria-label={place.name}>
       <div
-        className="pinsta-rise pointer-events-auto relative flex max-h-[85dvh] flex-col overflow-hidden rounded-t-3xl bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgb(0_0_0/0.12)]"
+        className={`pinsta-sheet relative flex max-h-[85dvh] flex-col overflow-hidden rounded-t-3xl bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgb(0_0_0/0.12)] ${leaving ? "pointer-events-none" : "pointer-events-auto"}`}
         style={{
-          transform: `translateY(${Math.max(dy, full ? -20 : -120)}px)`,
-          transition: drag.current ? "none" : "transform 280ms cubic-bezier(.22,1,.36,1)",
+          transform: leaving ? `translateY(calc(100% + ${Math.max(dy, 0) + 24}px))` : `translateY(${Math.max(dy, full ? -20 : -120)}px)`,
+          transition: drag.current
+            ? "none"
+            : leaving
+              ? `transform ${EXIT_MS}ms cubic-bezier(.4,0,1,1)`
+              : "transform 420ms cubic-bezier(.32,.72,0,1)",
         }}
       >
         <div
@@ -77,7 +111,8 @@ export default function PeekCard({ place, onClose, onEdit, onDelete }: Props) {
           <span className="h-1.5 w-10 rounded-full bg-stone-300" />
         </div>
         <div className={full ? "overflow-y-auto" : "overflow-hidden"}>
-          <PlaceCard key={full ? "full" : "short"} place={place} compact={!full} expanded={full} onEdit={onEdit} onDelete={onDelete} />
+          {/* Not re-keyed by size: the same card stays, so its photo can grow (PlaceCard). */}
+          <PlaceCard place={place} compact={!full} expanded={full} onEdit={() => onEdit(place)} onDelete={() => onDelete(place)} />
         </div>
       </div>
     </div>

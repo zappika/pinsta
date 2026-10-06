@@ -352,20 +352,19 @@ export default function PinstaApp() {
         )}
       </section>
 
-      {peek && view !== "cards" && (
-        <PeekCard
-          place={peek}
-          onClose={() => setPeek(null)}
-          onEdit={() => {
-            setPeek(null);
-            setEditing(peek);
-          }}
-          onDelete={() => {
-            setPeek(null);
-            remove(peek);
-          }}
-        />
-      )}
+      {/* Always mounted: given null it slides the last place away instead of vanishing. */}
+      <PeekCard
+        place={view !== "cards" ? peek : null}
+        onClose={() => setPeek(null)}
+        onEdit={(p) => {
+          setPeek(null);
+          setEditing(p);
+        }}
+        onDelete={(p) => {
+          setPeek(null);
+          remove(p);
+        }}
+      />
 
       {notice && !toast && (
         <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-40 mx-auto max-w-md px-5">
