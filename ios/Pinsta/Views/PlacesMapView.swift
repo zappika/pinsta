@@ -2,7 +2,7 @@ import SwiftUI
 import MapKit
 
 /// The current Where·What selection on a map, framed to fit it. Pins are the
-/// category emoji on a soft type tint (a photo shrunk to 44pt is unreadable).
+/// category icon on a soft type tint (a photo shrunk to 44pt is unreadable).
 /// Pins that would overlap on screen group into a count on the tint of their
 /// most common type; tap a group to zoom until it splits. Port of the web's
 /// PlacesMap: same 44pt rule, no grouping at street level.
@@ -125,8 +125,8 @@ struct PlacesMapView: View {
 
     private func pin(_ place: Place) -> some View {
         let active = selected?.id == place.id
-        return Text(place.category.emoji)
-            .font(.system(size: 20))
+        return place.category.icon.resizable().scaledToFit()
+            .frame(width: 28, height: 28)
             .frame(width: 44, height: 44)
             .background(place.category.tint, in: Circle())
             .overlay(Circle().strokeBorder(active ? Color.primary : Color(.systemBackground), lineWidth: 3))

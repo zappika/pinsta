@@ -2,7 +2,7 @@ import SwiftUI
 
 /// The Instagram profile grid: three across, edge to edge, portrait crops,
 /// hairline gaps, no words. The name lives in the PeekCard a tap opens.
-/// No photo → the type emoji on its tint. Fewer than six places → quiet
+/// No photo → the type icon on its tint. Fewer than six places → quiet
 /// placeholder tiles fill two rows, the first nudging to share more.
 struct PlaceTilesView: View {
     let places: [Place]
@@ -49,7 +49,7 @@ struct PlaceTilesView: View {
             PlacePhoto(place: place, points: 200)
         } else {
             place.category.tint.overlay {
-                Text(place.category.emoji).font(.system(size: 30))
+                place.category.icon.resizable().scaledToFit().frame(width: 48, height: 48)
             }
         }
     }

@@ -19,8 +19,7 @@ enum PlaceCategory: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    /// One glyph per bucket — map pins and photo-less tiles. Mirrors `CATEGORY_EMOJI` on the web.
-    /// Soft fill behind the emoji (map pins, photo-less tiles). Same values as the web.
+    /// Soft fill behind the type icon (map pins, photo-less tiles). Same values as the web.
     var tint: Color {
         switch self {
         case .restaurant: return Color(hex: 0xFDE2D4)
@@ -40,21 +39,9 @@ enum PlaceCategory: String, CaseIterable, Identifiable {
     /// Where a price means something. Only these spend a Google lookup (/api/price).
     var hasPrice: Bool { [.restaurant, .cafe, .bar, .bakery].contains(self) }
 
-    var emoji: String {
-        switch self {
-        case .restaurant: return "🍽️"
-        case .cafe: return "☕️"
-        case .bar: return "🍷"
-        case .vineyard: return "🍇"
-        case .bakery: return "🥐"
-        case .hotel: return "🛏️"
-        case .shop: return "🛍️"
-        case .attraction: return "📍"
-        case .museum: return "🏛️"
-        case .nature: return "🌲"
-        case .other: return "📍"
-        }
-    }
+    /// Sarp's 3D icon for the bucket (2026-10-06): map pins, photo-less list rows
+    /// and tiles. The Type* assets; the web's `iconFor` serves the same set.
+    var icon: Image { Image("Type\(rawValue)") }
 
     var plural: String {
         switch self {
