@@ -13,6 +13,11 @@ struct BuddyMenu: View {
             } label: {
                 Label("Settings", systemImage: "gearshape")
             }
+            Button {
+                settings.showingTutorial = true
+            } label: {
+                Label("How to save", systemImage: "questionmark.circle")
+            }
             Button {} label: {
                 Label("Import from Google", systemImage: "square.and.arrow.down")
                 Text("Soon")

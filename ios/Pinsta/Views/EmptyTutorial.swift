@@ -62,6 +62,35 @@ struct EmptyTutorial: View {
 
 /// Tutorial-local colours from the approved design. Light only was approved; dark
 /// falls back to the app's own dark surfaces with the same accents, toned down.
+/// The same three pages from the buddy menu, over a list that isn't empty:
+/// for showing a friend how to save, and for testing the first run on a full phone.
+struct TutorialCover: View {
+    let onPaste: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var page = 0
+
+    var body: some View {
+        EmptyTutorial(page: $page, onPaste: onPaste)
+            // Clear of the × (the empty list has its header there instead).
+            .padding(.top, 48)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Tutorial.background)
+            .overlay(alignment: .topTrailing) {
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 36, height: 36)
+                        .background(Color(.tertiarySystemFill), in: Circle())
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Close")
+                .padding(.trailing, 12)
+            }
+    }
+}
+
 enum Tutorial {
     static let background = dynamic(light: 0xFAF7F2, dark: nil)
     static let surface = dynamic(light: 0xFFFFFF, dark: 0x1C1C1E)

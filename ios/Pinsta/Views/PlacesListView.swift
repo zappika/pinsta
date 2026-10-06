@@ -195,6 +195,10 @@ private struct PlacesContent: View {
         .animation(.snappy(duration: 0.25), value: picking)
         .animation(.snappy, value: notice)
         .sheet(isPresented: Bindable(settings).showingSheet) { SettingsSheet() }
+        .fullScreenCover(isPresented: Bindable(settings).showingTutorial) {
+            TutorialCover(onPaste: { settings.showingTutorial = false; adding = true })
+                .preferredColorScheme(settings.appearance.scheme)
+        }
         .confirmationDialog("Open directions in", isPresented: Bindable(settings).choosingOpen, titleVisibility: .visible) {
             ForEach(Settings.MapsApp.allCases, id: \.self) { app in
                 Button(app.label) {
