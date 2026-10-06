@@ -78,6 +78,7 @@ export function categorize(primaryType: string | null | undefined): Category {
   if (!primaryType) return "Other";
   const t = primaryType.toLowerCase();
   if (EXACT[t]) return EXACT[t];
+  if (t.startsWith("coffee")) return "Cafe"; // coffee_roastery, coffee_stand…
   if (t.endsWith("_restaurant")) return "Restaurant";
   if (t.endsWith("_bar")) return "Bar";
   if (t.endsWith("_store") || t.endsWith("_shop")) return "Shop";

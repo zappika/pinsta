@@ -25,7 +25,8 @@ export async function listIdFrom(input: string): Promise<string> {
   }
   const id =
     url.match(/\/placelists\/list\/([\w-]+)/)?.[1] ??
-    // Long form: …/data=!4m3!11m2!2s<id>!3e3
+    // Long forms: …/data=!4m2!11m1!2s<id> (the iOS share, 2026-10) or …!11m2!2s<id>!3e3
+    decodeURIComponent(url).match(/!11m\d+!2s([\w-]{16,})/)?.[1] ??
     decodeURIComponent(url).match(/!2s([\w-]{16,})!3e3/)?.[1];
   if (!id) throw new ListError("That link isn't a shared Google Maps list");
   return id;
