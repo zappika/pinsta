@@ -1,6 +1,6 @@
 "use client";
 
-import { emojiFor, tintFor } from "@/lib/categories";
+import { iconFor, tintFor } from "@/lib/categories";
 import type { Place } from "./types";
 
 type Props = {
@@ -36,7 +36,10 @@ export default function PlaceTiles({ places, selected, onSelect }: Props) {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={p.imageUrl} alt="" loading="lazy" decoding="async" draggable={false} className="h-full w-full object-cover" />
               ) : (
-                <span className="flex h-full w-full items-center justify-center text-3xl">{emojiFor(p.category)}</span>
+                <span className="flex h-full w-full items-center justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={iconFor(p.category)} alt="" draggable={false} className="h-12 w-12 object-contain" />
+                </span>
               )}
               {active && <span className="pointer-events-none absolute inset-0 ring-2 ring-inset ring-stone-900" />}
             </button>

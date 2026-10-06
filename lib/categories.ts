@@ -88,22 +88,7 @@ export function categorize(primaryType: string | null | undefined): Category {
   return "Other";
 }
 
-/** One glyph per bucket — map pins and photo-less tiles. Mirrored in `PlaceCategory.swift`. */
-const CATEGORY_EMOJI: Record<Category, string> = {
-  Restaurant: "🍽️",
-  Cafe: "☕️",
-  Bar: "🍷",
-  Vineyard: "🍇",
-  Bakery: "🥐",
-  Hotel: "🛏️",
-  Shop: "🛍️",
-  Attraction: "📍",
-  Museum: "🏛️",
-  Nature: "🌲",
-  Other: "📍",
-};
-
-/** Soft fills behind the emoji on map pins: quiet enough for the map, distinct enough to tell apart. */
+/** Soft fills behind the type icon on map pins: quiet enough for the map, distinct enough to tell apart. */
 const CATEGORY_TINT: Record<Category, string> = {
   Restaurant: "#fde2d4",
   Cafe: "#f3e3cf",
@@ -127,6 +112,12 @@ export function tintFor(category: string | null | undefined): string {
   return CATEGORY_TINT[(category ?? "Other") as Category] ?? CATEGORY_TINT.Other;
 }
 
-export function emojiFor(category: string | null | undefined): string {
-  return CATEGORY_EMOJI[(category ?? "Other") as Category] ?? "📍";
+/**
+ * One 3D icon per bucket (Sarp's set, 2026-10-06): map pins, photo-less list
+ * and tile thumbnails, the import's sections. 160 px PNGs in public/types,
+ * named after the category. Mirrored as the Type* assets on iOS (PlaceCategory.swift).
+ */
+export function iconFor(category: string | null | undefined): string {
+  const c = CATEGORIES.includes(category as Category) ? (category as Category) : "Other";
+  return `/types/${c.toLowerCase()}.png`;
 }

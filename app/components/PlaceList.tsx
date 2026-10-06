@@ -1,6 +1,6 @@
 "use client";
 
-import { emojiFor, priceLabel, tintFor } from "@/lib/categories";
+import { iconFor, priceLabel, tintFor } from "@/lib/categories";
 import { kmBetween } from "@/lib/geo";
 import type { Place } from "./types";
 
@@ -39,7 +39,10 @@ export default function PlaceList({ places, selected, onSelect, here, hideCatego
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={p.imageUrl} alt="" loading="lazy" decoding="async" draggable={false} className="h-full w-full object-cover" />
                 ) : (
-                  <span className="flex h-full w-full items-center justify-center text-2xl">{emojiFor(p.category)}</span>
+                  <span className="flex h-full w-full items-center justify-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={iconFor(p.category)} alt="" draggable={false} className="h-10 w-10 object-contain" />
+                  </span>
                 )}
               </div>
               <div className="min-w-0 flex-1">

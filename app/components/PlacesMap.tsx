@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import type * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { emojiFor, tintFor } from "@/lib/categories";
+import { iconFor, tintFor } from "@/lib/categories";
 import { isDark } from "@/lib/theme";
 import type { Place } from "./types";
 
@@ -154,8 +154,13 @@ export default function PlacesMap({ places, selected, onSelect, onFail }: Props)
         el.style.cssText = "width:44px;height:44px;cursor:pointer";
         const pin = document.createElement("div");
         pin.className = "pinsta-pin";
-        // Emoji only: a photo shrunk to 44px is unreadable; the type glyph reads at a glance.
-        pin.textContent = emojiFor(p.category);
+        // The type icon only: a photo shrunk to 44px is unreadable; the type reads at a glance.
+        const icon = document.createElement("img");
+        icon.src = iconFor(p.category);
+        icon.alt = "";
+        icon.draggable = false;
+        icon.className = "pinsta-pin-icon";
+        pin.append(icon);
         pin.style.backgroundColor = tintFor(p.category);
         pin.classList.toggle("active", p.id === selectedRef.current);
         const label = document.createElement("div");

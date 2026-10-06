@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api, setOwnerKey } from "@/lib/api";
-import { CATEGORIES, emojiFor, type Category } from "@/lib/categories";
+import { CATEGORIES, iconFor, type Category } from "@/lib/categories";
 import Locked from "./Locked";
 
 type Match = { placeId: string; name: string; city: string | null; category: Category };
@@ -207,7 +207,7 @@ export default function ImportPage() {
   );
 }
 
-type GroupT = { id: string; title: string; emoji?: string; category: Category | null; rows: Row[] };
+type GroupT = { id: string; title: string; category: Category | null; rows: Row[] };
 
 /**
  * The review, sorted the way a list is usually made ("Paris", "Tokyo bars"):
@@ -218,7 +218,6 @@ function groups(rows: Row[]): GroupT[] {
   const byCategory = CATEGORIES.map((c) => ({
     id: c,
     title: c,
-    emoji: emojiFor(c),
     category: c as Category,
     rows: rows.filter((r) => importable(r) && r.category === c),
   }));
@@ -245,8 +244,11 @@ function Group({ group, disabled, onRow, onGroup }: { group: GroupT; disabled: b
             className="h-4 w-4 shrink-0 accent-stone-900"
           />
         )}
+        {group.category && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={iconFor(group.category)} alt="" className="-my-1 h-7 w-7 shrink-0 object-contain" />
+        )}
         <h3 className="min-w-0 flex-1 truncate text-sm font-semibold">
-          {group.emoji && <span className="mr-1.5">{group.emoji}</span>}
           {group.title} <span className="font-normal text-stone-400">· {group.rows.length}</span>
         </h3>
         {group.category && open.length > 0 && (
@@ -282,7 +284,7 @@ function Move({ label, current, disabled, onMove }: { label: string; current: Ca
         </option>
         {CATEGORIES.filter((c) => c !== current).map((c) => (
           <option key={c} value={c}>
-            {emojiFor(c)} {c}
+            {c}
           </option>
         ))}
       </select>
