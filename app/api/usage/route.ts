@@ -14,19 +14,26 @@ import { SERVICES, type Service } from "@/lib/usage";
  * Apify: the real dollars from Apify, for its own billing cycle (it doesn't
  * start on the 1st). Only usage beyond the plan's included credit costs money.
  */
+const DAYS = 30;
+
 export async function GET(req: Request) {
   const locked = requireOwner(req);
   if (locked) return locked;
 
   const now = new Date();
   const since = `${now.toISOString().slice(0, 7)}-01`;
-  const [rows, apify] = await Promise.all([
+  const from = new Date(now.getTime() - (DAYS - 1) * 86_400_000).toISOString().slice(0, 10);
+  const [rows, apify, perDay] = await Promise.all([
     getDb()
       .select({ service: usage.service, calls: sql<number>`sum(${usage.calls})::int` })
       .from(usage)
       .where(gte(usage.day, since))
       .groupBy(usage.service),
     apifyUsage(),
+    getDb()
+      .select({ day: usage.day, service: usage.service, calls: usage.calls })
+      .from(usage)
+      .where(gte(usage.day, from)),
   ]);
   const calls = new Map(rows.map((r) => [r.service, r.calls]));
 
@@ -50,8 +57,22 @@ export async function GET(req: Request) {
     };
   });
 
+  // The /usage page: the last DAYS days, every day present (zero when quiet), Apify
+  // reads apart from Google calls since they run on different scales.
+  const daily = Array.from({ length: DAYS }, (_, i) => ({
+    day: new Date(new Date(`${from}T00:00:00Z`).getTime() + i * 86_400_000).toISOString().slice(0, 10),
+    apify: 0,
+    google: 0,
+  }));
+  const byDay = new Map(daily.map((d) => [d.day, d]));
+  for (const row of perDay) {
+    const d = byDay.get(String(row.day));
+    if (d) d[row.service === "apify" ? "apify" : "google"] += row.calls;
+  }
+
   return NextResponse.json({
     since,
+    daily,
     services,
     apify,
     total: services.reduce((sum, s) => sum + s.cost, 0),
