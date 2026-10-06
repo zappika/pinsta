@@ -2,14 +2,23 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
-## Last session — 2026-10-06: tutorial on demand, /usage, drawer motion, Google import
+## Last session — 2026-10-06 (afternoon): Want to go / Been there, web + iOS, build 12
+- **Want to go / Been there** (Sarp's design reference: a check-in app's card). Every place starts as Want to go. The floating place card has two equal buttons acting as one switch. Been there stamps `visited_at` (kept for later, **not shown**: today's dates are when a place was marked, not visited) and asks "How was it?" with 😞 🙂 😃 (`rating` 1–3). Picking a face folds the switch into that face among the card's round buttons; tapping it opens the switch again (same face folds back, Want to go undoes; the face is kept on undo so a slip loses nothing).
+- **Buddy menu → Been there:** a plain list, latest marked first, with faces. No dates, no sort controls, rows don't open anything yet.
+- **Deliberately not done (Sarp):** nothing on the map, no filter, no date shown.
+- **Country chips over the map removed** on both (Sarp didn't want them); Everywhere still frames one country, the rest is a zoom out away.
+- Web: `places.visited_at`, `places.rating` (pushed to Neon), `PATCH /api/places/[id]` takes `{visited, rating}`. iOS: optional `Place.visitedAt` / `rating` (SwiftData migrated by itself: build 12 installed over build 11's list on the Simulator kept it), `Views/BeenThere.swift`.
+- Checked: web in the preview at phone size, light and dark (switch, faces, fold/unfold, undo keeps the face, list sheet, saves survive a reload); iOS on the Simulator (switch, faces, fold, menu → list). **1.0 (12) uploaded to TestFlight.**
+- Possible next steps, none started: rows in the Been there list open the place; the switch + faces folded into one control (Sarp: "maybe consolidate later"); a filter once the list has been lived with.
+
+## Earlier — 2026-10-06: tutorial on demand, /usage, drawer motion, Google import
 - **iOS: buddy menu → "How to save"** opens the three-page tutorial full screen over any list (× to close; Paste a link opens the save sheet). For testing the first run on a full phone, and for showing a friend. Checked on the simulator; in build 10.
 - **/usage** (web, owner key): the month's costs as in the sheet, plus a bar a day for the last 30 days, Instagram reads and Google calls as separate charts. The Usage sheet links to it.
 - **Web drawer motion:** slides up from the edge, slides away however it closes (from where the finger let go), photo grows short ↔ full. Measured frame by frame in the browser; iOS port waits for Sarp's verdict.
 - **/import (web MVP):** shared Google Maps list link → review (untick, change a category, "All as…") → saved through POST /api/places (now takes a category). Reading goes through Google Maps' unofficial getlist endpoint. Read correctly on Sarp's Tokyo Coffee and Tokyo Bars lists (short and long share links); nothing imported by me, the save step is Sarp's to try.
 - New: `backlog.md` holds the small-improvements and big-directions lists.
 
-## Session before — 2026-10-05 (late): iOS empty-list tutorial
+## Earlier — 2026-10-05 (late): iOS empty-list tutorial
 - **Empty list is now the approved three-page tutorial** (brief: `exports/vicolo-onboarding-handoff/BUILD-BRIEF.md`): Found a place? → Send it to Vicolo (with "Don’t see Vicolo? More → Edit → Add to Favorites", page 2 only) → Your next favorite, saved. Native SwiftUI, swipe or tap the dots, "Paste a link" opens the save sheet and the page is kept. Replaces the old first-run steps (which also mentioned TikTok; the tutorial is Instagram-only, other links still work).
 - **Splash is a still again (Sarp: the movie was wrong on every level).** Sarp's two stills (cobalt night / cream day) on the launch screen, held 1.2 s, then a fade. Movies removed from the app. The stills are 853 × 1844, below the phone's 1206 × 2622 — a full-size export would be sharper.
 - Checked on the simulator (iOS 27 runtime re-downloaded; simulators recreated, all empty): three pages light and dark on iPhone 17, dot taps and swipes, sheet open/close, iPhone SE at accessibility-large text (page scrolls, help chips stack), a populated list (tutorial gone, tab bar back). **Not checked:** VoiceOver by ear, and the real share-sheet path More → Edit → Favorites on a phone with iOS 26/27.
@@ -37,7 +46,7 @@ Everything below is on `main` and deployed. iOS changes are in code and checked 
 - Verified: `tsc`, `next build`, iOS simulator build; migration over an existing list with the new fields; duplicate save makes no paid call (usage unchanged); gone post → 404 permanent; bad input → 400/404. Not verified here: the web map redraw fix (the browser pane was hidden, so MapLibre never painted), the share extension end to end.
 
 ## Waiting on Sarp
-1. **Build 11 on the phone** (uploaded 2026-10-06: type icons, floating card + why it's here + website, map by country). Build 10 (same day: menu → How to save opens the tutorial). Build 9 (same day: share tutorial on an empty list, still splash, no embedded post, view pill and + separate again). From build 8 (2026-10-05): the splash in light and dark (dark movie on a dark phone, no flash at the hand-off), the brand touches (empty list on a fresh install, elephant menu, Settings, picker tint), and the location question only from 3 places. Then: Share from inside Instagram (never tested on a device), the share card over Instagram (no grey page behind it), the Where/What pickers, card icons and the glass pill + separate +, splash, Map · Near me on open, $ on a restaurant save, the sheet ⋯ and the post button (embed removed 2026-10-06), the keyboard when the save sheet opens, swipe thresholds and Undo timing, real `vm.tiktok.com` / `maps.app.goo.gl` links.
+1. **Build 12 on the phone** (uploaded 2026-10-06 afternoon: Want to go / Been there on the place card, faces, menu → Been there, no country chips). Build 11 (same day: type icons, floating card + why it's here + website, map by country). Build 10 (same day: menu → How to save opens the tutorial). Build 9 (same day: share tutorial on an empty list, still splash, no embedded post, view pill and + separate again). From build 8 (2026-10-05): the splash in light and dark (dark movie on a dark phone, no flash at the hand-off), the brand touches (empty list on a fresh install, elephant menu, Settings, picker tint), and the location question only from 3 places. Then: Share from inside Instagram (never tested on a device), the share card over Instagram (no grey page behind it), the Where/What pickers, card icons and the glass pill + separate +, splash, Map · Near me on open, $ on a restaurant save, the sheet ⋯ and the post button (embed removed 2026-10-06), the keyboard when the save sheet opens, swipe thresholds and Undo timing, real `vm.tiktok.com` / `maps.app.goo.gl` links.
 2. **App Store Connect:** beta info (short description, feedback email), privacy policy URL `https://pinsta-two.vercel.app/privacy`, external testing group, submit for Beta App Review → public link.
 3. **Rate limit the open paid endpoints?** `/api/extract` (Apify) and `/api/price` (Google) are open to anyone who reads this public repo. Proposal: a Vercel Firewall rule, 20 requests a minute per IP on both. A production config change, so it's Sarp's call.
 4. After the first weekend: Usage sheet (buddy menu) for what friends' saves cost.
@@ -95,6 +104,7 @@ Sarp tried the app fresh twice: it's flat and boring. Friends and family see it 
 **Expansions** (sections above): First experience first, then Menu/Imports, Check-ins, Social.
 
 ## Build log
+- **1.0 (12), 2026-10-06:** Want to go / Been there with 😞 🙂 😃 on the place card, folded into the face; buddy menu → Been there list; country chips removed.
 - **1.0 (11), 2026-10-06:** 3D type icons; floating place card with why it's here and the venue's website; map Everywhere by country with chips.
 - **1.0 (10), 2026-10-06:** buddy menu → How to save (the share tutorial over any list).
 - **1.0 (9), 2026-10-06:** share tutorial on an empty list, still splash, no embedded post, view pill and + separate again.

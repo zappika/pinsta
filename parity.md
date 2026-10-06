@@ -1,15 +1,13 @@
 # Vicolo — web ↔ iOS
 
 What each app has, side by side. Kept current with every change that adds or
-closes a difference (CLAUDE.md). Last updated 2026-10-06 (build 11).
+closes a difference (CLAUDE.md). Last updated 2026-10-06 (build 12).
 
 ## To close
 
 | What | Web | iOS |
 |---|---|---|
 | Google Maps list import | `/import`: grouped review, Move / Move all, keeps the list's name and owner | Menu item says "Soon". Open question: photos (MapKit has none) |
-| Want to go / Been there (+ 😞 🙂 😃) | Floating card: two buttons acting as one switch; faces after Been there, then folded into the face. Buddy menu → Been there list. Date kept, not shown. No filter | No |
-| Country chips over the map (Everywhere) | Removed (Sarp, 2026-10-06: not wanted) | Still there (build 11) |
 | Share tutorial (three pages) | No (Sarp: not needed on web) | Empty list, and menu → How to save |
 
 ## Different on purpose
@@ -27,7 +25,8 @@ closes a difference (CLAUDE.md). Last updated 2026-10-06 (build 11).
 ## The same on both
 
 - Place card: floating, one size, "why it's here" line, the venue's website ("@handle" for an Instagram one). iOS takes the website from MapKit, web from Google; iOS has no "From Emilie's list" until it imports.
-- Map, Everywhere: one country framed (most places; nearest with a location). iOS names countries in English from the ISO code (`CountryName` folds older local names like "日本").
+- Want to go / Been there: the place card's two-button switch, 😞 🙂 😃 after Been there, then folded into the face (tap to change or undo); buddy menu → Been there list, latest first. Date kept, not shown. Nothing on the map, no filter. Web stores it in Neon (`visited_at`, `rating`), iOS on the phone (`visitedAt`, `rating`).
+- Map, Everywhere: one country framed (most places; nearest with a location), no country chips. iOS names countries in English from the ISO code (`CountryName` folds older local names like "日本").
 
 - Views: Map, List, Cards, Tiles; the view pill with the round + apart from it (Liquid Glass on iOS 26+).
 - Category icons: Sarp's 3D set (web `public/types`, iOS `Type*` assets).
