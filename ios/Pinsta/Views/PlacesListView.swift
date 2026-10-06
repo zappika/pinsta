@@ -124,14 +124,8 @@ private struct PlacesContent: View {
         ZStack(alignment: .bottom) {
             // Only the save sheet follows the keyboard. The map, the bar and the
             // toasts behind its dim stay put; them resizing too made the sheet jump.
-            Group {
-                if #available(iOS 26, *) {
-                    tabs
-                } else {
-                    page(view)
-                }
-            }
-            .ignoresSafeArea(.keyboard)
+            page(view)
+                .ignoresSafeArea(.keyboard)
 
             VStack(spacing: 10) {
                 if let notice {
@@ -151,7 +145,7 @@ private struct PlacesContent: View {
                 // One row: the view pill centred, the round + at the right edge (drawn
                 // in an overlay above the save sheet, so it can turn into its ×).
                 ZStack {
-                    if !shown.isEmpty && !systemBar {
+                    if !shown.isEmpty {
                         ViewSwitch(view: $view)
                             .opacity(adding ? 0 : 1)
                     }
@@ -160,8 +154,6 @@ private struct PlacesContent: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 8)
                 .background(bottomFade, alignment: .top)
-                // On iOS 26 the row is empty and only keeps toasts clear of the tab bar.
-                .allowsHitTesting(!systemBar)
             }
             .animation(.snappy, value: toast?.id)
             .animation(.snappy, value: peek?.id)
@@ -194,10 +186,10 @@ private struct PlacesContent: View {
         }
         .animation(.snappy, value: peek?.id)
         .overlay(alignment: .bottomTrailing) {
-            // On iOS 26 the + is the tab bar's own round button; this one stands in
-            // as the × while the save sheet covers the bar, and when there's no bar.
+            // Its own glass circle beside the view pill, as on the web; not a tab
+            // bar item (the system TabView of build 6+ merged them, Sarp disliked it).
             // The empty list has its own "Paste a link", so no + there, only the ×.
-            if (peek == nil || view == .cards) && (adding || editing != nil || (!systemBar && !shown.isEmpty)) { plusButton }
+            if (peek == nil || view == .cards) && (adding || editing != nil || !shown.isEmpty) { plusButton }
         }
         .overlay { picker }
         .animation(.snappy(duration: 0.25), value: picking)
@@ -275,11 +267,6 @@ private struct PlacesContent: View {
 
     // MARK: - Content: map, cards, or tiles
 
-    private var systemBar: Bool {
-        if #available(iOS 26, *) { return true }
-        return false
-    }
-
     private func page(_ v: PlacesView) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             header
@@ -288,40 +275,6 @@ private struct PlacesContent: View {
             content(v)
         }
         .background(shown.isEmpty ? Tutorial.background : Color(.systemGroupedBackground))
-    }
-
-    /// What the tab bar can select: a view, or the round + that opens the save sheet.
-    private enum BarItem: Hashable { case view(PlacesView), add }
-
-    /// iOS 26+: the system tab bar, the same Liquid Glass as Music (press lens,
-    /// scroll edge, the separate round button). Two hand-made glass pills never
-    /// matched it (builds 4–5). The + is the search-role tab; picking it opens
-    /// the sheet and leaves the view where it was.
-    @available(iOS 26, *)
-    private var tabs: some View {
-        TabView(selection: Binding<BarItem>(
-            get: { .view(view) },
-            set: { item in
-                switch item {
-                case .view(let v): view = v
-                case .add: adding = true
-                }
-            }
-        )) {
-            ForEach(PlacesView.allCases, id: \.self) { v in
-                Tab(value: BarItem.view(v)) {
-                    page(v)
-                        .toolbarVisibility(shown.isEmpty || adding || editing != nil ? .hidden : .visible, for: .tabBar)
-                } label: {
-                    Label(v.title, systemImage: v.symbol)
-                }
-            }
-            Tab(value: BarItem.add, role: .search) {
-                Color.clear
-            } label: {
-                Label("Save a place", systemImage: "plus")
-            }
-        }
     }
 
     @ViewBuilder

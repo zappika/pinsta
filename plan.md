@@ -30,7 +30,7 @@ Everything below is on `main` and deployed. iOS changes are in code and checked 
 - Verified: `tsc`, `next build`, iOS simulator build; migration over an existing list with the new fields; duplicate save makes no paid call (usage unchanged); gone post → 404 permanent; bad input → 400/404. Not verified here: the web map redraw fix (the browser pane was hidden, so MapLibre never painted), the share extension end to end.
 
 ## Waiting on Sarp
-1. **Build 8 on the phone** (uploaded 2026-10-05): the splash in light and dark (dark movie on a dark phone, no flash at the hand-off), the brand touches (empty list on a fresh install, elephant menu, Settings, picker tint), and the location question only from 3 places. Then: Share from inside Instagram (never tested on a device), the share card over Instagram (no grey page behind it), the Where/What pickers, card icons and the glass tab bar, splash, Map · Near me on open, $ on a restaurant save, the sheet ⋯ and the embedded post, the keyboard when the save sheet opens, swipe thresholds and Undo timing, real `vm.tiktok.com` / `maps.app.goo.gl` links.
+1. **Build 8 on the phone** (uploaded 2026-10-05): the splash in light and dark (dark movie on a dark phone, no flash at the hand-off), the brand touches (empty list on a fresh install, elephant menu, Settings, picker tint), and the location question only from 3 places. Then: Share from inside Instagram (never tested on a device), the share card over Instagram (no grey page behind it), the Where/What pickers, card icons and the glass pill + separate +, splash, Map · Near me on open, $ on a restaurant save, the sheet ⋯ and the post button (embed removed 2026-10-06), the keyboard when the save sheet opens, swipe thresholds and Undo timing, real `vm.tiktok.com` / `maps.app.goo.gl` links.
 2. **App Store Connect:** beta info (short description, feedback email), privacy policy URL `https://pinsta-two.vercel.app/privacy`, external testing group, submit for Beta App Review → public link.
 3. **Rate limit the open paid endpoints?** `/api/extract` (Apify) and `/api/price` (Google) are open to anyone who reads this public repo. Proposal: a Vercel Firewall rule, 20 requests a minute per IP on both. A production config change, so it's Sarp's call.
 4. After the first weekend: Usage sheet (buddy menu) for what friends' saves cost.
@@ -91,7 +91,7 @@ Sarp tried the app fresh twice: it's flat and boring. Friends and family see it 
 - **1.0 (8), 2026-10-05:** brand touches, animated splash (HQ export), location asked only from 3 places, the 2026-10-02 review fixes, embedded posts in the full sheet, keyboard fix.
 - **1.0 (7), 2026-10-02:** price, splash, Map · Near me, sheet ⋯. Uploaded from this Mac once Sarp signed into Xcode; Apple's `swinfo` step took ~11 min, normal.
 - **1.0 (6):** splash screen, light and dark. **(5):** glass pill shows the content behind it; no jump on view change. **(4):** icons, Liquid Glass, build 3 feedback (share card background, metro names, web pickers and icons on iOS). **(2–3):** share card over the host app, reading steps, first-run steps, menu + Settings sheet. **(1), 2026-10-01:** first upload.
-- On iOS 26+ the view pill and + are the system `TabView` tab bar (same glass as Music); iOS 18–25 keep the custom pill.
+- ~~On iOS 26+ the view pill and + are the system `TabView` tab bar~~ Undone 2026-10-06 (Sarp): the + inside the tab bar felt wrong. Back to the web layout, a glass view pill centred and a separate glass round + on the right.
 
 ## What it is
 
