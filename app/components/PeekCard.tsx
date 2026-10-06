@@ -95,7 +95,7 @@ function Card({ place, leaving, onClose, onEdit, onDelete, onVisit }: Omit<Props
             <path d="M6 6l12 12M18 6 6 18" />
           </svg>
         </button>
-        <PlaceCard place={place} expanded onEdit={() => onEdit(place)} onDelete={() => onDelete(place)} onVisit={(c) => onVisit(place, c)} />
+        <PlaceCard key={place.id} place={place} expanded onEdit={() => onEdit(place)} onDelete={() => onDelete(place)} onVisit={(c) => onVisit(place, c)} />
       </div>
     </div>
   );

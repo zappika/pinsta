@@ -286,7 +286,7 @@ export default function PinstaApp() {
         // Settings are reachable before the first save too.
         <header className="flex items-center px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-4">
           <h1 className="text-2xl font-semibold tracking-tight">Vicolo</h1>
-          <BuddyMenu />
+          <BuddyMenu places={places ?? []} />
         </header>
       )}
 

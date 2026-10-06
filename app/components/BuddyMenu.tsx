@@ -3,17 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import SettingsSheet from "./SettingsSheet";
 import UsageSheet from "./UsageSheet";
+import BeenThereSheet from "./BeenThereSheet";
+import type { Place } from "./types";
 import ElephantMark from "./ElephantMark";
 
 /**
  * The round elephant menu button, top right: a short menu. Settings (appearance,
- * directions) and Usage open as their own sheets; Import from Google is its own
+ * directions), Been there and Usage open as their own sheets; Import from Google is its own
  * page (/import); Lock forgets the owner key.
  */
-export default function BuddyMenu() {
+export default function BuddyMenu({ places }: { places: Place[] }) {
   const [open, setOpen] = useState(false);
   const [settings, setSettings] = useState(false);
   const [usage, setUsage] = useState(false);
+  const [been, setBeen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,6 +54,14 @@ export default function BuddyMenu() {
             }}
           />
           <Item
+            icon={<><circle cx="12" cy="12" r="9" /><path d="m8 12.5 2.8 2.8L16.5 9.5" /></>}
+            label="Been there"
+            onClick={() => {
+              setOpen(false);
+              setBeen(true);
+            }}
+          />
+          <Item
             icon={<><path d="M4 20V10" /><path d="M10 20V4" /><path d="M16 20v-7" /><path d="M22 20H2" /></>}
             label="Usage"
             onClick={() => {
@@ -80,6 +91,7 @@ export default function BuddyMenu() {
         </div>
       )}
       {settings && <SettingsSheet onClose={() => setSettings(false)} />}
+      {been && <BeenThereSheet places={places} onClose={() => setBeen(false)} />}
       {usage && <UsageSheet onClose={() => setUsage(false)} />}
     </div>
   );

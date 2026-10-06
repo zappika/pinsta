@@ -29,6 +29,10 @@ export type VisitChange = { visited?: boolean; rating?: number | null };
 export default function PlaceCard({ place, hideCategory, hideCity, compact, expanded, onEdit, onDelete, onVisit }: Props) {
   const [showPosts, setShowPosts] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  // Been there with a face: the switch folds into that face among the round
+  // actions; a tap on it opens the switch again to change it.
+  const [visitOpen, setVisitOpen] = useState(false);
+  const folded = place.visitedAt != null && place.rating != null && !visitOpen;
   const allUrls = [place.instagramUrl, ...(place.posts ?? []).map((p) => p.instagramUrl)];
   // Google Maps links are the place, not a post: Directions covers them.
   const postUrls = allUrls.filter((u) => sourceKind(u) !== "google");
@@ -50,6 +54,17 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact, expa
             <p className="mt-0.5 truncate text-sm text-stone-500">{meta}</p>
           )}
         </div>
+        {expanded && onVisit && folded && (
+          <button
+            type="button"
+            aria-label={`Been there: ${FACES[place.rating! - 1]}. Change`}
+            title={FACES[place.rating! - 1]}
+            onClick={() => setVisitOpen(true)}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-100 text-stone-800 active:bg-stone-200"
+          >
+            <Face kind={place.rating!} size={24} />
+          </button>
+        )}
         <RoundAction label="Directions" onClick={() => directions(place)}>
           <path d="M21 3 3 10.5l7.5 3L13.5 21 21 3Z" />
         </RoundAction>
@@ -81,7 +96,15 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact, expa
         </p>
       )}
 
-      {expanded && onVisit && <Visit place={place} onVisit={onVisit} />}
+      {expanded && onVisit && !folded && (
+        <Visit
+          place={place}
+          onVisit={(c) => {
+            onVisit(c);
+            if (c.rating) setVisitOpen(false);
+          }}
+        />
+      )}
 
       {showMore && (
         <div className="flex gap-2 px-4 pb-3.5">
@@ -113,9 +136,8 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact, expa
 
 /**
  * Two buttons that act as one switch: every place starts as Want to go. Been
- * there brings up how it was (😞 🙂 😃; tap the picked one again to unsay it).
- * The date is kept, not shown. Design reference: Sarp, 2026-10-06; the two rows
- * may fold into one later.
+ * there brings up how it was (😞 🙂 😃); picking one folds all this into that
+ * face (see PlaceCard). The date is kept, not shown. Sarp, 2026-10-06.
  */
 function Visit({ place, onVisit }: { place: Place; onVisit: (c: VisitChange) => void }) {
   const been = place.visitedAt != null;
@@ -130,7 +152,7 @@ function Visit({ place, onVisit }: { place: Place; onVisit: (c: VisitChange) => 
           <p className="mt-4 mb-2 text-sm text-stone-500">How was it?</p>
           <div role="radiogroup" aria-label="How was it" className="flex gap-2">
             {FACES.map((label, i) => (
-              <Choice key={label} on={place.rating === i + 1} label={label} tall onClick={() => onVisit({ rating: place.rating === i + 1 ? null : i + 1 })}>
+              <Choice key={label} on={place.rating === i + 1} label={label} tall onClick={() => onVisit({ rating: i + 1 })}>
                 <Face kind={i + 1} />
               </Choice>
             ))}
@@ -141,7 +163,7 @@ function Visit({ place, onVisit }: { place: Place; onVisit: (c: VisitChange) => 
   );
 }
 
-const FACES = ["Not good", "Good", "Loved it"];
+export const FACES = ["Not good", "Good", "Loved it"];
 
 function Choice({ on, onClick, label, tall, children }: { on: boolean; onClick: () => void; label?: string; tall?: boolean; children: ReactNode }) {
   return (
@@ -162,11 +184,11 @@ function Choice({ on, onClick, label, tall, children }: { on: boolean; onClick: 
 }
 
 /** A filled face with its features cut out, so it reads on light and dark tiles alike. */
-function Face({ kind }: { kind: number }) {
+export function Face({ kind, size = 30 }: { kind: number; size?: number }) {
   // useId can hold ":" or "«»", which a url(#…) reference may not survive.
   const id = "face" + useId().replace(/[^\w-]/g, "");
   return (
-    <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
       <mask id={id}>
         <circle cx="12" cy="12" r="11" fill="white" />
         {kind === 3 ? (

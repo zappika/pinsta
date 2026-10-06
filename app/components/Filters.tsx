@@ -72,7 +72,7 @@ export default function Filters({ places, labels, nearIds, city, category, onCit
           onClick={() => setOpen("category")}
           className="text-2xl font-semibold tracking-tight text-stone-400"
         />
-        <BuddyMenu />
+        <BuddyMenu places={places} />
       </header>
 
       {open === "city" && (
