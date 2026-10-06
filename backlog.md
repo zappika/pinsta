@@ -6,7 +6,7 @@ everything else worth keeping. Move an item to plan.md when it starts.
 ## Small improvements
 Things that make what exists better. Hours, not weeks.
 
-- **Place card on iOS** (2026-10-06): the web drawer became a floating card with a "why it's here" line; port both once Sarp has lived with them (parity.md).
+- **iOS town names in the local script:** MapKit gives "渋谷区" for Shibuya; the card and Where menu show it. English from the ISO code works for countries; towns need a reverse geocode in English or a lookup.
 - **Privacy page is out of date:** it says location is asked on first open, but since build 8 it's asked only once you have 3 places (`app/privacy/page.tsx`).
 - **Splash stills are below phone resolution** (853 × 1844 vs 1206 × 2622): a full-size export would be sharper.
 - **Per-install usage?** The usage numbers are totals per service. Telling friends' saves apart would need an anonymous install id sent with each save: a small privacy call.

@@ -13,6 +13,8 @@ struct PlaceCandidate: Identifiable, Hashable {
     let region: String?
     let country: String?
     let category: PlaceCategory
+    /// The venue's own website, when Apple has one.
+    var website: String? = nil
 }
 
 enum PlaceSearch {
@@ -176,8 +178,11 @@ extension PlaceCandidate {
             address: placemark.title,
             city: placemark.locality ?? placemark.subAdministrativeArea ?? placemark.administrativeArea,
             region: placemark.administrativeArea,
-            country: placemark.country,
-            category: PlaceCategory.from(item.pointOfInterestCategory, name: name)
+            // English from the ISO code: MapKit gives the local name ("日本"), and the
+            // country chips and the web say "Japan".
+            country: placemark.isoCountryCode.flatMap { Locale(identifier: "en").localizedString(forRegionCode: $0) } ?? placemark.country,
+            category: PlaceCategory.from(item.pointOfInterestCategory, name: name),
+            website: item.url?.absoluteString
         )
     }
 }

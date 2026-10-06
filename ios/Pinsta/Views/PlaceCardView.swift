@@ -9,7 +9,7 @@ struct PlaceCardView: View {
     var hideCity = false
     /// Shorter photo — for the place sheet in its short state.
     var compact = false
-    /// The place sheet at full height: big photo.
+    /// The floating place card: big photo, and the line saying why it's here.
     var expanded = false
     /// Given in the place sheet: a ⋯ button offers Change place and Remove.
     var onEdit: (() -> Void)? = nil
@@ -73,6 +73,16 @@ struct PlaceCardView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
 
+            if expanded {
+                whyLine
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.top, -6)
+                    .padding(.bottom, 14)
+            }
+
             if showMore {
                 HStack(spacing: 8) {
                     if let onEdit {
@@ -100,6 +110,18 @@ struct PlaceCardView: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    /// "Saved from @x on Instagram · 14 Sep", then the venue's own site as a link (web: PlaceCard).
+    @ViewBuilder
+    private var whyLine: some View {
+        let why = WhyHere.line(for: place)
+        if let site = place.website, let url = URL(string: site), let label = WhyHere.websiteLabel(site) {
+            Text("\(why) · [\(label)](\(url.absoluteString))")
+                .tint(.primary)
+        } else {
+            Text(why)
+        }
     }
 
     private func roundIcon(_ glyph: Glyph) -> some View {

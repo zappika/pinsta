@@ -362,6 +362,7 @@ struct AddPlaceView: View {
                 editing.region = c.region
                 editing.country = c.country
                 editing.categoryRaw = c.category.rawValue
+                editing.website = c.website
                 editing.googlePlaceID = nil
                 // A different place has its own price.
                 editing.priceLevel = nil
@@ -402,6 +403,7 @@ struct AddPlaceView: View {
                 ownerUsername: post?.ownerUsername,
                 igLocationName: post?.locationName
             )
+            place.website = c.website
             // Saved before the photo downloads: closing the share card mid-download
             // used to lose the save. The photo follows (PhotoRetry covers a failure).
             context.insert(place)

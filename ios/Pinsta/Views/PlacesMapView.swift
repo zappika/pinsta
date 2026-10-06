@@ -9,6 +9,8 @@ import MapKit
 struct PlacesMapView: View {
     let places: [Place]
     @Binding var selected: Place?
+    /// What to frame, when not every pin (Everywhere: one country; PlacesListView).
+    var focus: [Place]? = nil
 
     @State private var camera: MapCameraPosition = .automatic
     @State private var groups: [PinGroup] = []
@@ -46,6 +48,7 @@ struct PlacesMapView: View {
             .mapStyle(.standard(pointsOfInterest: .excludingAll))
             .onTapGesture { withAnimation(.snappy) { selected = nil } }
             .onAppear { frame(animated: false) }
+            .onChange(of: focus?.map(\.id)) { _, _ in frame(animated: true) }
             .onChange(of: places.map(\.id)) { _, _ in
                 // Pins follow the selection at once; the camera may not move at all
                 // (a pin removed from the middle), so don't wait for it to settle.
@@ -100,8 +103,9 @@ struct PlacesMapView: View {
     /// Fit every pin, with room for the header above and the controls below.
     /// One place → a neighbourhood, not a dot at max zoom.
     private func frame(animated: Bool) {
-        guard !places.isEmpty else { return }
-        let r = region(fitting: places, minDelta: 0.012)
+        let framed = (focus?.isEmpty == false ? focus : nil) ?? places
+        guard !framed.isEmpty else { return }
+        let r = region(fitting: framed, minDelta: 0.012)
         if animated {
             withAnimation(.easeInOut(duration: 0.6)) { camera = .region(r) }
         } else {

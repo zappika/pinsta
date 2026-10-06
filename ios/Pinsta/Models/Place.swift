@@ -28,7 +28,10 @@ final class Place {
     /// More posts of this place, saved later (web: the `posts` column). The first stays in instagramURL.
     var extraPostURLs: [String] = []
 
-    /// 1–4 ($ to $$) from Google via /api/price; nil when unknown.
+    /// The venue's website from MapKit (`MKMapItem.url`), saves from build 11 on. Often its Instagram.
+    var website: String?
+
+    /// 1–4 ($ to $) from Google via /api/price; nil when unknown.
     var priceLevel: Int?
     /// The price lookup ran (with or without an answer), so it isn't asked again.
     var priceChecked: Bool = false

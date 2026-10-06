@@ -1,76 +1,60 @@
 import SwiftUI
 
-/// One place, as a pull-up sheet over the map, list or grid (Apple Maps
-/// style; port of the web's PeekCard). Opens short. Drag the handle up (or
-/// tap it) for the full card with a big photo and the posts; drag down to go
-/// back, then away. The view behind stays live.
+/// One place, as a card floating over the map, list or tiles (port of the web's
+/// PeekCard, 2026-10-06): the big photo, name and actions, and why it's here.
+/// One size; it rises and fades in, follows a swipe down and leaves from there.
+/// Tapping the map behind or the × closes it.
 struct PeekCardView: View {
     let place: Place
     let onClose: () -> Void
     var onEdit: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
 
-    @State private var full = false
     @State private var drag: CGFloat = 0
 
     var body: some View {
-        VStack(spacing: 0) {
-            // A Button, not onTapGesture: the sheet's drag swallowed plain taps.
-            Button { withAnimation(.snappy) { full.toggle() } } label: {
-                Capsule()
-                    .fill(Color(.tertiaryLabel))
-                    .frame(width: 40, height: 5)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .contentShape(Rectangle())
+        PlaceCardView(place: place, expanded: true, onEdit: onEdit, onDelete: onDelete)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(alignment: .topTrailing) {
+            // On the photo; a place without one (a Maps save on iOS) has its ⋯ there.
+            if place.imageData != nil { Button(action: onClose) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 30, height: 30)
+                    .background(.black.opacity(0.35), in: Circle())
+                    .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
-            // In the full state the sheet's own drag is off (the content scrolls); the handle keeps it.
-            .simultaneousGesture(sheetDrag, including: full ? .all : .none)
-            .accessibilityLabel(full ? "Show less" : "Show more")
-
-            if full {
-                // Embedded posts make the full card taller than the screen.
-                // A scroll view lets the photo's fill width leak; pin the card to the sheet's.
-                ScrollView { card.containerRelativeFrame(.horizontal) }
-                    .scrollBounceBehavior(.basedOnSize)
-                    .containerRelativeFrame(.vertical) { h, _ in h * 0.8 }
-            } else {
-                card
-            }
+            .accessibilityLabel("Close")
+            .padding(6) }
         }
-        .background(
-            UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24)
-                .fill(Color(.secondarySystemGroupedBackground))
-                .ignoresSafeArea(edges: .bottom)
-        )
-        .shadow(color: .black.opacity(0.18), radius: 20, y: -4)
+        .shadow(color: .black.opacity(0.18), radius: 20, y: 8)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 8)
         .offset(y: drag)
-        // Full: the content scrolls, so only the handle drags the sheet.
-        .gesture(sheetDrag, including: full ? .subviews : .all)
-        .onChange(of: place.id) { _, _ in full = false }
-        .transition(.move(edge: .bottom).combined(with: .opacity))
+        // The swipe belongs to the photo, the top of the card: the rest scrolls and taps.
+        .simultaneousGesture(swipe)
+        .transition(.asymmetric(
+            insertion: .opacity.combined(with: .offset(y: 24)).combined(with: .scale(scale: 0.97, anchor: .bottom)),
+            removal: .opacity.combined(with: .offset(y: 24))
+        ))
     }
 
-    private var card: some View {
-        PlaceCardView(place: place, compact: !full, expanded: full, onEdit: onEdit, onDelete: onDelete)
-            // Clear the home indicator; the sheet colour runs to the edge below.
-            .padding(.bottom, 20)
-    }
-
-    private var sheetDrag: some Gesture {
-        DragGesture(minimumDistance: 6)
+    private var swipe: some Gesture {
+        DragGesture(minimumDistance: 8)
             .onChanged { v in
+                guard v.startLocation.y < 300 else { return }
                 let d = v.translation.height
-                // Resist upward past the stop; follow freely downward.
-                drag = d < 0 ? d / 4 : d
+                drag = d < 0 ? d / 5 : d
             }
             .onEnded { v in
-                let d = v.translation.height
-                withAnimation(.snappy) {
-                    drag = 0
-                    if d < -50 { full = true }
-                    else if d > 80 { if full { full = false } else { onClose() } }
+                guard v.startLocation.y < 300 else { return }
+                if v.translation.height > 80 {
+                    onClose()
+                } else {
+                    withAnimation(.snappy) { drag = 0 }
                 }
             }
     }

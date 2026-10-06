@@ -11,6 +11,8 @@ final class Screen {
     var adding = false
     var editing: Place?
     var here: CLLocation?
+    /// Everywhere on the map: the country picked from the chips (nil = the automatic one).
+    var country: String?
     /// The empty list's tutorial page, kept while the save sheet opens and closes.
     var tutorialPage = 0
     /// Testing: `-addURL <link>` opens the save sheet with that link, the way a share arrives.
@@ -109,6 +111,24 @@ private struct PlacesContent: View {
     private var nearIDs: Set<UUID> {
         guard let here else { return [] }
         return Set(shown.filter { here.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude)) <= NearMe.km * 1000 }.map(\.id))
+    }
+
+    /// Everywhere on the map frames one country, not the world (port of the web,
+    /// 2026-10-06): the one with most places, or with a location fix the nearest.
+    private var countries: [(name: String, places: [Place])] {
+        Dictionary(grouping: visible) { CountryName.english($0.country) ?? "Elsewhere" }
+            .map { (name: $0.key, places: $0.value) }
+            .sorted { $0.places.count != $1.places.count ? $0.places.count > $1.places.count : $0.name < $1.name }
+    }
+    private var framed: (name: String, places: [Place])? {
+        let groups = countries
+        guard city == nil, groups.count > 1 else { return nil }
+        if let picked = groups.first(where: { $0.name == screen.country }) { return picked }
+        guard let here else { return groups.first }
+        func away(_ g: (name: String, places: [Place])) -> CLLocationDistance {
+            g.places.map { here.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude)) }.min() ?? .infinity
+        }
+        return groups.min { away($0) < away($1) }
     }
 
     private var visible: [Place] {
@@ -287,8 +307,16 @@ private struct PlacesContent: View {
             EmptyTutorial(page: Bindable(screen).tutorialPage, onPaste: { adding = true })
                 .ignoresSafeArea(.keyboard)
         } else if v == .map {
-            PlacesMapView(places: visible, selected: $peek)
+            PlacesMapView(places: visible, selected: $peek, focus: framed?.places)
                 .ignoresSafeArea(edges: .bottom)
+                .overlay(alignment: .top) {
+                    if let framed {
+                        CountryChips(groups: countries, current: framed.name) { picked in
+                            withAnimation(.snappy) { peek = nil }
+                            screen.country = picked
+                        }
+                    }
+                }
         } else if visible.isEmpty {
             ScrollView { noMatchState }
         } else if v == .list {
@@ -609,5 +637,41 @@ private struct PressSpring: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.9 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.5), value: configuration.isPressed)
+    }
+}
+
+/// Over the map on Everywhere: one chip per country, the framed one dark; a tap
+/// frames it (web: CountryChips). Scrolls sideways when there are many.
+private struct CountryChips: View {
+    let groups: [(name: String, places: [Place])]
+    let current: String
+    let onPick: (String) -> Void
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(groups, id: \.name) { g in
+                    let on = g.name == current
+                    Button { onPick(g.name) } label: {
+                        HStack(spacing: 4) {
+                            Text(g.name)
+                            Text("\(g.places.count)").foregroundStyle(on ? Color(.systemBackground).opacity(0.6) : .secondary)
+                        }
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(on ? Color(.systemBackground) : .primary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(on ? AnyShapeStyle(Color.primary) : AnyShapeStyle(.regularMaterial), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(on ? .isSelected : [])
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+        }
+        // Only as tall as the chips: a scroll view fills the height it is offered,
+        // and over the map that swallowed every tap on a pin.
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
