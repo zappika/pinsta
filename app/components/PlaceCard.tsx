@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { ReactNode } from "react";
 import { directions } from "@/lib/directions";
 import { sourceKind } from "@/lib/sources";
@@ -20,9 +20,13 @@ type Props = {
   /** Given in the pull-up sheet: a ⋯ button offers Change place and Remove. */
   onEdit?: () => void;
   onDelete?: () => void;
+  /** The floating card: Want to go ↔ Been there, then how it was. */
+  onVisit?: (change: VisitChange) => void;
 };
 
-export default function PlaceCard({ place, hideCategory, hideCity, compact, expanded, onEdit, onDelete }: Props) {
+export type VisitChange = { visited?: boolean; rating?: number | null };
+
+export default function PlaceCard({ place, hideCategory, hideCity, compact, expanded, onEdit, onDelete, onVisit }: Props) {
   const [showPosts, setShowPosts] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const allUrls = [place.instagramUrl, ...(place.posts ?? []).map((p) => p.instagramUrl)];
@@ -77,6 +81,8 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact, expa
         </p>
       )}
 
+      {expanded && onVisit && <Visit place={place} onVisit={onVisit} />}
+
       {showMore && (
         <div className="flex gap-2 px-4 pb-3.5">
           {onEdit && (
@@ -102,6 +108,82 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact, expa
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * Two buttons that act as one switch: every place starts as Want to go. Been
+ * there brings up how it was (😞 🙂 😃; tap the picked one again to unsay it).
+ * The date is kept, not shown. Design reference: Sarp, 2026-10-06; the two rows
+ * may fold into one later.
+ */
+function Visit({ place, onVisit }: { place: Place; onVisit: (c: VisitChange) => void }) {
+  const been = place.visitedAt != null;
+  return (
+    <div className="px-4 pb-4">
+      <div role="radiogroup" aria-label="Want to go or been there" className="flex gap-2">
+        <Choice on={!been} onClick={() => been && onVisit({ visited: false })}>Want to go</Choice>
+        <Choice on={been} onClick={() => !been && onVisit({ visited: true })}>Been there</Choice>
+      </div>
+      {been && (
+        <>
+          <p className="mt-4 mb-2 text-sm text-stone-500">How was it?</p>
+          <div role="radiogroup" aria-label="How was it" className="flex gap-2">
+            {FACES.map((label, i) => (
+              <Choice key={label} on={place.rating === i + 1} label={label} tall onClick={() => onVisit({ rating: place.rating === i + 1 ? null : i + 1 })}>
+                <Face kind={i + 1} />
+              </Choice>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+const FACES = ["Not good", "Good", "Loved it"];
+
+function Choice({ on, onClick, label, tall, children }: { on: boolean; onClick: () => void; label?: string; tall?: boolean; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={on}
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className={`flex flex-1 items-center justify-center rounded-2xl text-sm font-medium transition-colors ${tall ? "h-16" : "h-12"} ${
+        on ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-700 active:bg-stone-200"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** A filled face with its features cut out, so it reads on light and dark tiles alike. */
+function Face({ kind }: { kind: number }) {
+  // useId can hold ":" or "«»", which a url(#…) reference may not survive.
+  const id = "face" + useId().replace(/[^\w-]/g, "");
+  return (
+    <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden>
+      <mask id={id}>
+        <circle cx="12" cy="12" r="11" fill="white" />
+        {kind === 3 ? (
+          <>
+            <path d="M8.5 6.8v3.4M6.8 8.5h3.4M15.5 6.8v3.4M13.8 8.5h3.4" stroke="black" strokeWidth="1.6" strokeLinecap="round" />
+            <path d="M6.5 12.5h11a5.5 5.5 0 0 1-11 0Z" fill="black" />
+          </>
+        ) : (
+          <>
+            <circle cx="8.5" cy="9.5" r="1.6" fill="black" />
+            <circle cx="15.5" cy="9.5" r="1.6" fill="black" />
+            <path d={kind === 1 ? "M7.5 17.5q4.5-4.5 9 0" : "M7.5 14q4.5 4.5 9 0"} stroke="black" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+          </>
+        )}
+      </mask>
+      <circle cx="12" cy="12" r="11" fill="currentColor" mask={`url(#${id})`} />
+    </svg>
   );
 }
 

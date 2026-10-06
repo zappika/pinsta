@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import PlaceCard from "./PlaceCard";
+import PlaceCard, { type VisitChange } from "./PlaceCard";
 import type { Place } from "./types";
 
 /**
@@ -11,7 +11,7 @@ import type { Place } from "./types";
  * fades up in, fades down out, follows a swipe down on the photo and leaves
  * from there. Tapping the map behind, the ×, or Escape closes it.
  */
-type Props = { place: Place | null; onClose: () => void; onEdit: (p: Place) => void; onDelete: (p: Place) => void };
+type Props = { place: Place | null; onClose: () => void; onEdit: (p: Place) => void; onDelete: (p: Place) => void; onVisit: (p: Place, c: VisitChange) => void };
 
 const EXIT_MS = 200;
 
@@ -33,7 +33,7 @@ export default function PeekCard({ place, ...rest }: Props) {
   return <Card place={shown} leaving={leaving} {...rest} />;
 }
 
-function Card({ place, leaving, onClose, onEdit, onDelete }: Omit<Props, "place"> & { place: Place; leaving: boolean }) {
+function Card({ place, leaving, onClose, onEdit, onDelete, onVisit }: Omit<Props, "place"> & { place: Place; leaving: boolean }) {
   const [dy, setDy] = useState(0);
   const drag = useRef<{ y: number } | null>(null);
 
@@ -95,7 +95,7 @@ function Card({ place, leaving, onClose, onEdit, onDelete }: Omit<Props, "place"
             <path d="M6 6l12 12M18 6 6 18" />
           </svg>
         </button>
-        <PlaceCard place={place} expanded onEdit={() => onEdit(place)} onDelete={() => onDelete(place)} />
+        <PlaceCard place={place} expanded onEdit={() => onEdit(place)} onDelete={() => onDelete(place)} onVisit={(c) => onVisit(place, c)} />
       </div>
     </div>
   );

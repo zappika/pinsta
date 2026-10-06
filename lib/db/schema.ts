@@ -43,6 +43,11 @@ export const places = pgTable("places", {
   // Imported from a shared Google Maps list: which one and whose, for the card's
   // "why it's here" line. Only imports from 2026-10-06 on have it.
   fromList: jsonb("from_list").$type<{ title: string | null; owner: string | null }>(),
+  // Been there: when it was marked (not shown yet; "Want to go" is null). Going back
+  // to Want to go clears it but keeps the rating, so a slip loses nothing.
+  visitedAt: timestamp("visited_at", { withTimezone: true }),
+  // How it was, after Been there: 1 😞 2 🙂 3 😃. Null = not said.
+  rating: integer("rating"),
   // More posts of the same place, saved later. The first post stays in the columns above.
   posts: jsonb("posts").$type<ExtraPost[]>().notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true })

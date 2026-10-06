@@ -25,7 +25,10 @@ export async function DELETE(
   return new NextResponse(null, { status: 204 });
 }
 
-/** Re-select the place behind a saved post: everything from Google is replaced, the post itself stays. */
+/**
+ * Re-select the place behind a saved post: everything from Google is replaced, the post itself stays.
+ * Or, with `visited` / `rating` only: Want to go ↔ Been there, and how it was.
+ */
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -39,6 +42,19 @@ export async function PATCH(
     placeId: typeof raw.placeId === "string" ? raw.placeId : undefined,
     removePost: typeof raw.removePost === "string" ? raw.removePost : undefined,
   };
+  if ("visited" in raw || "rating" in raw) {
+    const set: { visitedAt?: Date | null; rating?: number | null } = {};
+    if (typeof raw.visited === "boolean") set.visitedAt = raw.visited ? new Date() : null;
+    if (raw.rating === null || raw.rating === 1 || raw.rating === 2 || raw.rating === 3) set.rating = raw.rating;
+    if (Object.keys(set).length === 0) return NextResponse.json({ error: "Bad visited or rating" }, { status: 400 });
+    const [current] = await getDb().select().from(places).where(eq(places.id, id));
+    if (!current) return notFound();
+    // Marking Been there twice keeps the first date.
+    if (set.visitedAt && current.visitedAt) delete set.visitedAt;
+    if (Object.keys(set).length === 0) return NextResponse.json({ place: current });
+    const [updated] = await getDb().update(places).set(set).where(eq(places.id, id)).returning();
+    return NextResponse.json({ place: updated });
+  }
   // "Wrong place?" after a merge: take that one post back off the card.
   if (body.removePost) {
     const [row] = await getDb().select().from(places).where(eq(places.id, id));

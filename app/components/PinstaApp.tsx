@@ -8,7 +8,7 @@ import type { Place } from "./types";
 import AddPlace from "./AddPlace";
 import Locked from "./Locked";
 import Filters from "./Filters";
-import PlaceCard from "./PlaceCard";
+import PlaceCard, { type VisitChange } from "./PlaceCard";
 import SwipeCard from "./SwipeCard";
 import PlacesMap from "./PlacesMap";
 import PlaceTiles from "./PlaceTiles";
@@ -225,6 +225,20 @@ export default function PinstaApp() {
     setPlaces((prev) => prev?.map((x) => (x.id === p.id ? p : x)) ?? null);
   }
 
+  // Want to go ↔ Been there, and how it was: shown at once, put back if the server says no.
+  async function visit(p: Place, c: VisitChange) {
+    const shown: Place = {
+      ...p,
+      ...(c.visited !== undefined ? { visitedAt: c.visited ? (p.visitedAt ?? new Date()) : null } : {}),
+      ...(c.rating !== undefined ? { rating: c.rating } : {}),
+    };
+    onUpdated(shown);
+    const res = await api(`/api/places/${p.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(c) }).catch(() => null);
+    if (res?.ok) return onUpdated((await res.json()).place);
+    onUpdated(p);
+    setNotice("Couldn't save that. Try again.");
+  }
+
   if (locked) {
     return (
       <Locked
@@ -399,6 +413,7 @@ export default function PinstaApp() {
           setPeek(null);
           remove(p);
         }}
+        onVisit={visit}
       />
 
       {notice && !toast && (
