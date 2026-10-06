@@ -20,8 +20,8 @@ type Preview = { title: string | null; total: number; rows: Row[] };
 
 /**
  * /import: a shared Google Maps list becomes Vicolo places. Paste the list's
- * link, check what came back (untick, fix a category, or set one for the whole
- * list), then import. Already-saved places and ones Google can't place are
+ * link, check what came back, grouped by category (untick, move a place or a
+ * whole group to another category), then import. Already-saved places and ones Google can't place are
  * shown but not importable. MVP on the web (Sarp, 2026-10-06); iOS later.
  */
 export default function ImportPage() {
@@ -160,41 +160,28 @@ export default function ImportPage() {
                 {savedCount > 0 && ` · ${savedCount} imported`}
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              {/* A list is often one kind of place ("Coffee in Lisbon"): set them all at once. */}
-              <select
-                aria-label="Set every category"
-                value=""
-                disabled={importing}
-                onChange={(e) => e.target.value && setAll(() => ({ category: e.target.value as Category }))}
-                className="rounded-lg bg-white px-2.5 py-1.5 text-sm text-stone-700 ring-1 ring-stone-200"
-              >
-                <option value="">All as…</option>
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                disabled={importing}
-                onClick={() => {
-                  const on = preview.rows.some((r) => importable(r) && r.state === "idle" && !r.picked);
-                  setAll(() => ({ picked: on }));
-                }}
-                className="rounded-lg px-2.5 py-1.5 text-sm font-medium text-stone-600 active:bg-stone-200"
-              >
-                {preview.rows.some((r) => importable(r) && r.state === "idle" && !r.picked) ? "Select all" : "Select none"}
-              </button>
-            </div>
+            <button
+              type="button"
+              disabled={importing}
+              onClick={() => {
+                const on = preview.rows.some((r) => importable(r) && r.state === "idle" && !r.picked);
+                setAll(() => ({ picked: on }));
+              }}
+              className="rounded-lg px-2.5 py-1.5 text-sm font-medium text-stone-600 active:bg-stone-200"
+            >
+              {preview.rows.some((r) => importable(r) && r.state === "idle" && !r.picked) ? "Select all" : "Select none"}
+            </button>
           </div>
 
-          <ul className="mt-3 divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white">
-            {preview.rows.map((r) => (
-              <ImportRow key={r.key} row={r} disabled={importing} onChange={(c) => update(r.key, c)} />
-            ))}
-          </ul>
+          {groups(preview.rows).map((g) => (
+            <Group
+              key={g.id}
+              group={g}
+              disabled={importing}
+              onRow={update}
+              onGroup={(change) => g.rows.forEach((r) => r.state === "idle" && update(r.key, change))}
+            />
+          ))}
         </>
       )}
 
@@ -220,25 +207,108 @@ export default function ImportPage() {
   );
 }
 
+type GroupT = { id: string; title: string; emoji?: string; category: Category | null; rows: Row[] };
+
+/**
+ * The review, sorted the way a list is usually made ("Paris", "Tokyo bars"):
+ * one section per category, in the app's category order, then what can't be
+ * imported. A place imported just now stays where it was, marked done.
+ */
+function groups(rows: Row[]): GroupT[] {
+  const byCategory = CATEGORIES.map((c) => ({
+    id: c,
+    title: c,
+    emoji: emojiFor(c),
+    category: c as Category,
+    rows: rows.filter((r) => importable(r) && r.category === c),
+  }));
+  return [
+    ...byCategory,
+    { id: "saved", title: "Already in your list", category: null, rows: rows.filter((r) => r.savedId) },
+    { id: "missing", title: "Google couldn’t find these", category: null, rows: rows.filter((r) => !r.match && !r.savedId) },
+  ].filter((g) => g.rows.length > 0);
+}
+
+function Group({ group, disabled, onRow, onGroup }: { group: GroupT; disabled: boolean; onRow: (key: number, c: Partial<Row>) => void; onGroup: (c: Partial<Row>) => void }) {
+  const open = group.rows.filter((r) => r.state === "idle");
+  const allPicked = open.length > 0 && open.every((r) => r.picked);
+  return (
+    <section className="mt-5">
+      <div className="flex items-center gap-3 px-4 pb-1.5">
+        {group.category && (
+          <input
+            type="checkbox"
+            aria-label={`Import every ${group.category}`}
+            checked={allPicked}
+            disabled={disabled || open.length === 0}
+            onChange={(e) => onGroup({ picked: e.target.checked })}
+            className="h-4 w-4 shrink-0 accent-stone-900"
+          />
+        )}
+        <h3 className="min-w-0 flex-1 truncate text-sm font-semibold">
+          {group.emoji && <span className="mr-1.5">{group.emoji}</span>}
+          {group.title} <span className="font-normal text-stone-400">· {group.rows.length}</span>
+        </h3>
+        {group.category && open.length > 0 && (
+          <Move label="Move all" current={group.category} disabled={disabled} onMove={(c) => onGroup({ category: c })} />
+        )}
+      </div>
+      <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white">
+        {group.rows.map((r) => (
+          <ImportRow key={r.key} row={r} disabled={disabled} onChange={(c) => onRow(r.key, c)} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * A quiet "Move" pill over a native select: the system's own picker opens
+ * (the wheel on a phone), and the place lands in the chosen section.
+ */
+function Move({ label, current, disabled, onMove }: { label: string; current: Category; disabled: boolean; onMove: (c: Category) => void }) {
+  return (
+    <span className={`relative shrink-0 rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-600 ${disabled ? "opacity-40" : "active:bg-stone-200"}`}>
+      {label}
+      <select
+        aria-label={label}
+        value=""
+        disabled={disabled}
+        onChange={(e) => e.target.value && onMove(e.target.value as Category)}
+        className="absolute inset-0 cursor-pointer opacity-0"
+      >
+        <option value="" disabled>
+          Move to…
+        </option>
+        {CATEGORIES.filter((c) => c !== current).map((c) => (
+          <option key={c} value={c}>
+            {emojiFor(c)} {c}
+          </option>
+        ))}
+      </select>
+    </span>
+  );
+}
+
 function ImportRow({ row, disabled, onChange }: { row: Row; disabled: boolean; onChange: (c: Partial<Row>) => void }) {
   const can = importable(row) && row.state !== "saved";
   const where = row.match?.city ?? row.address;
   return (
-    <li className={`flex items-start gap-3 px-4 py-3 ${can ? "" : "opacity-60"}`}>
-      <input
-        type="checkbox"
-        aria-label={`Import ${row.name}`}
-        checked={row.picked && can}
-        disabled={!can || disabled || row.state === "saving"}
-        onChange={(e) => onChange({ picked: e.target.checked })}
-        className="mt-1 h-4 w-4 shrink-0 accent-stone-900"
-      />
-      <div className="min-w-0 flex-1">
+    <li className="flex items-start gap-3 px-4 py-3">
+      {importable(row) && (
+        <input
+          type="checkbox"
+          aria-label={`Import ${row.name}`}
+          checked={row.picked && can}
+          disabled={!can || disabled || row.state === "saving"}
+          onChange={(e) => onChange({ picked: e.target.checked })}
+          className="mt-1 h-4 w-4 shrink-0 accent-stone-900"
+        />
+      )}
+      <div className={`min-w-0 flex-1 ${importable(row) ? "" : "opacity-60"}`}>
         <p className="truncate text-sm font-medium">{row.match?.name ?? row.name}</p>
         {where && <p className="truncate text-xs text-stone-500">{where}</p>}
         {row.note && <p className="mt-0.5 line-clamp-2 text-xs italic text-stone-500">“{row.note}”</p>}
-        {row.savedId && <p className="mt-0.5 text-xs font-medium text-stone-500">Already in your list</p>}
-        {!row.match && <p className="mt-0.5 text-xs font-medium text-amber-700">Google couldn&apos;t find this place</p>}
         {row.state === "failed" && <p className="mt-0.5 text-xs font-medium text-red-600">Couldn&apos;t save. Try again.</p>}
       </div>
       {row.state === "saved" ? (
@@ -246,21 +316,7 @@ function ImportRow({ row, disabled, onChange }: { row: Row; disabled: boolean; o
       ) : row.state === "saving" ? (
         <span className="shrink-0 pt-0.5 text-xs text-stone-400">Saving…</span>
       ) : (
-        can && (
-          <select
-            aria-label={`Category for ${row.name}`}
-            value={row.category}
-            disabled={disabled}
-            onChange={(e) => onChange({ category: e.target.value as Category })}
-            className="shrink-0 rounded-lg bg-stone-100 px-2 py-1 text-xs text-stone-700"
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {emojiFor(c)} {c}
-              </option>
-            ))}
-          </select>
-        )
+        can && <Move label="Move" current={row.category} disabled={disabled} onMove={(c) => onChange({ category: c })} />
       )}
     </li>
   );
