@@ -41,6 +41,8 @@ export async function POST(req: Request) {
     postUnreadable: raw.postUnreadable === true,
     /** Chosen by hand (the Google import's review), over the one Google's type gives. */
     category: CATEGORIES.includes(raw.category as Category) ? (raw.category as Category) : undefined,
+    /** The Google list it was imported from, for the card's "why it's here". */
+    fromList: listOf(raw.fromList),
   };
 
   // Field keeps its old name; it holds any supported link (Instagram, TikTok, Google Maps).
@@ -133,6 +135,7 @@ export async function POST(req: Request) {
         caption: body.caption || null,
         igLocationName: body.igLocationName || null,
         ownerUsername: body.ownerUsername || null,
+        fromList: body.fromList,
       })
       .returning();
     return NextResponse.json({ place: row }, { status: 201 });
@@ -140,4 +143,12 @@ export async function POST(req: Request) {
     console.error(e);
     return NextResponse.json({ error: "Could not save place" }, { status: 502 });
   }
+}
+
+/** { title, owner } from the import, short strings or null; anything else is dropped. */
+function listOf(v: unknown): { title: string | null; owner: string | null } | null {
+  if (!v || typeof v !== "object") return null;
+  const s = (x: unknown) => (typeof x === "string" && x.trim() ? x.trim().slice(0, 120) : null);
+  const { title, owner } = v as Record<string, unknown>;
+  return s(title) || s(owner) ? { title: s(title), owner: s(owner) } : null;
 }

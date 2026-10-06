@@ -166,14 +166,14 @@ body {
   to   { opacity: 1; transform: none; transform-origin: 90% 100%; }
 }
 .pinsta-rise { animation: pinsta-rise 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
-/* The place drawer slides up from the bottom edge. `backwards`, not `both`: once it
-   has arrived, the inline transform (drag, short/full) must be in charge again. */
-@keyframes pinsta-sheet { from { transform: translateY(100%); } }
-.pinsta-sheet { animation: pinsta-sheet 420ms cubic-bezier(0.32, 0.72, 0, 1) backwards; }
+/* The place card fades up into place. `backwards`, not `both`: once it has
+   arrived, the inline transform (a swipe down) must be in charge again. */
+@keyframes pinsta-card { from { opacity: 0; transform: translateY(24px) scale(0.97); } }
+.pinsta-card { animation: pinsta-card 360ms cubic-bezier(0.32, 0.72, 0, 1) backwards; }
 @keyframes pinsta-fade { from { opacity: 0; } to { opacity: 1; } }
 .pinsta-fade { animation: pinsta-fade 0.2s ease-out both; }
 @media (prefers-reduced-motion: reduce) {
-  .pinsta-rise, .pinsta-fade, .pinsta-sheet { animation: none; }
+  .pinsta-rise, .pinsta-fade, .pinsta-card { animation: none; }
   .pinsta-fab { transition: none; }
 }
 

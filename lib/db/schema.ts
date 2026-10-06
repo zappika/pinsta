@@ -38,6 +38,9 @@ export const places = pgTable("places", {
   caption: text("caption"),
   igLocationName: text("ig_location_name"),
   ownerUsername: text("owner_username"),
+  // Imported from a shared Google Maps list: which one and whose, for the card's
+  // "why it's here" line. Only imports from 2026-10-06 on have it.
+  fromList: jsonb("from_list").$type<{ title: string | null; owner: string | null }>(),
   // More posts of the same place, saved later. The first post stays in the columns above.
   posts: jsonb("posts").$type<ExtraPost[]>().notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true })

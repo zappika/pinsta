@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { directions } from "@/lib/directions";
 import { sourceKind } from "@/lib/sources";
 import { priceLabel } from "@/lib/categories";
+import { whyHere } from "@/lib/why-here";
 import type { Place } from "./types";
 
 type Props = {
@@ -14,7 +15,7 @@ type Props = {
   hideCity?: boolean;
   /** Shorter photo — for the PeekCard floating over map or tiles. */
   compact?: boolean;
-  /** The pull-up sheet at full height: big photo. */
+  /** The floating place card: big photo, and the line saying why it's here. */
   expanded?: boolean;
   /** Given in the pull-up sheet: a ⋯ button offers Change place and Remove. */
   onEdit?: () => void;
@@ -60,6 +61,8 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact, expa
           <circle cx="18.5" cy="12" r="1.1" fill="currentColor" stroke="none" />
         </RoundAction>}
       </div>
+
+      {expanded && <p className="-mt-1.5 px-4 pb-3.5 text-sm text-stone-500">{whyHere(place)}</p>}
 
       {showMore && (
         <div className="flex gap-2 px-4 pb-3.5">

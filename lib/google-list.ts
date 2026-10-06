@@ -3,12 +3,13 @@
  * own page reads it: `maps/preview/entitylist/getlist`, no key, no account. Only
  * lists set to "shared" are readable. The answer is protobuf as nested JSON
  * arrays without field names; the positions below were read off real answers
- * (github.com/sotashimozono/gmaplist) and are what Google could change, so every
+ * (github.com/sotashimozono/gmaplist; the owner at [0][3] read off Sarp's own
+ * list, 2026-10-06) and are what Google could change, so every
  * read is defensive and an unreadable answer says so instead of returning junk.
  * Server-side only. Low-tech first: no paid call here.
  */
 export type ListEntry = { name: string; note: string | null; address: string | null; lat: number; lng: number };
-export type GoogleList = { id: string; title: string | null; entries: ListEntry[] };
+export type GoogleList = { id: string; title: string | null; owner: string | null; entries: ListEntry[] };
 
 export class ListError extends Error {}
 
@@ -60,7 +61,8 @@ export async function readGoogleList(input: string): Promise<GoogleList> {
     if (!name || lat === null || lng === null) continue; // a removed place, or a shape we don't know
     entries.push({ name, note: str(at(e, 3)), address: str(at(e, 1, 4)), lat, lng });
   }
-  return { id, title: str(at(list, 4)), entries };
+  // [3] is the owner: [name, avatar, user id].
+  return { id, title: str(at(list, 4)), owner: str(at(list, 3, 0)), entries };
 }
 
 /** data[i][j][k]…, or undefined anywhere along the way. */

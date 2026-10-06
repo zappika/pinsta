@@ -16,7 +16,7 @@ type Item = {
   savedId: string | null;
 };
 type Row = Item & { key: number; picked: boolean; category: Category; state: "idle" | "saving" | "saved" | "failed" };
-type Preview = { title: string | null; total: number; rows: Row[] };
+type Preview = { title: string | null; owner: string | null; total: number; rows: Row[] };
 
 /**
  * /import: a shared Google Maps list becomes Vicolo places. Paste the list's
@@ -57,6 +57,7 @@ export default function ImportPage() {
       }
       setPreview({
         title: data.title,
+        owner: data.owner ?? null,
         total: data.total,
         rows: (data.items as Item[]).map((it, key) => ({
           ...it,
@@ -90,7 +91,7 @@ export default function ImportPage() {
       [0, 1].map(async () => {
         for (let r = queue.shift(); r; r = queue.shift()) {
           update(r.key, { state: "saving" });
-          const ok = await save(r);
+          const ok = await save(r, { title: preview.title, owner: preview.owner });
           update(r.key, { state: ok ? "saved" : "failed", picked: !ok });
         }
       }),
@@ -332,14 +333,14 @@ const count = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
  * the place as its source: the card's "post" is the Google place itself, and
  * importing the same list again finds the link and adds nothing.
  */
-async function save(r: Row): Promise<boolean> {
+async function save(r: Row, fromList: { title: string | null; owner: string | null }): Promise<boolean> {
   if (!r.match) return false;
   const link = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.match.name)}&query_place_id=${r.match.placeId}`;
   try {
     const res = await api("/api/places", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ instagramUrl: link, placeId: r.match.placeId, category: r.category }),
+      body: JSON.stringify({ instagramUrl: link, placeId: r.match.placeId, category: r.category, fromList }),
     });
     return res.ok;
   } catch {

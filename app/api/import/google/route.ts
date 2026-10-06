@@ -95,7 +95,7 @@ export async function POST(req: Request) {
     return { ...entry, match: match ?? null, savedId: existing?.id ?? null };
   });
 
-  return NextResponse.json({ title: list.title, total: list.entries.length, searched, items });
+  return NextResponse.json({ title: list.title, owner: list.owner, total: list.entries.length, searched, items });
 }
 
 /** Name and pin to ~1 m: the same entry in any list, a moved or renamed one is new. */
