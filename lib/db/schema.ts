@@ -70,3 +70,17 @@ export const usage = pgTable(
   },
   (t) => [primaryKey({ columns: [t.day, t.service] })],
 );
+
+/**
+ * The Google import's memory (app/api/import/google): which Google place a list
+ * entry turned out to be, keyed by the entry's name and pin. Reading a list is
+ * free; the search per entry isn't, so re-reading a list, or a second list with
+ * the same places, asks Google only about entries it hasn't seen. `match` null =
+ * Google had nothing within reach. Kept 30 days (MATCH_DAYS there), Google's
+ * limit for keeping its coordinates.
+ */
+export const listMatches = pgTable("list_matches", {
+  key: text("key").primaryKey(),
+  match: jsonb("match").$type<{ placeId: string; name: string; city: string | null; category: string } | null>(),
+  matchedAt: timestamp("matched_at", { withTimezone: true }).notNull().defaultNow(),
+});
