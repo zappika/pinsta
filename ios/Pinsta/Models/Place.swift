@@ -45,6 +45,12 @@ final class Place {
     var photoNextTry: Date?
     var photoGaveUp: Bool = false
 
+    /// Been there: when it was marked (kept, not shown). nil = Want to go, every place's start.
+    /// Back to Want to go clears it and keeps `rating` (web: `visited_at`, 2026-10-06).
+    var visitedAt: Date?
+    /// How it was after Been there: 1 😞 2 🙂 3 😃; nil = not said.
+    var rating: Int?
+
     /// "$" for the card, or nil.
     var priceLabel: String? {
         guard let priceLevel, (1...4).contains(priceLevel) else { return nil }

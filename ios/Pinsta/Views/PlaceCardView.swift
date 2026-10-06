@@ -16,6 +16,10 @@ struct PlaceCardView: View {
     var onDelete: (() -> Void)? = nil
 
     @State private var showMore = false
+    /// Been there with a face: the switch folds into that face among the round
+    /// actions; a tap on it opens the switch again (web: PlaceCard).
+    @State private var visitOpen = false
+    private var folded: Bool { place.visitedAt != nil && place.rating != nil && !visitOpen }
 
     private var postURLs: [String] { place.allPostURLs.filter { SourceURL.parse($0)?.kind != .google } }
 
@@ -45,6 +49,16 @@ struct PlaceCardView: View {
                     }
                 }
                 Spacer(minLength: 0)
+                if expanded, folded, let r = place.rating, (1...3).contains(r) {
+                    Button { withAnimation(.snappy) { visitOpen = true } } label: {
+                        FaceView(kind: r, size: 24)
+                            .foregroundStyle(.primary)
+                            .frame(width: 40, height: 40)
+                            .background(Color(.tertiarySystemFill), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Been there: \(FaceView.labels[r - 1]). Change")
+                }
                 roundAction(.directions, label: "Directions") { Settings.shared.directions(to: place) }
                 if postURLs.count == 1, let url = postURLs.first {
                     roundAction(.post, label: "Post") { open(url) }
@@ -81,6 +95,10 @@ struct PlaceCardView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, -6)
                     .padding(.bottom, 14)
+            }
+
+            if expanded && !folded {
+                VisitSwitch(place: place, onPicked: { visitOpen = false })
             }
 
             if showMore {

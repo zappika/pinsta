@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The round elephant button, top right: a short menu, like the web's. Settings
-/// open as their own sheet; Import from Google is a roadmap placeholder
+/// and Been there open as their own sheets; Import from Google is a roadmap placeholder
 /// (plan.md: Menu, Settings and Imports). Accounts belong to the Social package.
 struct BuddyMenu: View {
     private let settings = Settings.shared
@@ -12,6 +12,11 @@ struct BuddyMenu: View {
                 settings.showingSheet = true
             } label: {
                 Label("Settings", systemImage: "gearshape")
+            }
+            Button {
+                settings.showingBeenThere = true
+            } label: {
+                Label("Been there", systemImage: "checkmark.circle")
             }
             Button {
                 settings.showingTutorial = true

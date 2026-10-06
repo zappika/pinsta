@@ -29,6 +29,8 @@ final class Settings {
     var showingSheet = false
     /// The share tutorial on demand (buddy menu → How to save), over a full list too.
     var showingTutorial = false
+    /// Buddy menu → Been there.
+    var showingBeenThere = false
 
     private init() {
         mapsApp = UserDefaults.standard.string(forKey: "vicolo.maps").flatMap(MapsApp.init(rawValue:))
