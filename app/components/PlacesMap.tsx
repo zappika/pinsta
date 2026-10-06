@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef } from "react";
 import type * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { iconFor, tintFor } from "@/lib/categories";
@@ -23,8 +23,6 @@ type Props = {
   onFail?: () => void;
   /** What to frame, when not all of `places` (Everywhere: one country, see PinstaApp). */
   focus?: Place[];
-  /** Drawn over the map (the country chips). */
-  overlay?: ReactNode;
 };
 
 /**
@@ -35,7 +33,7 @@ type Props = {
 /** A map that has not drawn by then is treated as offline. */
 const LOAD_TIMEOUT_MS = 12_000;
 
-export default function PlacesMap({ places, selected, onSelect, onFail, focus, overlay }: Props) {
+export default function PlacesMap({ places, selected, onSelect, onFail, focus }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markers = useRef<Map<string, { marker: maplibregl.Marker; pin: HTMLDivElement }>>(new Map());
@@ -250,7 +248,6 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, o
   return (
     <div className="absolute inset-0">
       <div ref={container} className="h-full w-full" />
-      {overlay}
     </div>
   );
 }

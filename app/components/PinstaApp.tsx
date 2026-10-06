@@ -90,8 +90,6 @@ export default function PinstaApp() {
   const [keyTried, setKeyTried] = useState(false);
   const [city, setCity] = useState<string | null>(null);
   const [category, setCategory] = useState<string | null>(null);
-  // Everywhere on the map: the country framed, picked from the chips (null = the automatic one).
-  const [country, setCountry] = useState<string | null>(null);
 
   // How the selection is shown. Every visit opens on the map of what is near (see below).
   const [view, setViewState] = useState<View>("map");
@@ -199,7 +197,8 @@ export default function PinstaApp() {
 
   // Everywhere on the map frames one country, not the world (Sarp, 2026-10-06:
   // Japan and Spain in one frame showed neither). Without a location, the one
-  // with most places; with one, the country nearest to you. The others are chips.
+  // with most places; with one, the country nearest to you. The others are a zoom out away
+  // (no country chips: Sarp, 2026-10-06).
   const countries = useMemo(() => {
     const by = new Map<string, Place[]>();
     for (const p of visible) {
@@ -210,12 +209,10 @@ export default function PinstaApp() {
   }, [visible]);
   const framed = useMemo(() => {
     if (city !== null || countries.length < 2) return null;
-    const picked = countries.find((g) => g.name === country);
-    if (picked) return picked;
     if (!here) return countries[0];
     const away = (g: (typeof countries)[number]) => Math.min(...g.places.map((p) => kmBetween(here, p)));
     return countries.reduce((a, b) => (away(b) < away(a) ? b : a));
-  }, [countries, country, city, here]);
+  }, [countries, city, here]);
 
   function onSaved(p: Place) {
     setPlaces((prev) => [p, ...(prev ?? [])]);
@@ -338,18 +335,6 @@ export default function PinstaApp() {
           <PlacesMap
             places={visible}
             focus={framed?.places}
-            overlay={
-              framed && (
-                <CountryChips
-                  groups={countries}
-                  current={framed.name}
-                  onPick={(c) => {
-                    setPeek(null);
-                    setCountry(c);
-                  }}
-                />
-              )
-            }
             selected={peekId}
             onSelect={setPeek}
             onFail={() => {
@@ -479,31 +464,3 @@ export default function PinstaApp() {
   );
 }
 
-/**
- * Over the map on Everywhere: one chip per country, the framed one dark. A tap
- * frames that country. Scrolls sideways when there are many.
- */
-function CountryChips({ groups, current, onPick }: { groups: { name: string; places: Place[] }[]; current: string; onPick: (c: string) => void }) {
-  return (
-    <div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center px-3">
-      <div className="pointer-events-auto flex max-w-full gap-1.5 overflow-x-auto rounded-full p-1 [scrollbar-width:none]">
-        {groups.map((g) => {
-          const on = g.name === current;
-          return (
-            <button
-              key={g.name}
-              type="button"
-              aria-pressed={on}
-              onClick={() => onPick(g.name)}
-              className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium shadow-sm ${
-                on ? "bg-stone-900 text-white" : "bg-white/90 text-stone-700 backdrop-blur active:bg-stone-100"
-              }`}
-            >
-              {g.name} <span className={on ? "text-white/60" : "text-stone-400"}>{g.places.length}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
