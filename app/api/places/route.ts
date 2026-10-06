@@ -131,6 +131,7 @@ export async function POST(req: Request) {
         primaryType: p.primaryType,
         category: body.category ?? p.category,
         priceLevel: p.priceLevel,
+        website: p.website,
         imageUrl,
         caption: body.caption || null,
         igLocationName: body.igLocationName || null,

@@ -47,3 +47,22 @@ function when(d: Date, now: Date): string {
 
 // Spelled out: the en-GB locale says "Sept".
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/**
+ * How the venue's own website reads on the card: its Instagram as "@handle",
+ * anything else as the bare address. null when it isn't a usable link.
+ */
+export function websiteLabel(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, "");
+    if (host === "instagram.com") {
+      const handle = u.pathname.split("/").filter(Boolean)[0];
+      return handle && !["p", "reel", "explore"].includes(handle) ? `@${handle}` : "Instagram";
+    }
+    return host;
+  } catch {
+    return null;
+  }
+}

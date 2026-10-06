@@ -32,6 +32,8 @@ export const places = pgTable("places", {
   category: text("category"),
   // 1–4 ($ to $$) from Google's priceLevel; null when Google doesn't know.
   priceLevel: integer("price_level"),
+  // The venue's website from Google, from 2026-10-06 on (no backfill). Often its Instagram.
+  website: text("website"),
   note: text("note"),
   // Phase 4: pulled from the post itself at save time
   imageUrl: text("image_url"),

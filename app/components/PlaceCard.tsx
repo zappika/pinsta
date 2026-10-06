@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { directions } from "@/lib/directions";
 import { sourceKind } from "@/lib/sources";
 import { priceLabel } from "@/lib/categories";
-import { whyHere } from "@/lib/why-here";
+import { websiteLabel, whyHere } from "@/lib/why-here";
 import type { Place } from "./types";
 
 type Props = {
@@ -62,7 +62,20 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact, expa
         </RoundAction>}
       </div>
 
-      {expanded && <p className="-mt-1.5 px-4 pb-3.5 text-sm text-stone-500">{whyHere(place)}</p>}
+      {expanded && (
+        <p className="-mt-1.5 px-4 pb-3.5 text-sm text-stone-500">
+          {whyHere(place)}
+          {/* The venue's own site from Google: its Instagram as @handle (saves from 2026-10-06 on). */}
+          {websiteLabel(place.website) && place.website && (
+            <>
+              {" · "}
+              <a href={place.website} target="_blank" rel="noreferrer" className="font-medium text-stone-700 underline decoration-stone-300 underline-offset-2">
+                {websiteLabel(place.website)}
+              </a>
+            </>
+          )}
+        </p>
+      )}
 
       {showMore && (
         <div className="flex gap-2 px-4 pb-3.5">

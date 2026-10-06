@@ -80,6 +80,7 @@ export async function PATCH(
         primaryType: p.primaryType,
         category: p.category,
         priceLevel: p.priceLevel,
+        website: p.website,
         ...(photo ? { imageUrl: photo } : {}),
       })
       .where(eq(places.id, id))

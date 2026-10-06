@@ -10,6 +10,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-06.
 | Google Maps list import | `/import`: grouped review, Move / Move all, keeps the list's name and owner | Menu item says "Soon". Open question: photos (MapKit has none) |
 | Place card | Floating card, one size, fades in and out, swipe down on the photo closes | Pull-up sheet, short → full → away |
 | "Why it's here" line | On the card: "Saved from @burro_cafe on Instagram · 14 Sep", "From Emilie's "Paris" list · 6 Oct" | None |
+| Venue website | Saved from Google on every save (2026-10-06 on, no backfill); on the card as "@handle" when it is their Instagram | None: MapKit gives a URL too (`MKMapItem.url`), could be used |
 | Map, Everywhere | Frames one country (most places; nearest with a location), country chips for the rest | Frames every pin |
 | Share tutorial (three pages) | No (Sarp: not needed on web) | Empty list, and menu → How to save |
 

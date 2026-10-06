@@ -26,6 +26,9 @@ const FIELDS = [
  * many searches behind the candidates stay on the cheaper tier.
  */
 const PRICE_FIELD = "priceLevel";
+/** The venue's own website, often its Instagram profile. Same Enterprise tier as the
+ * price, so it rides along on that one call for free; never on the searches. */
+const WEBSITE_FIELD = "websiteUri";
 
 /** Google's price enum → how many $ to show. Free and unspecified show nothing. */
 const PRICE_LEVELS: Record<string, number> = {
@@ -49,6 +52,7 @@ type RawPlace = {
   primaryType?: string;
   addressComponents?: AddressComponent[];
   priceLevel?: string;
+  websiteUri?: string;
 };
 
 export type PlaceCandidate = {
@@ -62,7 +66,9 @@ export type PlaceCandidate = {
   country: string | null;
   city: string | null;
   region: string | null;
-  /** 1–4 ($ to $$), only when asked for (see PRICE_FIELD) and Google knows it. */
+  /** The venue's website, only on the price call (see WEBSITE_FIELD). */
+  website: string | null;
+  /** 1–4 ($ to $), only when asked for (see PRICE_FIELD) and Google knows it. */
   priceLevel: number | null;
 };
 
@@ -96,6 +102,7 @@ function toCandidate(p: RawPlace): PlaceCandidate {
     ),
     region: pick(p.addressComponents, "administrative_area_level_1"),
     priceLevel: toPriceLevel(p.priceLevel),
+    website: p.websiteUri ?? null,
   };
 }
 
@@ -129,7 +136,7 @@ export async function searchPlaces(query: string, near?: { lat: number; lng: num
 export async function getPlace(placeId: string, opts: { price?: boolean } = {}): Promise<PlaceCandidate> {
   const [res] = await Promise.all([
     fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?languageCode=en`, {
-      headers: { "X-Goog-Api-Key": KEY(), "X-Goog-FieldMask": opts.price ? `${FIELDS},${PRICE_FIELD}` : FIELDS },
+      headers: { "X-Goog-Api-Key": KEY(), "X-Goog-FieldMask": opts.price ? `${FIELDS},${PRICE_FIELD},${WEBSITE_FIELD}` : FIELDS },
     }),
     countCall(opts.price ? "google.detailsEnterprise" : "google.detailsPro"),
   ]);
