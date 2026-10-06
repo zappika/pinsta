@@ -6,7 +6,7 @@ _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code 
 - **iOS: buddy menu → "How to save"** opens the three-page tutorial full screen over any list (× to close; Paste a link opens the save sheet). For testing the first run on a full phone, and for showing a friend. Checked on the simulator; not in a TestFlight build yet.
 - **/usage** (web, owner key): the month's costs as in the sheet, plus a bar a day for the last 30 days, Instagram reads and Google calls as separate charts. The Usage sheet links to it.
 - **Web drawer motion:** slides up from the edge, slides away however it closes (from where the finger let go), photo grows short ↔ full. Measured frame by frame in the browser; iOS port waits for Sarp's verdict.
-- **/import (web MVP):** shared Google Maps list link → review (untick, change a category, "All as…") → saved through POST /api/places (now takes a category). Reading goes through Google Maps' unofficial getlist endpoint. **Not tried on a real list yet**: needs one of Sarp's lists set to shared.
+- **/import (web MVP):** shared Google Maps list link → review (untick, change a category, "All as…") → saved through POST /api/places (now takes a category). Reading goes through Google Maps' unofficial getlist endpoint. Read correctly on Sarp's Tokyo Coffee and Tokyo Bars lists (short and long share links); nothing imported by me, the save step is Sarp's to try.
 - New: `backlog.md` holds the small-improvements and big-directions lists.
 
 ## Session before — 2026-10-05 (late): iOS empty-list tutorial
