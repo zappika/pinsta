@@ -2,12 +2,19 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
-## Last session — 2026-10-05 (late): iOS empty-list tutorial
+## Last session — 2026-10-06: tutorial on demand, /usage, drawer motion, Google import
+- **iOS: buddy menu → "How to save"** opens the three-page tutorial full screen over any list (× to close; Paste a link opens the save sheet). For testing the first run on a full phone, and for showing a friend. Checked on the simulator; not in a TestFlight build yet.
+- **/usage** (web, owner key): the month's costs as in the sheet, plus a bar a day for the last 30 days, Instagram reads and Google calls as separate charts. The Usage sheet links to it.
+- **Web drawer motion:** slides up from the edge, slides away however it closes (from where the finger let go), photo grows short ↔ full. Measured frame by frame in the browser; iOS port waits for Sarp's verdict.
+- **/import (web MVP):** shared Google Maps list link → review (untick, change a category, "All as…") → saved through POST /api/places (now takes a category). Reading goes through Google Maps' unofficial getlist endpoint. **Not tried on a real list yet**: needs one of Sarp's lists set to shared.
+- New: `backlog.md` holds the small-improvements and big-directions lists.
+
+## Session before — 2026-10-05 (late): iOS empty-list tutorial
 - **Empty list is now the approved three-page tutorial** (brief: `exports/vicolo-onboarding-handoff/BUILD-BRIEF.md`): Found a place? → Send it to Vicolo (with "Don’t see Vicolo? More → Edit → Add to Favorites", page 2 only) → Your next favorite, saved. Native SwiftUI, swipe or tap the dots, "Paste a link" opens the save sheet and the page is kept. Replaces the old first-run steps (which also mentioned TikTok; the tutorial is Instagram-only, other links still work).
 - **Splash is a still again (Sarp: the movie was wrong on every level).** Sarp's two stills (cobalt night / cream day) on the launch screen, held 1.2 s, then a fade. Movies removed from the app. The stills are 853 × 1844, below the phone's 1206 × 2622 — a full-size export would be sharper.
 - Checked on the simulator (iOS 27 runtime re-downloaded; simulators recreated, all empty): three pages light and dark on iPhone 17, dot taps and swipes, sheet open/close, iPhone SE at accessibility-large text (page scrolls, help chips stack), a populated list (tutorial gone, tab bar back). **Not checked:** VoiceOver by ear, and the real share-sheet path More → Edit → Favorites on a phone with iOS 26/27.
 
-## Session before — 2026-10-05: animated splash, location question later
+## Earlier — 2026-10-05: animated splash, location question later
 - **Animated splash (Take 1) integrated**, replacing the timed still: launch storyboard with the movie's first frame, then the movie (AVPlayerLayer), muted, once, fading into the app. Phone's light/dark, frozen; in-app Appearance after. Skipped with Reduce Motion and on resume; can't block the app (missing file, failure, background, timeouts). Checked on the simulator: light, dark, dark phone + Light in-app, resume, Reduce Motion, iPhone 17 / 17 Pro / 17e.
 - **No hand-off jump, measured.** A frame-by-frame difference over screen recordings found two problems and both are fixed: (1) the splash cut to the app in one frame (SwiftUI's fade never ran; it also did in build 7 — that was the "little jump"), now a 0.45 s UIKit fade; (2) the posters' HDTV colour profile made the launch screen brighter than the movie, a dim at the hand-off; posters relabelled sRGB (`ios/scripts/splash-poster.swift`), poster and movie now match on screen within 0.2 brightness. What remains in the first 0.2 s is iOS's own open-app zoom.
 - **The location question waits** (Sarp): asked on open only once the list has 3 places, and on iOS only after the splash. Below that, the map of everything, no question. Same rule on the web. Picking Near me always may ask; refused still opens the List.
@@ -88,6 +95,7 @@ Sarp tried the app fresh twice: it's flat and boring. Friends and family see it 
 **Expansions** (sections above): First experience first, then Menu/Imports, Check-ins, Social.
 
 ## Build log
+- **1.0 (9), 2026-10-06:** share tutorial on an empty list, still splash, no embedded post, view pill and + separate again.
 - **1.0 (8), 2026-10-05:** brand touches, animated splash (HQ export), location asked only from 3 places, the 2026-10-02 review fixes, embedded posts in the full sheet, keyboard fix.
 - **1.0 (7), 2026-10-02:** price, splash, Map · Near me, sheet ⋯. Uploaded from this Mac once Sarp signed into Xcode; Apple's `swinfo` step took ~11 min, normal.
 - **1.0 (6):** splash screen, light and dark. **(5):** glass pill shows the content behind it; no jump on view change. **(4):** icons, Liquid Glass, build 3 feedback (share card background, metro names, web pickers and icons on iOS). **(2–3):** share card over the host app, reading steps, first-run steps, menu + Settings sheet. **(1), 2026-10-01:** first upload.
