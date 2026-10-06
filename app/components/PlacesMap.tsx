@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import type * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { iconFor, tintFor } from "@/lib/categories";
@@ -21,17 +21,21 @@ type Props = {
   onSelect: (p: Place | null) => void;
   /** The base map could not load (bad connection): the app falls back to the list. */
   onFail?: () => void;
+  /** What to frame, when not all of `places` (Everywhere: one country, see PinstaApp). */
+  focus?: Place[];
+  /** Drawn over the map (the country chips). */
+  overlay?: ReactNode;
 };
 
 /**
- * The current Where/What selection on a map, framed to fit it. Pins are the
- * category emoji on a soft type tint; overlapping pins group into a count.
+ * The current Where/What selection on a map, framed to fit it (or to `focus`).
+ * Pins are the type icon on a soft type tint; overlapping pins group into a count.
  * Tap a pin → PeekCard; tap a group → zoom in until it splits.
  */
 /** A map that has not drawn by then is treated as offline. */
 const LOAD_TIMEOUT_MS = 12_000;
 
-export default function PlacesMap({ places, selected, onSelect, onFail }: Props) {
+export default function PlacesMap({ places, selected, onSelect, onFail, focus, overlay }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markers = useRef<Map<string, { marker: maplibregl.Marker; pin: HTMLDivElement }>>(new Map());
@@ -105,13 +109,15 @@ export default function PlacesMap({ places, selected, onSelect, onFail }: Props)
 
   const placesRef = useRef(places);
   placesRef.current = places;
+  const focusRef = useRef(focus);
+  focusRef.current = focus;
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
   const clusterMarkers = useRef<maplibregl.Marker[]>([]);
 
   /** New selection: frame it, then draw. */
   function setPlaces(lib: typeof maplibregl, m: maplibregl.Map) {
-    const list = placesRef.current;
+    const list = focusRef.current?.length ? focusRef.current : placesRef.current;
     draw(lib, m);
     if (list.length === 0) return;
     const bounds = new lib.LngLatBounds();
@@ -220,7 +226,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail }: Props)
       if (map.current === m) setPlaces(lib, m);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [places]);
+  }, [places, focusKey(focus)]);
 
   useEffect(() => {
     for (const [id, { pin }] of markers.current) pin.classList.toggle("active", id === selected);
@@ -244,6 +250,10 @@ export default function PlacesMap({ places, selected, onSelect, onFail }: Props)
   return (
     <div className="absolute inset-0">
       <div ref={container} className="h-full w-full" />
+      {overlay}
     </div>
   );
 }
+
+/** A stable dependency for the framed set: the same places frame the same way. */
+const focusKey = (f: Place[] | undefined) => f?.map((p) => p.id).join(",") ?? "";
