@@ -9,7 +9,7 @@ struct PlaceCardView: View {
     var hideCity = false
     /// Shorter photo — for the place sheet in its short state.
     var compact = false
-    /// The place sheet at full height: big photo, every post embedded.
+    /// The place sheet at full height: big photo.
     var expanded = false
     /// Given in the place sheet: a ⋯ button offers Change place and Remove.
     var onEdit: (() -> Void)? = nil
@@ -97,16 +97,6 @@ struct PlaceCardView: View {
                 .buttonStyle(.plain)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 14)
-            }
-
-            // Full sheet: the posts themselves, as the web embeds them.
-            if expanded && !postURLs.isEmpty {
-                Divider()
-                VStack(spacing: 10) {
-                    ForEach(postURLs, id: \.self) { PostEmbedView(url: $0) }
-                }
-                .padding(8)
-                .padding(.bottom, 16)
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 16))

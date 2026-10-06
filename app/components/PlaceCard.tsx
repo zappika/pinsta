@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { ReactNode } from "react";
 import { directions } from "@/lib/directions";
 import { sourceKind } from "@/lib/sources";
@@ -14,7 +14,7 @@ type Props = {
   hideCity?: boolean;
   /** Shorter photo — for the PeekCard floating over map or tiles. */
   compact?: boolean;
-  /** The pull-up sheet at full height: big photo, posts already open. */
+  /** The pull-up sheet at full height: big photo. */
   expanded?: boolean;
   /** Given in the pull-up sheet: a ⋯ button offers Change place and Remove. */
   onEdit?: () => void;
@@ -22,7 +22,7 @@ type Props = {
 };
 
 export default function PlaceCard({ place, hideCategory, hideCity, compact, expanded, onEdit, onDelete }: Props) {
-  const [showPost, setShowPost] = useState(!!expanded);
+  const [showPosts, setShowPosts] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const allUrls = [place.instagramUrl, ...(place.posts ?? []).map((p) => p.instagramUrl)];
   // Google Maps links are the place, not a post: Directions covers them.
@@ -48,7 +48,8 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact, expa
         <RoundAction label="Directions" onClick={() => directions(place)}>
           <path d="M21 3 3 10.5l7.5 3L13.5 21 21 3Z" />
         </RoundAction>
-        {postUrls.length > 0 && <RoundAction label={showPost ? "Hide post" : "Post"} active={showPost} onClick={() => setShowPost((s) => !s)}>
+        {/* One post opens straight away; several list their links first. */}
+        {postUrls.length > 0 && <RoundAction label={postUrls.length > 1 ? "Posts" : "Post"} active={showPosts} onClick={() => (postUrls.length > 1 ? setShowPosts((s) => !s) : openPost(postUrls[0]))}>
           <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
           <circle cx="12" cy="12" r="4" />
           <circle cx="17.2" cy="6.8" r="0.9" fill="currentColor" stroke="none" />
@@ -75,42 +76,21 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact, expa
         </div>
       )}
 
-      {showPost && postUrls.map((u) => (sourceKind(u) === "tiktok" ? <TikTokEmbed key={u} url={u} /> : <InstagramEmbed key={u} url={u} />))}
+      {showPosts && (
+        <div className="flex flex-wrap gap-2 px-4 pb-3.5">
+          {postUrls.map((u, i) => (
+            <a key={u} href={u} target="_blank" rel="noreferrer" className="rounded-xl bg-stone-100 px-3.5 py-2.5 text-sm font-medium text-stone-700 active:bg-stone-200">
+              Post {i + 1} · {sourceKind(u) === "tiktok" ? "TikTok" : "Instagram"}
+            </a>
+          ))}
+        </div>
+      )}
     </>
   );
 }
 
-/**
- * Instagram's public embed.js — no token needed. It scans for
- * `.instagram-media` blockquotes and swaps them for iframes.
- */
-function InstagramEmbed({ url }: { url: string }) {
-  useEffect(() => {
-    const w = window as Window & { instgrm?: { Embeds: { process: () => void } } };
-    if (w.instgrm) {
-      w.instgrm.Embeds.process();
-      return;
-    }
-    if (document.querySelector('script[src*="instagram.com/embed.js"]')) return;
-    const s = document.createElement("script");
-    s.src = "https://www.instagram.com/embed.js";
-    s.async = true;
-    document.body.appendChild(s);
-  }, [url]);
-
-  return (
-    <div className="border-t border-stone-100 bg-stone-50 p-2">
-      <blockquote
-        className="instagram-media !m-0 !min-w-0 !max-w-full !rounded-xl !border-0 !shadow-none"
-        data-instgrm-permalink={url}
-        data-instgrm-version="14"
-      >
-        <a href={url} target="_blank" rel="noreferrer" className="block p-3 text-sm text-stone-500">
-          Open on Instagram
-        </a>
-      </blockquote>
-    </div>
-  );
+function openPost(url: string) {
+  window.open(url, "_blank", "noreferrer");
 }
 
 function RoundAction({ label, onClick, active, children }: { label: string; onClick: () => void; active?: boolean; children: ReactNode }) {
@@ -131,24 +111,3 @@ function RoundAction({ label, onClick, active, children }: { label: string; onCl
   );
 }
 
-/** TikTok's public embed.js — the same pattern as Instagram's. */
-function TikTokEmbed({ url }: { url: string }) {
-  const id = url.match(/video\/(\d+)/)?.[1];
-  useEffect(() => {
-    // embed.js renders every .tiktok-embed on load, so it is re-added per embed.
-    const s = document.createElement("script");
-    s.src = "https://www.tiktok.com/embed.js";
-    s.async = true;
-    document.body.appendChild(s);
-    return () => s.remove();
-  }, [url]);
-  return (
-    <div className="border-t border-stone-100 bg-stone-50 p-2">
-      <blockquote className="tiktok-embed !m-0 !max-w-full" cite={url} data-video-id={id}>
-        <a href={url} target="_blank" rel="noreferrer" className="block p-3 text-sm text-stone-500">
-          Open on TikTok
-        </a>
-      </blockquote>
-    </div>
-  );
-}
