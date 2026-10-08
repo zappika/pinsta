@@ -39,6 +39,7 @@ export default function UsagePage() {
       <a href="/app" className="text-sm font-medium text-stone-500 active:text-stone-700">
         ← Vicolo
       </a>
+      <a href="/library" className="ml-5 text-sm font-medium text-stone-500">Object library →</a>
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">Usage</h1>
       <p className="mt-1 text-sm text-stone-500">{data ? `${monthName(data.since)} so far` : "What the paid services cost"}</p>
 

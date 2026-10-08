@@ -2,6 +2,9 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
+## Asset library — 2026-10-08
+- Added backoffice `/library`: 21 city icons, 51 objects, 11 transparent menu icons, search, preview backgrounds, individual PNG and menu-size downloads. Sources stay in `assets/vicolo-library`; generated public copies are built automatically. No AI service or database required.
+
 ## Last session — 2026-10-08: vicolo.space domains
 - **Hosts split by `proxy.ts`** in the one `pinsta-two` project: `vicolo.space` (index + `/privacy`), `app.vicolo.space` (list + `/import`), `backoffice.vicolo.space` (`/usage`). `pinsta-two.vercel.app` still serves the list at `/` for the iOS app's API and old links. Sarp added all domains in Vercel.
 - **Index on vicolo.space:** a very simple placeholder with the resin elephant, plus a share card (`app/opengraph-image.tsx`) for iMessage/WhatsApp previews.

@@ -14,6 +14,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-06 (build 12).
 
 | What | Web | iOS |
 |---|---|---|
+| Asset library | Backoffice `/library`, web-only artwork browser | No library UI |
 | Whose list | Sarp's, behind the owner key ("Lock this browser") | Each phone's own |
 | Where the list lives | Neon database | SwiftData on the phone |
 | Finding places | Google Places (paid, counted) | Apple MapKit (free) |

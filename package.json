@@ -10,7 +10,9 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "postinstall": "sh scripts/copy-maplibre-worker.sh"
+    "postinstall": "sh scripts/copy-maplibre-worker.sh",
+    "prebuild": "node scripts/build-library.mjs",
+    "predev": "node scripts/build-library.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

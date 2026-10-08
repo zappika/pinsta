@@ -10,7 +10,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const ROOT = "https://www.vicolo.space";
 const APP = "https://app.vicolo.space";
 const BACKOFFICE = "https://backoffice.vicolo.space";
-const OWNER_TOOLS = ["/usage"];
+const OWNER_TOOLS = ["/usage", "/library"];
 const APP_PAGES = ["/import"];
 
 export function proxy(req: NextRequest) {

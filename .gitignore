@@ -33,3 +33,6 @@ next-env.d.ts
 .env*
 public/_sketch/
 .claude/worktrees/
+
+# Generated from the versioned asset library
+/public/vicolo-library/
