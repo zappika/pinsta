@@ -190,3 +190,12 @@ body {
   .vicolo-menu { transition: none; }
   .vicolo-menu:active { transform: none; }
 }
+
+/* Index logo: the pink resin elephant in light, the cobalt app icon in dark. */
+.vicolo-logo-dark { display: none; }
+:root[data-theme="dark"] .vicolo-logo-light { display: none; }
+:root[data-theme="dark"] .vicolo-logo-dark { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .vicolo-logo-light { display: none; }
+  :root:not([data-theme="light"]) .vicolo-logo-dark { display: block; }
+}

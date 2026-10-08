@@ -17,7 +17,9 @@ export default function Home() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center px-5 py-12 text-stone-800">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/brand/elephant-resin.png" alt="" width={96} height={96} className="-ml-2" />
+      <img src="/brand/elephant-resin.png" alt="" width={96} height={96} className="vicolo-logo-light -ml-2" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/app-icon-dark.png" alt="" width={96} height={96} className="vicolo-logo-dark rounded-[22px]" />
       <h1 className="mt-4 text-4xl font-semibold tracking-tight text-stone-900">{TITLE}</h1>
       <p className="mt-3 text-lg leading-relaxed text-stone-600">{PITCH}</p>
       <p className="mt-2 text-stone-500">An iPhone app, in a small beta with friends.</p>
