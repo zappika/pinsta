@@ -5,10 +5,10 @@ const PITCH = "Save the places you find on Instagram, TikTok and Google Maps to 
 
 // Rich link previews (iMessage, WhatsApp) read these; the image is app/opengraph-image.tsx.
 export const metadata: Metadata = {
-  metadataBase: new URL("https://vicolo.space"),
+  metadataBase: new URL("https://www.vicolo.space"),
   title: TITLE,
   description: PITCH,
-  openGraph: { title: TITLE, description: PITCH, url: "https://vicolo.space", siteName: TITLE, type: "website" },
+  openGraph: { title: TITLE, description: PITCH, url: "https://www.vicolo.space", siteName: TITLE, type: "website" },
   twitter: { card: "summary_large_image", title: TITLE, description: PITCH },
 };
 
