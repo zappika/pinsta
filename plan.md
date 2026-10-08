@@ -2,7 +2,14 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
-## Last session — 2026-10-06 (afternoon): Want to go / Been there, web + iOS, build 12
+## Last session — 2026-10-08: vicolo.space domains
+- **Hosts split by `proxy.ts`** in the one `pinsta-two` project: `vicolo.space` (index + `/privacy`), `app.vicolo.space` (list + `/import`), `backoffice.vicolo.space` (`/usage`). `pinsta-two.vercel.app` still serves the list at `/` for the iOS app's API and old links. Sarp added all domains in Vercel.
+- **Index on vicolo.space:** a very simple placeholder with the resin elephant, plus a share card (`app/opengraph-image.tsx`) for iMessage/WhatsApp previews.
+- **/import is product, not owner tooling** (Sarp): it lives on app.vicolo.space.
+- Checked: every host × path against a local production build (curl with Host headers), the share card image, tsc, next build.
+- Next: the testers list / light CRM in backoffice; TestFlight external group with `https://vicolo.space/privacy`.
+
+## Earlier — 2026-10-06 (afternoon): Want to go / Been there, web + iOS, build 12
 - **Want to go / Been there** (Sarp's design reference: a check-in app's card). Every place starts as Want to go. The floating place card has two equal buttons acting as one switch. Been there stamps `visited_at` (kept for later, **not shown**: today's dates are when a place was marked, not visited) and asks "How was it?" with 😞 🙂 😃 (`rating` 1–3). Picking a face folds the switch into that face among the card's round buttons; tapping it opens the switch again (same face folds back, Want to go undoes; the face is kept on undo so a slip loses nothing).
 - **Buddy menu → Been there:** a plain list, latest marked first, with faces. No dates, no sort controls, rows don't open anything yet.
 - **Deliberately not done (Sarp):** nothing on the map, no filter, no date shown.
@@ -46,14 +53,19 @@ Everything below is on `main` and deployed. iOS changes are in code and checked 
 - Verified: `tsc`, `next build`, iOS simulator build; migration over an existing list with the new fields; duplicate save makes no paid call (usage unchanged); gone post → 404 permanent; bad input → 400/404. Not verified here: the web map redraw fix (the browser pane was hidden, so MapLibre never painted), the share extension end to end.
 
 ## Waiting on Sarp
-1. **Build 12 on the phone** (uploaded 2026-10-06 afternoon: Want to go / Been there on the place card, faces, menu → Been there, no country chips). Build 11 (same day: type icons, floating card + why it's here + website, map by country). Build 10 (same day: menu → How to save opens the tutorial). Build 9 (same day: share tutorial on an empty list, still splash, no embedded post, view pill and + separate again). From build 8 (2026-10-05): the splash in light and dark (dark movie on a dark phone, no flash at the hand-off), the brand touches (empty list on a fresh install, elephant menu, Settings, picker tint), and the location question only from 3 places. Then: Share from inside Instagram (never tested on a device), the share card over Instagram (no grey page behind it), the Where/What pickers, card icons and the glass pill + separate +, splash, Map · Near me on open, $ on a restaurant save, the sheet ⋯ and the post button (embed removed 2026-10-06), the keyboard when the save sheet opens, swipe thresholds and Undo timing, real `vm.tiktok.com` / `maps.app.goo.gl` links.
-2. **App Store Connect:** beta info (short description, feedback email), privacy policy URL `https://pinsta-two.vercel.app/privacy`, external testing group, submit for Beta App Review → public link.
-3. **Rate limit the open paid endpoints?** `/api/extract` (Apify) and `/api/price` (Google) are open to anyone who reads this public repo. Proposal: a Vercel Firewall rule, 20 requests a minute per IP on both. A production config change, so it's Sarp's call.
-4. After the first weekend: Usage sheet (buddy menu) for what friends' saves cost.
+1. **Friends beta via TestFlight public link** (Sarp, 2026-10-08: builds tested on the phone, no issues). A public link needs no email list: fill beta info, privacy URL, external group, submit for Beta App Review once, then share the link.
+2. **vicolo.space domains** (bought on Vercel, 2026-10-08). Done 2026-10-08 (domains added, `proxy.ts` routes them). TestFlight privacy URL: `https://vicolo.space/privacy`.
+3. **Testers list → light CRM** (Sarp, 2026-10-08): capture beta testers (name, email, how they know Sarp, invited/installed) so they're both the TestFlight list and the start of a CRM. Lives in backoffice. Not started.
+4. Rate limiting the open paid endpoints: later (Sarp, 2026-10-08).
+5. After the first weekend: Usage sheet (buddy menu) for what friends' saves cost.
+
+## Next design areas (Sarp, 2026-10-08) — Sarp designs these, later; no Sander
+- **Success states:** the first place saved, the first place in a new city, and similar milestones. A moment, not a receipt. (The current cards first experience is fine for now; this replaces the full "First experience" redesign.)
+- **Share sheet:** the success state's design, and the choices on the sheet don't make clear what the user is expected to do.
 
 ## Open decisions
 - **iCloud backup — deferred until after the beta (CTO call, 2026-10-02).** SwiftData + CloudKit means dropping `@Attribute(.unique)` on `Place.id`, a CloudKit container, and deploying the schema to production in the CloudKit dashboard, or TestFlight builds silently don't sync. None of it can be checked on the simulator without an iCloud sign-in, and a wrong migration the night before friends install is the worst kind of bug. Revisit when a friend loses a list, or right after the beta settles.
-- **First experience — needs a design pass with Sander before any code** (CLAUDE.md: design calls aren't made alone). Brief below under "First experience".
+- **First experience — cards UI okay for now (Sarp, 2026-10-08)**; narrowed to success states, see "Next design areas".
 - **Apify: keep, cache, or replace** — decide from the Usage sheet after the beta weekend.
 
 ## Phase 6 — Friends & family beta (TestFlight) 🟡 target: link out Sat 2026-10-03
@@ -250,6 +262,8 @@ The web app stays live until the native one is trusted.
 pre-loaded with the shared post and saves to the same list the app shows.
 
 ## Decisions log (dated)
+- **2026-10-08 — Domains: subdomains, not paths (Sarp).** vicolo.space = marketing (+ /privacy), app.vicolo.space = the product, backoffice.vicolo.space = owner tooling (usage, anything future); /import is product and lives on app.. One Vercel project; `proxy.ts` routes by host.
+- **2026-10-08 — No Sander on Vicolo (Sarp).** Sarp does the designs.
 - **2026-09-12 — Grouping is a pure count heuristic, no LLM.** A town needs 2+
   saved places for its own row; a 1-place town folds into its region only if the
   region then bundles 2+ places. Labels shift as the list grows — accepted.

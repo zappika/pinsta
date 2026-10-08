@@ -14,7 +14,12 @@ list with Google/Apple Maps links. Web app + native iOS app, same rules.
 
 ## Run it
 
-**Web** (Next.js, Vercel, Neon Postgres) — live at https://pinsta-two.vercel.app
+**Web** (Next.js, Vercel, Neon Postgres). One Vercel project (`pinsta-two`), hosts split by `proxy.ts`:
+- `vicolo.space` — marketing index (`app/page.tsx`, share card `app/opengraph-image.tsx`) + `/privacy`
+- `app.vicolo.space` — the product: the list (served from `app/app/page.tsx`), `/import` (for every user, not owner tooling)
+- `backoffice.vicolo.space` — owner tooling: `/usage`; future owner pages go here
+- `pinsta-two.vercel.app` — still serves the list at `/`; the iOS app's `/api/extract` points here
+Locally there's no host split: `/` is the index, `/app` the list. The owner key lives in localStorage, so each host unlocks once.
 ```bash
 npm run dev            # port 3010 — or the "pinsta" entry in .claude/launch.json
 npx tsc --noEmit       # the type check that stands in for tests

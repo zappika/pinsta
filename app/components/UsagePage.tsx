@@ -36,7 +36,7 @@ export default function UsagePage() {
 
   return (
     <main className="mx-auto min-h-dvh max-w-xl px-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-12">
-      <a href="/" className="text-sm font-medium text-stone-500 active:text-stone-700">
+      <a href="/app" className="text-sm font-medium text-stone-500 active:text-stone-700">
         ← Vicolo
       </a>
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">Usage</h1>

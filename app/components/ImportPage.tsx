@@ -114,7 +114,7 @@ export default function ImportPage() {
 
   return (
     <main className="mx-auto min-h-dvh max-w-xl px-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-32">
-      <a href="/" className="text-sm font-medium text-stone-500 active:text-stone-700">
+      <a href="/app" className="text-sm font-medium text-stone-500 active:text-stone-700">
         ← Vicolo
       </a>
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">Import from Google Maps</h1>
@@ -189,7 +189,7 @@ export default function ImportPage() {
       {preview && (
         <div className="fixed inset-x-0 bottom-0 z-10 mx-auto max-w-xl px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
           {picked.length === 0 && savedCount > 0 && !importing ? (
-            <a href="/" className="block rounded-2xl bg-stone-900 py-3.5 text-center text-sm font-semibold text-white shadow-lg active:bg-stone-800">
+            <a href="/app" className="block rounded-2xl bg-stone-900 py-3.5 text-center text-sm font-semibold text-white shadow-lg active:bg-stone-800">
               Done · see {count(savedCount, "place")} in your list
             </a>
           ) : (
