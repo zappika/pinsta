@@ -94,6 +94,9 @@ New light/dark stills:
 ## iOS app icon
 The active `AppIcon.appiconset` uses the 1024px masters from `Vicolo-App-Icons.zip` (2026-10-02): pink/orange/yellow for Any (light/default), cobalt/lime/lilac for Dark. Xcode generates device renditions from these opaque PNGs; `ios/project.yml` selects `AppIcon`. Home Screen icon appearance is controlled by iOS, independently of the in-app Appearance preference.
 
+## Asset library
+`assets/vicolo-library/` (2026-10-08): the source art, kept in git so it can't be lost; outside `public/` and iOS Resources, so nothing ships from it. `menu-icons/` masters are what `public/types` and `Types/*.imageset` were made from (sips -Z 160 / 192). `cities/` (21, mapped in `index.csv`) and `objects/` (51) are warm-white poster crops, not transparent, not used yet. Copy what a feature needs into the app; never reference this folder at runtime.
+
 ## Dark mode
 No `dark:` classes. `globals.css` flips Tailwind's stone palette variables (and white, red, amber) when `<html data-theme="dark">`, or on a dark system unless `data-theme="light"`. The buddy menu sets it (`lib/theme.ts`); an inline script in `layout.tsx` applies it before first paint. The dark rules exist twice (pinned and system); edit both. Any stone/white class works in both themes; a colour outside that palette needs an entry in both blocks. The map switches to OpenFreeMap `dark`.
 
