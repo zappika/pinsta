@@ -7,6 +7,8 @@ _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code 
 - **Index on vicolo.space:** a very simple placeholder with the resin elephant, plus a share card (`app/opengraph-image.tsx`) for iMessage/WhatsApp previews.
 - **/import is product, not owner tooling** (Sarp): it lives on app.vicolo.space.
 - Checked: every host × path against a local production build (curl with Host headers), the share card image, tsc, next build.
+- Index logo follows the theme: pink resin elephant in light, the cobalt app icon in dark. The share card stays light: previewers fetch one image and can't follow the reader's theme (Sarp: fine).
+- Couldn't confirm live: the share card URLs moved to www (Vercel's bot checkpoint blocked this machine after too many checks). Check the WhatsApp preview from the phone.
 - Next: the testers list / light CRM in backoffice; TestFlight external group with `https://vicolo.space/privacy`.
 
 ## Earlier — 2026-10-06 (afternoon): Want to go / Been there, web + iOS, build 12
