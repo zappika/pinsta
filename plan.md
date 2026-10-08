@@ -8,8 +8,8 @@ _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code 
 - **/import is product, not owner tooling** (Sarp): it lives on app.vicolo.space.
 - Checked: every host × path against a local production build (curl with Host headers), the share card image, tsc, next build.
 - Index logo follows the theme: pink resin elephant in light, the cobalt app icon in dark. The share card stays light: previewers fetch one image and can't follow the reader's theme (Sarp: fine).
-- Couldn't confirm live: the share card URLs moved to www (Vercel's bot checkpoint blocked this machine after too many checks). Check the WhatsApp preview from the phone.
-- Next: the testers list / light CRM in backoffice; TestFlight external group with `https://vicolo.space/privacy`.
+- Share previews confirmed working from the phone (Sarp, 2026-10-08).
+- Next: Sarp designs success states and the share sheet; then the friends beta link.
 
 ## Earlier — 2026-10-06 (afternoon): Want to go / Been there, web + iOS, build 12
 - **Want to go / Been there** (Sarp's design reference: a check-in app's card). Every place starts as Want to go. The floating place card has two equal buttons acting as one switch. Been there stamps `visited_at` (kept for later, **not shown**: today's dates are when a place was marked, not visited) and asks "How was it?" with 😞 🙂 😃 (`rating` 1–3). Picking a face folds the switch into that face among the card's round buttons; tapping it opens the switch again (same face folds back, Want to go undoes; the face is kept on undo so a slip loses nothing).
@@ -57,11 +57,10 @@ Everything below is on `main` and deployed. iOS changes are in code and checked 
 ## Waiting on Sarp
 1. **Friends beta via TestFlight public link** (Sarp, 2026-10-08: builds tested on the phone, no issues). A public link needs no email list: fill beta info, privacy URL, external group, submit for Beta App Review once, then share the link.
 2. **vicolo.space domains** (bought on Vercel, 2026-10-08). Done 2026-10-08 (domains added, `proxy.ts` routes them). TestFlight privacy URL: `https://vicolo.space/privacy`.
-3. **Testers list → light CRM** (Sarp, 2026-10-08): capture beta testers (name, email, how they know Sarp, invited/installed) so they're both the TestFlight list and the start of a CRM. Lives in backoffice. Not started.
-4. Rate limiting the open paid endpoints: later (Sarp, 2026-10-08).
-5. After the first weekend: Usage sheet (buddy menu) for what friends' saves cost.
+3. **Testers list → light CRM** (Sarp, 2026-10-08): first 13 close friends named (kept out of this public repo). Sarp invites them personally — **nothing automatic, no emails or invites from code.** CRM in backoffice later, not started.
+4. Rate limiting and usage review: much later (Sarp, 2026-10-08). Don't bring up.
 
-## Next design areas (Sarp, 2026-10-08) — Sarp designs these, later; no Sander
+## Next design areas (Sarp, 2026-10-08) — **the next product work**; Sarp designs these, no Sander
 - **Success states:** the first place saved, the first place in a new city, and similar milestones. A moment, not a receipt. (The current cards first experience is fine for now; this replaces the full "First experience" redesign.)
 - **Share sheet:** the success state's design, and the choices on the sheet don't make clear what the user is expected to do.
 
