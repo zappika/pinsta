@@ -19,7 +19,7 @@ export default function Home() {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/brand/elephant-resin.png" alt="" width={96} height={96} className="vicolo-logo-light -ml-2" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/brand/app-icon-dark.png" alt="" width={96} height={96} className="vicolo-logo-dark rounded-[22px]" />
+      <img src="/brand/elephant-dark.png" alt="" width={96} height={96} className="vicolo-logo-dark -ml-2" />
       <h1 className="mt-4 text-4xl font-semibold tracking-tight text-stone-900">{TITLE}</h1>
       <p className="mt-3 text-lg leading-relaxed text-stone-600">{PITCH}</p>
       <p className="mt-2 text-stone-500">An iPhone app, in a small beta with friends.</p>
