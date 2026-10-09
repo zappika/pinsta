@@ -14,8 +14,10 @@
 // is one. Gone by itself after SHOW_MS, or on a tap.
 
 import { useEffect, useState } from "react";
+import { iconFor, tintFor } from "@/lib/categories";
 
 type Entry = "share" | "paste";
+type Link = "instagram" | "maps";
 type Match = "sure" | "likely" | "none";
 type Milestone = "none" | "city" | "category";
 type Place = { name: string; type: string; area: string; city: string };
@@ -40,6 +42,7 @@ export default function SuccessLab() {
   const [entry, setEntry] = useState<Entry>("share");
   const [match, setMatch] = useState<Match>("likely");
   const [milestone, setMilestone] = useState<Milestone>("city");
+  const [link, setLink] = useState<Link>("instagram");
   const [suggestions, setSuggestions] = useState<"1" | "3">("3");
   const [run, setRun] = useState(0);
   const replay = () => setRun((r) => r + 1);
@@ -51,6 +54,8 @@ export default function SuccessLab() {
           <h1 className="text-lg font-semibold">Save flow</h1>
           <Choice label="Opened from" value={entry} onChange={(v) => { setEntry(v); replay(); }}
             options={[["share", "Instagram Share"], ["paste", "+ in the app"]]} />
+          <Choice label="Link" value={link} onChange={(v) => { setLink(v); replay(); }}
+            options={[["instagram", "Instagram post"], ["maps", "Google Maps (no photo)"]]} />
           <Choice label="What we find" value={match} onChange={(v) => { setMatch(v); replay(); }}
             options={[["sure", "Sure: location tag"], ["likely", "Likely: account guess"], ["none", "No idea"]]} />
           <Choice label="Account guesses" value={suggestions} onChange={(v) => { setSuggestions(v); replay(); }}
@@ -61,7 +66,7 @@ export default function SuccessLab() {
         </section>
 
         <Phone>
-          <Flow key={`${run}-${entry}-${match}-${milestone}-${suggestions}`} entry={entry} match={match} milestone={milestone} suggestions={+suggestions} />
+          <Flow key={`${run}-${entry}-${link}-${match}-${milestone}-${suggestions}`} link={link} entry={entry} match={match} milestone={milestone} suggestions={+suggestions} />
         </Phone>
       </div>
     </main>
@@ -94,7 +99,7 @@ function Phone({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Flow({ entry, match, milestone, suggestions }: { entry: Entry; match: Match; milestone: Milestone; suggestions: number }) {
+function Flow({ link, entry, match, milestone, suggestions }: { link: Link; entry: Entry; match: Match; milestone: Milestone; suggestions: number }) {
   const [step, setStep] = useState<Step>(entry === "paste" ? { at: "link" } : { at: "reading" });
   const [shown, setShown] = useState(false);
 
@@ -110,7 +115,7 @@ function Flow({ entry, match, milestone, suggestions }: { entry: Entry; match: M
   }, [step.at, match]);
 
   if (step.at === "gone") return <p className="absolute inset-x-0 bottom-8 text-center text-xs text-white/80">Back to Instagram</p>;
-  if (step.at === "saved") return <SavedCard place={step.place} milestone={milestone} onGone={() => setStep({ at: "gone" })} />;
+  if (step.at === "saved") return <SavedCard photo={link === "maps" ? null : PHOTO} place={step.place} milestone={milestone} onGone={() => setStep({ at: "gone" })} />;
 
   const save = (place: Place) => setStep({ at: "saved", place });
   // The question lives in the sheet's small label, the size of today's "Save a place": no headings.
@@ -130,7 +135,7 @@ function Flow({ entry, match, milestone, suggestions }: { entry: Entry; match: M
         <LinkStep onUse={() => setStep({ at: "reading" })} />
       ) : (
         <>
-          <PostRow />
+          <PostRow link={link} />
           {step.at === "reading" && <Reading />}
           {step.at === "likely" && <Likely count={suggestions} onSave={save} onOther={() => setStep({ at: "search", query: GUESS.name })} />}
           {step.at === "search" && <Search initial={step.query} guessed={match === "likely"} onSave={save} />}
@@ -150,7 +155,22 @@ function LinkStep({ onUse }: { onUse: () => void }) {
 }
 
 /** The post, small: context for the decision, not a thing to act on. */
-function PostRow() {
+function PostRow({ link }: { link: Link }) {
+  if (link === "maps") {
+    // A Maps link has no picture: the place's type icon on its tint, as photo-less tiles do.
+    return (
+      <div className="mt-2 flex items-center gap-3">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: tintFor(GUESS.type) }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={iconFor(GUESS.type)} alt="" className="h-9 w-9 object-contain" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-stone-500">Google Maps</p>
+          <p className="truncate text-sm text-stone-600">{GUESS.name}</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="mt-2 flex items-center gap-3">
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -219,7 +239,7 @@ function Search({ initial, guessed, onSave }: { initial: string; guessed: boolea
 }
 
 /** One card for every save: what was saved and where, with Vicolo's mark. Tap to close early. */
-function SavedCard({ place, milestone, onGone }: { place: Place; milestone: Milestone; onGone: () => void }) {
+function SavedCard({ photo, place, milestone, onGone }: { photo: string | null; place: Place; milestone: Milestone; onGone: () => void }) {
   const [shown, setShown] = useState(false);
   useEffect(() => {
     const a = requestAnimationFrame(() => setShown(true));
@@ -233,20 +253,28 @@ function SavedCard({ place, milestone, onGone }: { place: Place; milestone: Mile
   return (
     <button type="button" onClick={onGone}
       className={`absolute inset-x-3 bottom-3 overflow-hidden rounded-[32px] text-left shadow-2xl transition-transform duration-300 ${shown ? "translate-y-0" : "translate-y-[110%]"}`}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={PHOTO} alt="" className="block aspect-[4/5] w-full object-cover" />
+      {photo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={photo} alt="" className="block aspect-[4/5] w-full object-cover" />
+      ) : (
+        // No photo (a Maps link): the type icon, big, on its tint — the same look as photo-less tiles.
+        <div className="flex aspect-[4/5] w-full items-center justify-center pb-24" style={{ backgroundColor: tintFor(place.type) }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={iconFor(place.type)} alt="" className="h-40 w-40 object-contain" />
+        </div>
+      )}
       <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-white/85 py-1 pl-1 pr-3 backdrop-blur">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/elephant-resin.png" alt="" className="h-7 w-7" />
         <span className="text-sm font-semibold text-[#1f1c1a]">Saved to Vicolo</span>
       </div>
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent px-5 pb-6 pt-20 text-white">
-        {line && <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-white/85">{line}</p>}
+      <div className={`absolute inset-x-0 bottom-0 px-5 pb-6 pt-20 ${photo ? "bg-gradient-to-t from-black/75 via-black/35 to-transparent text-white" : "text-[#1f1c1a]"}`}>
+        {line && <p className="mb-1 text-xs font-semibold uppercase tracking-wider opacity-80">{line}</p>}
         <p className="text-[28px] font-semibold leading-tight tracking-tight">{place.name}</p>
-        <p className="mt-0.5 text-base text-white/85">{place.type} · {place.city}</p>
+        <p className="mt-0.5 text-base opacity-80">{place.type} · {place.city}</p>
       </div>
-      <div className="absolute inset-x-0 bottom-0 h-1 bg-white/10">
-        <div className="h-full bg-white/50" style={{ width: shown ? "100%" : "0%", transition: `width ${SHOW_MS - BAR_DELAY_MS}ms cubic-bezier(.45,0,.8,1) ${BAR_DELAY_MS}ms` }} />
+      <div className={`absolute inset-x-0 bottom-0 h-1 ${photo ? "bg-white/10" : "bg-black/5"}`}>
+        <div className={`h-full ${photo ? "bg-white/50" : "bg-black/25"}`} style={{ width: shown ? "100%" : "0%", transition: `width ${SHOW_MS - BAR_DELAY_MS}ms cubic-bezier(.45,0,.8,1) ${BAR_DELAY_MS}ms` }} />
       </div>
     </button>
   );
