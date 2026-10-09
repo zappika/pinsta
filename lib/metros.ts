@@ -14,6 +14,7 @@ const METROS: Metro[] = [
   { name: "Istanbul", lat: 41.015, lng: 28.98, km: 30 },
   { name: "Copenhagen", lat: 55.676, lng: 12.568, km: 9 },
   { name: "Stockholm", lat: 59.329, lng: 18.069, km: 10 },
+  { name: "Gothenburg", lat: 57.709, lng: 11.974, km: 10 },
   { name: "Oslo", lat: 59.913, lng: 10.752, km: 9 },
   { name: "Helsinki", lat: 60.17, lng: 24.94, km: 10 },
   { name: "London", lat: 51.507, lng: -0.128, km: 20 },
@@ -53,6 +54,8 @@ const AREAS: Metro[] = [
   { name: "Priorat", lat: 41.17, lng: 0.8, km: 15 },
   { name: "Penedès", lat: 41.33, lng: 1.75, km: 20 },
   { name: "Maresme", lat: 41.55, lng: 2.45, km: 18 },
+  // Sweden
+  { name: "West Coast Sweden", lat: 57.3, lng: 12.1, km: 90 },
   // France
   { name: "Roussillon", lat: 42.62, lng: 2.85, km: 30 },
   { name: "Côte d'Azur", lat: 43.62, lng: 7.1, km: 40 },

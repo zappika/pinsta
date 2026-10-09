@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { parseSourceUrl, SOURCE_LABEL, type SourceKind } from "@/lib/sources";
 import { api } from "@/lib/api";
-import { iconFor, tintFor } from "@/lib/categories";
+import { iconFor, placeIcon, tintFor } from "@/lib/categories";
 import { milestoneFor } from "@/lib/milestone";
 import type { Place, PlaceCandidate } from "./types";
 // Type only: nothing of the server route reaches the client bundle.
@@ -391,7 +391,7 @@ function SavedCard({ saved, onDone }: { saved: Saved; onDone: () => void }) {
       ) : (
         <div className="flex aspect-[4/5] max-h-[60dvh] w-full items-center justify-center pb-24" style={{ backgroundColor: tintFor(place.category) }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={iconFor(place.category)} alt="" className="h-40 w-40 object-contain" />
+          <img src={placeIcon(place)} alt="" className="h-40 w-40 object-contain" />
         </div>
       )}
       <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-[#fffdf8]/85 py-1 pl-1 pr-3 backdrop-blur">

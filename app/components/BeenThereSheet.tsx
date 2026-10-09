@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { iconFor, tintFor } from "@/lib/categories";
+import { placeIcon, tintFor } from "@/lib/categories";
 import { FACES, Face } from "./PlaceCard";
 import type { Place } from "./types";
 
@@ -41,7 +41,7 @@ export default function BeenThereSheet({ places, onClose }: { places: Place[]; o
               <li key={p.id} className="flex items-center gap-3 px-4 py-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: tintFor(p.category) }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={iconFor(p.category)} alt="" draggable={false} className="h-6 w-6 object-contain" />
+                  <img src={placeIcon(p)} alt="" draggable={false} className="h-6 w-6 object-contain" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{p.name}</p>

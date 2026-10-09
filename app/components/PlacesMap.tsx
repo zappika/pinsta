@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import type * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { iconFor, tintFor } from "@/lib/categories";
+import { placeIcon, tintFor } from "@/lib/categories";
 import { NEAR_KM, kmBetween } from "@/lib/geo";
 import { isDark } from "@/lib/theme";
 import type { Place } from "./types";
@@ -202,7 +202,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
         pin.className = "pinsta-pin";
         // The type icon only: a photo shrunk to 44px is unreadable; the type reads at a glance.
         const icon = document.createElement("img");
-        icon.src = iconFor(p.category);
+        icon.src = placeIcon(p);
         icon.alt = "";
         icon.draggable = false;
         icon.className = "pinsta-pin-icon";

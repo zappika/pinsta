@@ -31,7 +31,7 @@ struct PlaceListView: View {
                 if p.imageData != nil {
                     PlacePhoto(place: p, points: 80)
                 } else {
-                    p.category.icon.resizable().scaledToFit()
+                    p.icon.resizable().scaledToFit()
                         .frame(width: 40, height: 40)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(p.category.tint)

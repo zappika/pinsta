@@ -1,6 +1,6 @@
 "use client";
 
-import { iconFor, tintFor } from "@/lib/categories";
+import { placeIcon, tintFor } from "@/lib/categories";
 import type { Place } from "./types";
 
 type Props = {
@@ -38,7 +38,7 @@ export default function PlaceTiles({ places, selected, onSelect }: Props) {
               ) : (
                 <span className="flex h-full w-full items-center justify-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={iconFor(p.category)} alt="" draggable={false} className="h-12 w-12 object-contain" />
+                  <img src={placeIcon(p)} alt="" draggable={false} className="h-12 w-12 object-contain" />
                 </span>
               )}
               {active && <span className="pointer-events-none absolute inset-0 ring-2 ring-inset ring-stone-900" />}

@@ -1,3 +1,4 @@
+import { foodIcon } from "./food";
 /**
  * Collapse Google Places `primaryType` values into a handful of buckets the
  * list can be filtered by. Order matters: more specific checks come first
@@ -120,4 +121,9 @@ export function tintFor(category: string | null | undefined): string {
 export function iconFor(category: string | null | undefined): string {
   const c = CATEGORIES.includes(category as Category) ? (category as Category) : "Other";
   return `/types/${c.toLowerCase()}.png`;
+}
+
+/** A place's icon: its food icon when it's a restaurant we can read (lib/food), else its type's. */
+export function placeIcon(p: { category: string | null; primaryType?: string | null; name?: string | null; caption?: string | null }): string {
+  return foodIcon(p) ?? iconFor(p.category);
 }

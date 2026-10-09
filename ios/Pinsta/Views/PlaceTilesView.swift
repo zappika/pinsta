@@ -49,7 +49,7 @@ struct PlaceTilesView: View {
             PlacePhoto(place: place, points: 200)
         } else {
             place.category.tint.overlay {
-                place.category.icon.resizable().scaledToFit().frame(width: 48, height: 48)
+                place.icon.resizable().scaledToFit().frame(width: 48, height: 48)
             }
         }
     }

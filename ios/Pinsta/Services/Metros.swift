@@ -15,6 +15,7 @@ enum Metros {
         Metro(name: "Istanbul", lat: 41.015, lng: 28.98, km: 30),
         Metro(name: "Copenhagen", lat: 55.676, lng: 12.568, km: 9),
         Metro(name: "Stockholm", lat: 59.329, lng: 18.069, km: 10),
+        Metro(name: "Gothenburg", lat: 57.709, lng: 11.974, km: 10),
         Metro(name: "Oslo", lat: 59.913, lng: 10.752, km: 9),
         Metro(name: "Helsinki", lat: 60.17, lng: 24.94, km: 10),
         Metro(name: "London", lat: 51.507, lng: -0.128, km: 20),
@@ -51,6 +52,8 @@ enum Metros {
         Metro(name: "Priorat", lat: 41.17, lng: 0.8, km: 15),
         Metro(name: "Penedès", lat: 41.33, lng: 1.75, km: 20),
         Metro(name: "Maresme", lat: 41.55, lng: 2.45, km: 18),
+        // Sweden
+        Metro(name: "West Coast Sweden", lat: 57.3, lng: 12.1, km: 90),
         // France
         Metro(name: "Roussillon", lat: 42.62, lng: 2.85, km: 30),
         Metro(name: "Côte d'Azur", lat: 43.62, lng: 7.1, km: 40),

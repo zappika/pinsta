@@ -141,7 +141,7 @@ struct PlacesMapView: View {
 
     private func pin(_ place: Place) -> some View {
         let active = selected?.id == place.id
-        return place.category.icon.resizable().scaledToFit()
+        return place.icon.resizable().scaledToFit()
             .frame(width: 28, height: 28)
             .frame(width: 44, height: 44)
             .background(place.category.tint, in: Circle())

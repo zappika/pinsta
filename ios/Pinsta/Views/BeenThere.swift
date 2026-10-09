@@ -129,7 +129,7 @@ struct BeenThereSheet: View {
                 } else {
                     List(been) { p in
                         HStack(spacing: 12) {
-                            p.category.icon
+                            p.icon
                                 .resizable()
                                 .scaledToFit()
                                 .frame(width: 24, height: 24)
