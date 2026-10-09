@@ -6,14 +6,16 @@
     "file": "cities/tea-cat.png",
     "width": 339,
     "height": 195,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       0,
       0,
       339,
       195
-    ]
+    ],
+    "original_file": "source-crops/cities/tea-cat.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -22,14 +24,16 @@
     "file": "cities/mets-cap.png",
     "width": 340,
     "height": 193,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       341,
       0,
       681,
       193
-    ]
+    ],
+    "original_file": "source-crops/cities/mets-cap.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -38,14 +42,16 @@
     "file": "cities/transamerica-pyramid.png",
     "width": 340,
     "height": 193,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       684,
       0,
       1024,
       193
-    ]
+    ],
+    "original_file": "source-crops/cities/transamerica-pyramid.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -54,14 +60,16 @@
     "file": "cities/oyster-card.png",
     "width": 251,
     "height": 166,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       65,
       231,
       316,
       397
-    ]
+    ],
+    "original_file": "source-crops/cities/oyster-card.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -70,14 +78,16 @@
     "file": "cities/red-lipstick.png",
     "width": 271,
     "height": 195,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       398,
       210,
       669,
       405
-    ]
+    ],
+    "original_file": "source-crops/cities/red-lipstick.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -86,14 +96,16 @@
     "file": "cities/vermouth-siphon.png",
     "width": 124,
     "height": 186,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       790,
       230,
       914,
       416
-    ]
+    ],
+    "original_file": "source-crops/cities/vermouth-siphon.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -102,14 +114,16 @@
     "file": "cities/dali-painting.png",
     "width": 287,
     "height": 190,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       51,
       432,
       338,
       622
-    ]
+    ],
+    "original_file": "source-crops/cities/dali-painting.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -118,14 +132,16 @@
     "file": "cities/souvlaki.png",
     "width": 225,
     "height": 201,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       425,
       429,
       650,
       630
-    ]
+    ],
+    "original_file": "source-crops/cities/souvlaki.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -134,14 +150,16 @@
     "file": "cities/vending-machine.png",
     "width": 185,
     "height": 192,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       761,
       443,
       946,
       635
-    ]
+    ],
+    "original_file": "source-crops/cities/vending-machine.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -150,14 +168,16 @@
     "file": "cities/karaoke-microphone.png",
     "width": 325,
     "height": 179,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       20,
       658,
       345,
       837
-    ]
+    ],
+    "original_file": "source-crops/cities/karaoke-microphone.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -166,14 +186,16 @@
     "file": "cities/berlin-station.png",
     "width": 217,
     "height": 192,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       424,
       666,
       641,
       858
-    ]
+    ],
+    "original_file": "source-crops/cities/berlin-station.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -182,14 +204,16 @@
     "file": "cities/tin-soldier.png",
     "width": 98,
     "height": 193,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       812,
       665,
       910,
       858
-    ]
+    ],
+    "original_file": "source-crops/cities/tin-soldier.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -198,14 +222,16 @@
     "file": "cities/falafel-pita.png",
     "width": 287,
     "height": 163,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       42,
       883,
       329,
       1046
-    ]
+    ],
+    "original_file": "source-crops/cities/falafel-pita.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -214,14 +240,16 @@
     "file": "cities/sauna-bucket.png",
     "width": 229,
     "height": 188,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       423,
       858,
       652,
       1046
-    ]
+    ],
+    "original_file": "source-crops/cities/sauna-bucket.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -230,14 +258,16 @@
     "file": "cities/cardamom-bun.png",
     "width": 318,
     "height": 161,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       687,
       886,
       1005,
       1047
-    ]
+    ],
+    "original_file": "source-crops/cities/cardamom-bun.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -246,14 +276,16 @@
     "file": "cities/pantheon.png",
     "width": 288,
     "height": 191,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       45,
       1080,
       333,
       1271
-    ]
+    ],
+    "original_file": "source-crops/cities/pantheon.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -262,14 +294,16 @@
     "file": "cities/mole-antonelliana.png",
     "width": 184,
     "height": 200,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       443,
       1072,
       627,
       1272
-    ]
+    ],
+    "original_file": "source-crops/cities/mole-antonelliana.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -278,14 +312,16 @@
     "file": "cities/campari-bottle.png",
     "width": 127,
     "height": 197,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       789,
       1080,
       916,
       1277
-    ]
+    ],
+    "original_file": "source-crops/cities/campari-bottle.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -294,14 +330,16 @@
     "file": "cities/lisbon-kiosk.png",
     "width": 250,
     "height": 186,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       55,
       1304,
       305,
       1490
-    ]
+    ],
+    "original_file": "source-crops/cities/lisbon-kiosk.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -310,14 +348,16 @@
     "file": "cities/sun-stone.png",
     "width": 250,
     "height": 175,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       393,
       1310,
       643,
       1485
-    ]
+    ],
+    "original_file": "source-crops/cities/sun-stone.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "cities",
@@ -326,14 +366,16 @@
     "file": "cities/museum-seat.png",
     "width": 283,
     "height": 157,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-cities-poster-v3.png",
     "crop": [
       701,
       1330,
       984,
       1487
-    ]
+    ],
+    "original_file": "source-crops/cities/museum-seat.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -342,14 +384,16 @@
     "file": "objects/pink-elephant.png",
     "width": 240,
     "height": 247,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       55,
       15,
       295,
       262
-    ]
+    ],
+    "original_file": "source-crops/objects/pink-elephant.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -358,14 +402,16 @@
     "file": "objects/blue-elephant.png",
     "width": 224,
     "height": 251,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       300,
       15,
       524,
       266
-    ]
+    ],
+    "original_file": "source-crops/objects/blue-elephant.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -374,14 +420,16 @@
     "file": "objects/vicolo-lettering.png",
     "width": 460,
     "height": 170,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       525,
       80,
       985,
       250
-    ]
+    ],
+    "original_file": "source-crops/objects/vicolo-lettering.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -390,14 +438,16 @@
     "file": "objects/coffee-cup.png",
     "width": 174,
     "height": 166,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       20,
       259,
       194,
       425
-    ]
+    ],
+    "original_file": "source-crops/objects/coffee-cup.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -406,14 +456,16 @@
     "file": "objects/orange-wine.png",
     "width": 127,
     "height": 157,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       210,
       268,
       337,
       425
-    ]
+    ],
+    "original_file": "source-crops/objects/orange-wine.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -422,14 +474,16 @@
     "file": "objects/cherry-jelly.png",
     "width": 151,
     "height": 125,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       354,
       299,
       505,
       424
-    ]
+    ],
+    "original_file": "source-crops/objects/cherry-jelly.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -438,14 +492,16 @@
     "file": "objects/motel-key.png",
     "width": 189,
     "height": 186,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       510,
       240,
       699,
       426
-    ]
+    ],
+    "original_file": "source-crops/objects/motel-key.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -454,14 +510,16 @@
     "file": "objects/shopping-bag.png",
     "width": 168,
     "height": 187,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       699,
       232,
       867,
       419
-    ]
+    ],
+    "original_file": "source-crops/objects/shopping-bag.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -470,14 +528,16 @@
     "file": "objects/gilda.png",
     "width": 100,
     "height": 191,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       887,
       237,
       987,
       428
-    ]
+    ],
+    "original_file": "source-crops/objects/gilda.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -486,14 +546,16 @@
     "file": "objects/olive-dish.png",
     "width": 167,
     "height": 132,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       20,
       442,
       187,
       574
-    ]
+    ],
+    "original_file": "source-crops/objects/olive-dish.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -502,14 +564,16 @@
     "file": "objects/cocktail.png",
     "width": 165,
     "height": 161,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       187,
       419,
       352,
       580
-    ]
+    ],
+    "original_file": "source-crops/objects/cocktail.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -518,14 +582,16 @@
     "file": "objects/condom-packet.png",
     "width": 159,
     "height": 158,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       355,
       427,
       514,
       585
-    ]
+    ],
+    "original_file": "source-crops/objects/condom-packet.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -534,14 +600,16 @@
     "file": "objects/moon-charm.png",
     "width": 146,
     "height": 148,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       520,
       431,
       666,
       579
-    ]
+    ],
+    "original_file": "source-crops/objects/moon-charm.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -550,14 +618,16 @@
     "file": "objects/godzilla-beer.png",
     "width": 127,
     "height": 163,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       681,
       420,
       808,
       583
-    ]
+    ],
+    "original_file": "source-crops/objects/godzilla-beer.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -566,14 +636,16 @@
     "file": "objects/caramel-purin.png",
     "width": 196,
     "height": 153,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       812,
       430,
       1008,
       583
-    ]
+    ],
+    "original_file": "source-crops/objects/caramel-purin.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -582,14 +654,16 @@
     "file": "objects/grey-whippet.png",
     "width": 133,
     "height": 138,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       0,
       569,
       133,
       707
-    ]
+    ],
+    "original_file": "source-crops/objects/grey-whippet.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -598,14 +672,16 @@
     "file": "objects/pink-charm.png",
     "width": 134,
     "height": 137,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       125,
       590,
       259,
       727
-    ]
+    ],
+    "original_file": "source-crops/objects/pink-charm.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -614,14 +690,16 @@
     "file": "objects/blue-charm.png",
     "width": 133,
     "height": 138,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       269,
       593,
       402,
       731
-    ]
+    ],
+    "original_file": "source-crops/objects/blue-charm.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -630,14 +708,16 @@
     "file": "objects/tomato.png",
     "width": 192,
     "height": 154,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       403,
       574,
       595,
       728
-    ]
+    ],
+    "original_file": "source-crops/objects/tomato.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -646,14 +726,16 @@
     "file": "objects/headphones.png",
     "width": 256,
     "height": 159,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       603,
       578,
       859,
       737
-    ]
+    ],
+    "original_file": "source-crops/objects/headphones.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -662,14 +744,16 @@
     "file": "objects/fawn-whippet.png",
     "width": 157,
     "height": 157,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       867,
       550,
       1024,
       707
-    ]
+    ],
+    "original_file": "source-crops/objects/fawn-whippet.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -678,14 +762,16 @@
     "file": "objects/sardine-tin.png",
     "width": 225,
     "height": 163,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       16,
       703,
       241,
       866
-    ]
+    ],
+    "original_file": "source-crops/objects/sardine-tin.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -694,14 +780,16 @@
     "file": "objects/onigiri.png",
     "width": 159,
     "height": 135,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       250,
       731,
       409,
       866
-    ]
+    ],
+    "original_file": "source-crops/objects/onigiri.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -710,14 +798,16 @@
     "file": "objects/beach-umbrella.png",
     "width": 205,
     "height": 157,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       420,
       720,
       625,
       877
-    ]
+    ],
+    "original_file": "source-crops/objects/beach-umbrella.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -726,14 +816,16 @@
     "file": "objects/mint-camera.png",
     "width": 207,
     "height": 123,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       636,
       744,
       843,
       867
-    ]
+    ],
+    "original_file": "source-crops/objects/mint-camera.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -742,14 +834,16 @@
     "file": "objects/matchbook.png",
     "width": 126,
     "height": 163,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       875,
       704,
       1001,
       867
-    ]
+    ],
+    "original_file": "source-crops/objects/matchbook.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -758,14 +852,16 @@
     "file": "objects/vinyl-record.png",
     "width": 222,
     "height": 159,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       28,
       861,
       250,
       1020
-    ]
+    ],
+    "original_file": "source-crops/objects/vinyl-record.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -774,14 +870,16 @@
     "file": "objects/pistachio-cone.png",
     "width": 102,
     "height": 161,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       265,
       859,
       367,
       1020
-    ]
+    ],
+    "original_file": "source-crops/objects/pistachio-cone.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -790,14 +888,16 @@
     "file": "objects/service-bell.png",
     "width": 164,
     "height": 138,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       378,
       882,
       542,
       1020
-    ]
+    ],
+    "original_file": "source-crops/objects/service-bell.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -806,14 +906,16 @@
     "file": "objects/maneki-neko.png",
     "width": 126,
     "height": 168,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       548,
       859,
       674,
       1027
-    ]
+    ],
+    "original_file": "source-crops/objects/maneki-neko.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -822,14 +924,16 @@
     "file": "objects/pikachu.png",
     "width": 152,
     "height": 152,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       691,
       868,
       843,
       1020
-    ]
+    ],
+    "original_file": "source-crops/objects/pikachu.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -838,14 +942,16 @@
     "file": "objects/moon-rocket.png",
     "width": 106,
     "height": 175,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       891,
       861,
       997,
       1036
-    ]
+    ],
+    "original_file": "source-crops/objects/moon-rocket.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -854,14 +960,16 @@
     "file": "objects/scrunchie.png",
     "width": 186,
     "height": 170,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       17,
       1013,
       203,
       1183
-    ]
+    ],
+    "original_file": "source-crops/objects/scrunchie.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -870,14 +978,16 @@
     "file": "objects/pocket-notebook.png",
     "width": 181,
     "height": 170,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       208,
       1018,
       389,
       1188
-    ]
+    ],
+    "original_file": "source-crops/objects/pocket-notebook.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -886,14 +996,16 @@
     "file": "objects/bullet-pen.png",
     "width": 123,
     "height": 163,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       387,
       1020,
       510,
       1183
-    ]
+    ],
+    "original_file": "source-crops/objects/bullet-pen.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -902,14 +1014,16 @@
     "file": "objects/pizza-slice.png",
     "width": 192,
     "height": 183,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       512,
       1019,
       704,
       1202
-    ]
+    ],
+    "original_file": "source-crops/objects/pizza-slice.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -918,14 +1032,16 @@
     "file": "objects/pineapple-ring.png",
     "width": 165,
     "height": 146,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       711,
       1032,
       876,
       1178
-    ]
+    ],
+    "original_file": "source-crops/objects/pineapple-ring.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -934,14 +1050,16 @@
     "file": "objects/flamingo-pin.png",
     "width": 73,
     "height": 151,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       900,
       1026,
       973,
       1177
-    ]
+    ],
+    "original_file": "source-crops/objects/flamingo-pin.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -950,14 +1068,16 @@
     "file": "objects/croissant.png",
     "width": 198,
     "height": 156,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       15,
       1174,
       213,
       1330
-    ]
+    ],
+    "original_file": "source-crops/objects/croissant.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -966,14 +1086,16 @@
     "file": "objects/salmon-nigiri.png",
     "width": 155,
     "height": 126,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       213,
       1191,
       368,
       1317
-    ]
+    ],
+    "original_file": "source-crops/objects/salmon-nigiri.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -982,14 +1104,16 @@
     "file": "objects/purple-grapes.png",
     "width": 110,
     "height": 145,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       369,
       1180,
       479,
       1325
-    ]
+    ],
+    "original_file": "source-crops/objects/purple-grapes.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -998,14 +1122,16 @@
     "file": "objects/fern-cloche.png",
     "width": 120,
     "height": 172,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       483,
       1152,
       603,
       1324
-    ]
+    ],
+    "original_file": "source-crops/objects/fern-cloche.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -1014,14 +1140,16 @@
     "file": "objects/viewing-binoculars.png",
     "width": 140,
     "height": 143,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       609,
       1185,
       749,
       1328
-    ]
+    ],
+    "original_file": "source-crops/objects/viewing-binoculars.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -1030,14 +1158,16 @@
     "file": "objects/park-bench.png",
     "width": 163,
     "height": 141,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       750,
       1184,
       913,
       1325
-    ]
+    ],
+    "original_file": "source-crops/objects/park-bench.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -1046,14 +1176,16 @@
     "file": "objects/ferris-wheel.png",
     "width": 157,
     "height": 179,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       12,
       1329,
       169,
       1508
-    ]
+    ],
+    "original_file": "source-crops/objects/ferris-wheel.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -1062,14 +1194,16 @@
     "file": "objects/gehry-museum.png",
     "width": 185,
     "height": 184,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       168,
       1323,
       353,
       1507
-    ]
+    ],
+    "original_file": "source-crops/objects/gehry-museum.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -1078,14 +1212,16 @@
     "file": "objects/digital-cube.png",
     "width": 156,
     "height": 176,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       355,
       1330,
       511,
       1506
-    ]
+    ],
+    "original_file": "source-crops/objects/digital-cube.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -1094,14 +1230,16 @@
     "file": "objects/palace-doorway.png",
     "width": 131,
     "height": 187,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       513,
       1322,
       644,
       1509
-    ]
+    ],
+    "original_file": "source-crops/objects/palace-doorway.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -1110,14 +1248,16 @@
     "file": "objects/framed-art.png",
     "width": 121,
     "height": 171,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       652,
       1334,
       773,
       1505
-    ]
+    ],
+    "original_file": "source-crops/objects/framed-art.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -1126,14 +1266,16 @@
     "file": "objects/high-top-sneakers.png",
     "width": 149,
     "height": 157,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       773,
       1350,
       922,
       1507
-    ]
+    ],
+    "original_file": "source-crops/objects/high-top-sneakers.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   },
   {
     "group": "objects",
@@ -1142,13 +1284,15 @@
     "file": "objects/black-dress.png",
     "width": 105,
     "height": 336,
-    "background": "warm white",
+    "background": "transparent",
     "source": "vicolo-objects-moodboard-expanded.png",
     "crop": [
       914,
       1171,
       1019,
       1507
-    ]
+    ],
+    "original_file": "source-crops/objects/black-dress.png",
+    "processing": "Original pixels with locally generated and reviewed alpha mask"
   }
 ]

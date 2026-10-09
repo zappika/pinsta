@@ -1,73 +1,73 @@
 group,name,city,file,width,height,background
-cities,tea-cat,Istanbul,cities/tea-cat.png,339,195,warm white
-cities,mets-cap,New York,cities/mets-cap.png,340,193,warm white
-cities,transamerica-pyramid,San Francisco,cities/transamerica-pyramid.png,340,193,warm white
-cities,oyster-card,London,cities/oyster-card.png,251,166,warm white
-cities,red-lipstick,Paris,cities/red-lipstick.png,271,195,warm white
-cities,vermouth-siphon,Barcelona,cities/vermouth-siphon.png,124,186,warm white
-cities,dali-painting,Madrid,cities/dali-painting.png,287,190,warm white
-cities,souvlaki,Athens,cities/souvlaki.png,225,201,warm white
-cities,vending-machine,Tokyo,cities/vending-machine.png,185,192,warm white
-cities,karaoke-microphone,Seoul,cities/karaoke-microphone.png,325,179,warm white
-cities,berlin-station,Berlin,cities/berlin-station.png,217,192,warm white
-cities,tin-soldier,Copenhagen,cities/tin-soldier.png,98,193,warm white
-cities,falafel-pita,Malmö,cities/falafel-pita.png,287,163,warm white
-cities,sauna-bucket,Helsinki,cities/sauna-bucket.png,229,188,warm white
-cities,cardamom-bun,Stockholm,cities/cardamom-bun.png,318,161,warm white
-cities,pantheon,Rome,cities/pantheon.png,288,191,warm white
-cities,mole-antonelliana,Torino,cities/mole-antonelliana.png,184,200,warm white
-cities,campari-bottle,Milano,cities/campari-bottle.png,127,197,warm white
-cities,lisbon-kiosk,Lisbon,cities/lisbon-kiosk.png,250,186,warm white
-cities,sun-stone,Mexico City,cities/sun-stone.png,250,175,warm white
-cities,museum-seat,Vienna,cities/museum-seat.png,283,157,warm white
-objects,pink-elephant,,objects/pink-elephant.png,240,247,warm white
-objects,blue-elephant,,objects/blue-elephant.png,224,251,warm white
-objects,vicolo-lettering,,objects/vicolo-lettering.png,460,170,warm white
-objects,coffee-cup,,objects/coffee-cup.png,174,166,warm white
-objects,orange-wine,,objects/orange-wine.png,127,157,warm white
-objects,cherry-jelly,,objects/cherry-jelly.png,151,125,warm white
-objects,motel-key,,objects/motel-key.png,189,186,warm white
-objects,shopping-bag,,objects/shopping-bag.png,168,187,warm white
-objects,gilda,,objects/gilda.png,100,191,warm white
-objects,olive-dish,,objects/olive-dish.png,167,132,warm white
-objects,cocktail,,objects/cocktail.png,165,161,warm white
-objects,condom-packet,,objects/condom-packet.png,159,158,warm white
-objects,moon-charm,,objects/moon-charm.png,146,148,warm white
-objects,godzilla-beer,,objects/godzilla-beer.png,127,163,warm white
-objects,caramel-purin,,objects/caramel-purin.png,196,153,warm white
-objects,grey-whippet,,objects/grey-whippet.png,133,138,warm white
-objects,pink-charm,,objects/pink-charm.png,134,137,warm white
-objects,blue-charm,,objects/blue-charm.png,133,138,warm white
-objects,tomato,,objects/tomato.png,192,154,warm white
-objects,headphones,,objects/headphones.png,256,159,warm white
-objects,fawn-whippet,,objects/fawn-whippet.png,157,157,warm white
-objects,sardine-tin,,objects/sardine-tin.png,225,163,warm white
-objects,onigiri,,objects/onigiri.png,159,135,warm white
-objects,beach-umbrella,,objects/beach-umbrella.png,205,157,warm white
-objects,mint-camera,,objects/mint-camera.png,207,123,warm white
-objects,matchbook,,objects/matchbook.png,126,163,warm white
-objects,vinyl-record,,objects/vinyl-record.png,222,159,warm white
-objects,pistachio-cone,,objects/pistachio-cone.png,102,161,warm white
-objects,service-bell,,objects/service-bell.png,164,138,warm white
-objects,maneki-neko,,objects/maneki-neko.png,126,168,warm white
-objects,pikachu,,objects/pikachu.png,152,152,warm white
-objects,moon-rocket,,objects/moon-rocket.png,106,175,warm white
-objects,scrunchie,,objects/scrunchie.png,186,170,warm white
-objects,pocket-notebook,,objects/pocket-notebook.png,181,170,warm white
-objects,bullet-pen,,objects/bullet-pen.png,123,163,warm white
-objects,pizza-slice,,objects/pizza-slice.png,192,183,warm white
-objects,pineapple-ring,,objects/pineapple-ring.png,165,146,warm white
-objects,flamingo-pin,,objects/flamingo-pin.png,73,151,warm white
-objects,croissant,,objects/croissant.png,198,156,warm white
-objects,salmon-nigiri,,objects/salmon-nigiri.png,155,126,warm white
-objects,purple-grapes,,objects/purple-grapes.png,110,145,warm white
-objects,fern-cloche,,objects/fern-cloche.png,120,172,warm white
-objects,viewing-binoculars,,objects/viewing-binoculars.png,140,143,warm white
-objects,park-bench,,objects/park-bench.png,163,141,warm white
-objects,ferris-wheel,,objects/ferris-wheel.png,157,179,warm white
-objects,gehry-museum,,objects/gehry-museum.png,185,184,warm white
-objects,digital-cube,,objects/digital-cube.png,156,176,warm white
-objects,palace-doorway,,objects/palace-doorway.png,131,187,warm white
-objects,framed-art,,objects/framed-art.png,121,171,warm white
-objects,high-top-sneakers,,objects/high-top-sneakers.png,149,157,warm white
-objects,black-dress,,objects/black-dress.png,105,336,warm white
+cities,tea-cat,Istanbul,cities/tea-cat.png,339,195,transparent
+cities,mets-cap,New York,cities/mets-cap.png,340,193,transparent
+cities,transamerica-pyramid,San Francisco,cities/transamerica-pyramid.png,340,193,transparent
+cities,oyster-card,London,cities/oyster-card.png,251,166,transparent
+cities,red-lipstick,Paris,cities/red-lipstick.png,271,195,transparent
+cities,vermouth-siphon,Barcelona,cities/vermouth-siphon.png,124,186,transparent
+cities,dali-painting,Madrid,cities/dali-painting.png,287,190,transparent
+cities,souvlaki,Athens,cities/souvlaki.png,225,201,transparent
+cities,vending-machine,Tokyo,cities/vending-machine.png,185,192,transparent
+cities,karaoke-microphone,Seoul,cities/karaoke-microphone.png,325,179,transparent
+cities,berlin-station,Berlin,cities/berlin-station.png,217,192,transparent
+cities,tin-soldier,Copenhagen,cities/tin-soldier.png,98,193,transparent
+cities,falafel-pita,Malmö,cities/falafel-pita.png,287,163,transparent
+cities,sauna-bucket,Helsinki,cities/sauna-bucket.png,229,188,transparent
+cities,cardamom-bun,Stockholm,cities/cardamom-bun.png,318,161,transparent
+cities,pantheon,Rome,cities/pantheon.png,288,191,transparent
+cities,mole-antonelliana,Torino,cities/mole-antonelliana.png,184,200,transparent
+cities,campari-bottle,Milano,cities/campari-bottle.png,127,197,transparent
+cities,lisbon-kiosk,Lisbon,cities/lisbon-kiosk.png,250,186,transparent
+cities,sun-stone,Mexico City,cities/sun-stone.png,250,175,transparent
+cities,museum-seat,Vienna,cities/museum-seat.png,283,157,transparent
+objects,pink-elephant,,objects/pink-elephant.png,240,247,transparent
+objects,blue-elephant,,objects/blue-elephant.png,224,251,transparent
+objects,vicolo-lettering,,objects/vicolo-lettering.png,460,170,transparent
+objects,coffee-cup,,objects/coffee-cup.png,174,166,transparent
+objects,orange-wine,,objects/orange-wine.png,127,157,transparent
+objects,cherry-jelly,,objects/cherry-jelly.png,151,125,transparent
+objects,motel-key,,objects/motel-key.png,189,186,transparent
+objects,shopping-bag,,objects/shopping-bag.png,168,187,transparent
+objects,gilda,,objects/gilda.png,100,191,transparent
+objects,olive-dish,,objects/olive-dish.png,167,132,transparent
+objects,cocktail,,objects/cocktail.png,165,161,transparent
+objects,condom-packet,,objects/condom-packet.png,159,158,transparent
+objects,moon-charm,,objects/moon-charm.png,146,148,transparent
+objects,godzilla-beer,,objects/godzilla-beer.png,127,163,transparent
+objects,caramel-purin,,objects/caramel-purin.png,196,153,transparent
+objects,grey-whippet,,objects/grey-whippet.png,133,138,transparent
+objects,pink-charm,,objects/pink-charm.png,134,137,transparent
+objects,blue-charm,,objects/blue-charm.png,133,138,transparent
+objects,tomato,,objects/tomato.png,192,154,transparent
+objects,headphones,,objects/headphones.png,256,159,transparent
+objects,fawn-whippet,,objects/fawn-whippet.png,157,157,transparent
+objects,sardine-tin,,objects/sardine-tin.png,225,163,transparent
+objects,onigiri,,objects/onigiri.png,159,135,transparent
+objects,beach-umbrella,,objects/beach-umbrella.png,205,157,transparent
+objects,mint-camera,,objects/mint-camera.png,207,123,transparent
+objects,matchbook,,objects/matchbook.png,126,163,transparent
+objects,vinyl-record,,objects/vinyl-record.png,222,159,transparent
+objects,pistachio-cone,,objects/pistachio-cone.png,102,161,transparent
+objects,service-bell,,objects/service-bell.png,164,138,transparent
+objects,maneki-neko,,objects/maneki-neko.png,126,168,transparent
+objects,pikachu,,objects/pikachu.png,152,152,transparent
+objects,moon-rocket,,objects/moon-rocket.png,106,175,transparent
+objects,scrunchie,,objects/scrunchie.png,186,170,transparent
+objects,pocket-notebook,,objects/pocket-notebook.png,181,170,transparent
+objects,bullet-pen,,objects/bullet-pen.png,123,163,transparent
+objects,pizza-slice,,objects/pizza-slice.png,192,183,transparent
+objects,pineapple-ring,,objects/pineapple-ring.png,165,146,transparent
+objects,flamingo-pin,,objects/flamingo-pin.png,73,151,transparent
+objects,croissant,,objects/croissant.png,198,156,transparent
+objects,salmon-nigiri,,objects/salmon-nigiri.png,155,126,transparent
+objects,purple-grapes,,objects/purple-grapes.png,110,145,transparent
+objects,fern-cloche,,objects/fern-cloche.png,120,172,transparent
+objects,viewing-binoculars,,objects/viewing-binoculars.png,140,143,transparent
+objects,park-bench,,objects/park-bench.png,163,141,transparent
+objects,ferris-wheel,,objects/ferris-wheel.png,157,179,transparent
+objects,gehry-museum,,objects/gehry-museum.png,185,184,transparent
+objects,digital-cube,,objects/digital-cube.png,156,176,transparent
+objects,palace-doorway,,objects/palace-doorway.png,131,187,transparent
+objects,framed-art,,objects/framed-art.png,121,171,transparent
+objects,high-top-sneakers,,objects/high-top-sneakers.png,149,157,transparent
+objects,black-dress,,objects/black-dress.png,105,336,transparent

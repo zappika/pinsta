@@ -14,7 +14,7 @@ for (const group of ['objects', 'cities', 'menu-icons']) {
 const title = (name) => name.replaceAll('-', ' ').replace(/^./, (c) => c.toUpperCase());
 const manifest = JSON.parse(await readFile(path.join(source, 'manifest.json'), 'utf8'));
 const catalog = manifest.map((asset) => ({
-  ...asset, name: title(asset.name), url: `assets/${asset.file}`, transparent: false, variants: [],
+  ...asset, name: title(asset.name), url: `assets/${asset.file}`, transparent: asset.background === 'transparent', variants: [],
 }));
 for (const name of (await readdir(path.join(source, 'menu-icons'))).sort()) {
   const base = `menu-icons/${name}/${name}`;

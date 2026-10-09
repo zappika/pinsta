@@ -1,0 +1,506 @@
+[
+  {
+    "file": "cities/tea-cat.png",
+    "width": 339,
+    "height": 195,
+    "transparent_pixels": 32991,
+    "total_pixels": 66105
+  },
+  {
+    "file": "cities/mets-cap.png",
+    "width": 340,
+    "height": 193,
+    "transparent_pixels": 37433,
+    "total_pixels": 65620
+  },
+  {
+    "file": "cities/transamerica-pyramid.png",
+    "width": 340,
+    "height": 193,
+    "transparent_pixels": 52879,
+    "total_pixels": 65620
+  },
+  {
+    "file": "cities/oyster-card.png",
+    "width": 251,
+    "height": 166,
+    "transparent_pixels": 11375,
+    "total_pixels": 41666
+  },
+  {
+    "file": "cities/red-lipstick.png",
+    "width": 271,
+    "height": 195,
+    "transparent_pixels": 30614,
+    "total_pixels": 52845
+  },
+  {
+    "file": "cities/vermouth-siphon.png",
+    "width": 124,
+    "height": 186,
+    "transparent_pixels": 9531,
+    "total_pixels": 23064
+  },
+  {
+    "file": "cities/dali-painting.png",
+    "width": 287,
+    "height": 190,
+    "transparent_pixels": 3112,
+    "total_pixels": 54530
+  },
+  {
+    "file": "cities/souvlaki.png",
+    "width": 225,
+    "height": 201,
+    "transparent_pixels": 14185,
+    "total_pixels": 45225
+  },
+  {
+    "file": "cities/vending-machine.png",
+    "width": 185,
+    "height": 192,
+    "transparent_pixels": 5064,
+    "total_pixels": 35520
+  },
+  {
+    "file": "cities/karaoke-microphone.png",
+    "width": 325,
+    "height": 179,
+    "transparent_pixels": 31284,
+    "total_pixels": 58175
+  },
+  {
+    "file": "cities/berlin-station.png",
+    "width": 217,
+    "height": 192,
+    "transparent_pixels": 6534,
+    "total_pixels": 41664
+  },
+  {
+    "file": "cities/tin-soldier.png",
+    "width": 98,
+    "height": 193,
+    "transparent_pixels": 11290,
+    "total_pixels": 18914
+  },
+  {
+    "file": "cities/falafel-pita.png",
+    "width": 287,
+    "height": 163,
+    "transparent_pixels": 10960,
+    "total_pixels": 46781
+  },
+  {
+    "file": "cities/sauna-bucket.png",
+    "width": 229,
+    "height": 188,
+    "transparent_pixels": 13642,
+    "total_pixels": 43052
+  },
+  {
+    "file": "cities/cardamom-bun.png",
+    "width": 318,
+    "height": 161,
+    "transparent_pixels": 20481,
+    "total_pixels": 51198
+  },
+  {
+    "file": "cities/pantheon.png",
+    "width": 288,
+    "height": 191,
+    "transparent_pixels": 11966,
+    "total_pixels": 55008
+  },
+  {
+    "file": "cities/mole-antonelliana.png",
+    "width": 184,
+    "height": 200,
+    "transparent_pixels": 26507,
+    "total_pixels": 36800
+  },
+  {
+    "file": "cities/campari-bottle.png",
+    "width": 127,
+    "height": 197,
+    "transparent_pixels": 10138,
+    "total_pixels": 25019
+  },
+  {
+    "file": "cities/lisbon-kiosk.png",
+    "width": 250,
+    "height": 186,
+    "transparent_pixels": 15848,
+    "total_pixels": 46500
+  },
+  {
+    "file": "cities/sun-stone.png",
+    "width": 250,
+    "height": 175,
+    "transparent_pixels": 13665,
+    "total_pixels": 43750
+  },
+  {
+    "file": "cities/museum-seat.png",
+    "width": 283,
+    "height": 157,
+    "transparent_pixels": 16518,
+    "total_pixels": 44431
+  },
+  {
+    "file": "objects/pink-elephant.png",
+    "width": 240,
+    "height": 247,
+    "transparent_pixels": 19464,
+    "total_pixels": 59280
+  },
+  {
+    "file": "objects/blue-elephant.png",
+    "width": 224,
+    "height": 251,
+    "transparent_pixels": 18766,
+    "total_pixels": 56224
+  },
+  {
+    "file": "objects/vicolo-lettering.png",
+    "width": 460,
+    "height": 170,
+    "transparent_pixels": 32097,
+    "total_pixels": 78200
+  },
+  {
+    "file": "objects/coffee-cup.png",
+    "width": 174,
+    "height": 166,
+    "transparent_pixels": 16478,
+    "total_pixels": 28884
+  },
+  {
+    "file": "objects/orange-wine.png",
+    "width": 127,
+    "height": 157,
+    "transparent_pixels": 9043,
+    "total_pixels": 19939
+  },
+  {
+    "file": "objects/cherry-jelly.png",
+    "width": 151,
+    "height": 125,
+    "transparent_pixels": 8575,
+    "total_pixels": 18875
+  },
+  {
+    "file": "objects/motel-key.png",
+    "width": 189,
+    "height": 186,
+    "transparent_pixels": 20547,
+    "total_pixels": 35154
+  },
+  {
+    "file": "objects/shopping-bag.png",
+    "width": 168,
+    "height": 187,
+    "transparent_pixels": 11748,
+    "total_pixels": 31416
+  },
+  {
+    "file": "objects/gilda.png",
+    "width": 100,
+    "height": 191,
+    "transparent_pixels": 11714,
+    "total_pixels": 19100
+  },
+  {
+    "file": "objects/olive-dish.png",
+    "width": 167,
+    "height": 132,
+    "transparent_pixels": 11503,
+    "total_pixels": 22044
+  },
+  {
+    "file": "objects/cocktail.png",
+    "width": 165,
+    "height": 161,
+    "transparent_pixels": 12155,
+    "total_pixels": 26565
+  },
+  {
+    "file": "objects/condom-packet.png",
+    "width": 159,
+    "height": 158,
+    "transparent_pixels": 6582,
+    "total_pixels": 25122
+  },
+  {
+    "file": "objects/moon-charm.png",
+    "width": 146,
+    "height": 148,
+    "transparent_pixels": 13072,
+    "total_pixels": 21608
+  },
+  {
+    "file": "objects/godzilla-beer.png",
+    "width": 127,
+    "height": 163,
+    "transparent_pixels": 3818,
+    "total_pixels": 20701
+  },
+  {
+    "file": "objects/caramel-purin.png",
+    "width": 196,
+    "height": 153,
+    "transparent_pixels": 16612,
+    "total_pixels": 29988
+  },
+  {
+    "file": "objects/grey-whippet.png",
+    "width": 133,
+    "height": 138,
+    "transparent_pixels": 8435,
+    "total_pixels": 18354
+  },
+  {
+    "file": "objects/pink-charm.png",
+    "width": 134,
+    "height": 137,
+    "transparent_pixels": 11563,
+    "total_pixels": 18358
+  },
+  {
+    "file": "objects/blue-charm.png",
+    "width": 133,
+    "height": 138,
+    "transparent_pixels": 10661,
+    "total_pixels": 18354
+  },
+  {
+    "file": "objects/tomato.png",
+    "width": 192,
+    "height": 154,
+    "transparent_pixels": 13243,
+    "total_pixels": 29568
+  },
+  {
+    "file": "objects/headphones.png",
+    "width": 256,
+    "height": 159,
+    "transparent_pixels": 21490,
+    "total_pixels": 40704
+  },
+  {
+    "file": "objects/fawn-whippet.png",
+    "width": 157,
+    "height": 157,
+    "transparent_pixels": 12251,
+    "total_pixels": 24649
+  },
+  {
+    "file": "objects/sardine-tin.png",
+    "width": 225,
+    "height": 163,
+    "transparent_pixels": 12480,
+    "total_pixels": 36675
+  },
+  {
+    "file": "objects/onigiri.png",
+    "width": 159,
+    "height": 135,
+    "transparent_pixels": 8813,
+    "total_pixels": 21465
+  },
+  {
+    "file": "objects/beach-umbrella.png",
+    "width": 205,
+    "height": 157,
+    "transparent_pixels": 19550,
+    "total_pixels": 32185
+  },
+  {
+    "file": "objects/mint-camera.png",
+    "width": 207,
+    "height": 123,
+    "transparent_pixels": 6336,
+    "total_pixels": 25461
+  },
+  {
+    "file": "objects/matchbook.png",
+    "width": 126,
+    "height": 163,
+    "transparent_pixels": 6356,
+    "total_pixels": 20538
+  },
+  {
+    "file": "objects/vinyl-record.png",
+    "width": 222,
+    "height": 159,
+    "transparent_pixels": 10964,
+    "total_pixels": 35298
+  },
+  {
+    "file": "objects/pistachio-cone.png",
+    "width": 102,
+    "height": 161,
+    "transparent_pixels": 7509,
+    "total_pixels": 16422
+  },
+  {
+    "file": "objects/service-bell.png",
+    "width": 164,
+    "height": 138,
+    "transparent_pixels": 11938,
+    "total_pixels": 22632
+  },
+  {
+    "file": "objects/maneki-neko.png",
+    "width": 126,
+    "height": 168,
+    "transparent_pixels": 6938,
+    "total_pixels": 21168
+  },
+  {
+    "file": "objects/pikachu.png",
+    "width": 152,
+    "height": 152,
+    "transparent_pixels": 11197,
+    "total_pixels": 23104
+  },
+  {
+    "file": "objects/moon-rocket.png",
+    "width": 106,
+    "height": 175,
+    "transparent_pixels": 10372,
+    "total_pixels": 18550
+  },
+  {
+    "file": "objects/scrunchie.png",
+    "width": 186,
+    "height": 170,
+    "transparent_pixels": 12587,
+    "total_pixels": 31620
+  },
+  {
+    "file": "objects/pocket-notebook.png",
+    "width": 181,
+    "height": 170,
+    "transparent_pixels": 14750,
+    "total_pixels": 30770
+  },
+  {
+    "file": "objects/bullet-pen.png",
+    "width": 123,
+    "height": 163,
+    "transparent_pixels": 14445,
+    "total_pixels": 20049
+  },
+  {
+    "file": "objects/pizza-slice.png",
+    "width": 192,
+    "height": 183,
+    "transparent_pixels": 17629,
+    "total_pixels": 35136
+  },
+  {
+    "file": "objects/pineapple-ring.png",
+    "width": 165,
+    "height": 146,
+    "transparent_pixels": 9612,
+    "total_pixels": 24090
+  },
+  {
+    "file": "objects/flamingo-pin.png",
+    "width": 73,
+    "height": 151,
+    "transparent_pixels": 7159,
+    "total_pixels": 11023
+  },
+  {
+    "file": "objects/croissant.png",
+    "width": 198,
+    "height": 156,
+    "transparent_pixels": 12176,
+    "total_pixels": 30888
+  },
+  {
+    "file": "objects/salmon-nigiri.png",
+    "width": 155,
+    "height": 126,
+    "transparent_pixels": 8818,
+    "total_pixels": 19530
+  },
+  {
+    "file": "objects/purple-grapes.png",
+    "width": 110,
+    "height": 145,
+    "transparent_pixels": 7612,
+    "total_pixels": 15950
+  },
+  {
+    "file": "objects/fern-cloche.png",
+    "width": 120,
+    "height": 172,
+    "transparent_pixels": 5366,
+    "total_pixels": 20640
+  },
+  {
+    "file": "objects/viewing-binoculars.png",
+    "width": 140,
+    "height": 143,
+    "transparent_pixels": 10022,
+    "total_pixels": 20020
+  },
+  {
+    "file": "objects/park-bench.png",
+    "width": 163,
+    "height": 141,
+    "transparent_pixels": 11868,
+    "total_pixels": 22983
+  },
+  {
+    "file": "objects/ferris-wheel.png",
+    "width": 157,
+    "height": 179,
+    "transparent_pixels": 12916,
+    "total_pixels": 28103
+  },
+  {
+    "file": "objects/gehry-museum.png",
+    "width": 185,
+    "height": 184,
+    "transparent_pixels": 10556,
+    "total_pixels": 34040
+  },
+  {
+    "file": "objects/digital-cube.png",
+    "width": 156,
+    "height": 176,
+    "transparent_pixels": 5814,
+    "total_pixels": 27456
+  },
+  {
+    "file": "objects/palace-doorway.png",
+    "width": 131,
+    "height": 187,
+    "transparent_pixels": 5102,
+    "total_pixels": 24497
+  },
+  {
+    "file": "objects/framed-art.png",
+    "width": 121,
+    "height": 171,
+    "transparent_pixels": 4913,
+    "total_pixels": 20691
+  },
+  {
+    "file": "objects/high-top-sneakers.png",
+    "width": 149,
+    "height": 157,
+    "transparent_pixels": 9646,
+    "total_pixels": 23393
+  },
+  {
+    "file": "objects/black-dress.png",
+    "width": 105,
+    "height": 336,
+    "transparent_pixels": 14276,
+    "total_pixels": 35280
+  }
+]

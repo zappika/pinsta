@@ -21,6 +21,9 @@ _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code 
 - "From Emilie's list" on the iOS place card.
 - "Wrong place?" after an automatic save, as part of reworking the steps before the success card.
 
+## Asset library — 2026-10-09
+- Converted all 72 city/object crops to transparent RGBA PNGs using local masks, with manual repairs and dark-background review. Original artwork retained in `source-crops/`. Menu assets unchanged. Catalog reports transparency accurately.
+
 ## Asset library — 2026-10-08
 - Added backoffice `/library`: 21 city icons, 51 objects, 11 transparent menu icons, search, preview backgrounds, individual PNG and menu-size downloads. Sources stay in `assets/vicolo-library`; generated public copies are built automatically. No AI service or database required.
 
