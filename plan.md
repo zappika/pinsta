@@ -2,10 +2,28 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
+## Last session — 2026-10-09: save flow + success card, web + iOS
+- **Save flow redesigned in a sandbox** (`/success`, backoffice) and built on both apps: the question in the sheet's small label, one loading bar, Save pills on every row, one success card for every save (post photo or type icon on its tint, "Saved to Vicolo" + elephant, milestone line: first save in a town, else first of a type). "Wrong place?" removed for now. iOS **not yet in a TestFlight build**; the share extension end to end is unchecked (Safari share ignores taps on the simulator).
+- **Account match:** a city glued to the handle is split off (`barabbacph` → "barabba Copenhagen"), web + iOS.
+- Beta submitted for review (see Waiting on Sarp).
+
+## iOS Google list import — decisions (Sarp, 2026-10-09)
+- Same flow as web `/import`: paste the list link → review → import. Reuse the web review's design as is (it is already mobile).
+- Matching continues in the background, also after the person leaves the screen.
+- Over 250 places: the review asks them to untick down to 250 before Import; nobody below 250 sees the limit.
+- Places Google/Apple couldn't find: at the bottom of the review.
+- **Proposed (not yet agreed):** Import can be tapped before matching is done; matched picks save at once, the rest save as they match.
+
+## To design (Sarp)
+- List import success state (many places at once, not the one-place card).
+- What to offer for list places that couldn't be found (web has the same gap).
+- "From Emilie's list" on the iOS place card.
+- "Wrong place?" after an automatic save, as part of reworking the steps before the success card.
+
 ## Asset library — 2026-10-08
 - Added backoffice `/library`: 21 city icons, 51 objects, 11 transparent menu icons, search, preview backgrounds, individual PNG and menu-size downloads. Sources stay in `assets/vicolo-library`; generated public copies are built automatically. No AI service or database required.
 
-## Last session — 2026-10-08: vicolo.space domains
+## Earlier — 2026-10-08: vicolo.space domains
 - **Hosts split by `proxy.ts`** in the one `pinsta-two` project: `vicolo.space` (index + `/privacy`), `app.vicolo.space` (list + `/import`), `backoffice.vicolo.space` (`/usage`). `pinsta-two.vercel.app` still serves the list at `/` for the iOS app's API and old links. Sarp added all domains in Vercel.
 - **Index on vicolo.space:** a very simple placeholder with the resin elephant, plus a share card (`app/opengraph-image.tsx`) for iMessage/WhatsApp previews.
 - **/import is product, not owner tooling** (Sarp): it lives on app.vicolo.space.
@@ -62,10 +80,6 @@ Everything below is on `main` and deployed. iOS changes are in code and checked 
 2. **vicolo.space domains** (bought on Vercel, 2026-10-08). Done 2026-10-08 (domains added, `proxy.ts` routes them). TestFlight privacy URL: `https://vicolo.space/privacy`.
 3. **Testers list → light CRM** (Sarp, 2026-10-08): first 13 close friends named (kept out of this public repo). Sarp invites them personally — **nothing automatic, no emails or invites from code.** CRM in backoffice later, not started.
 4. Rate limiting and usage review: much later (Sarp, 2026-10-08). Don't bring up.
-
-## Next design areas (Sarp, 2026-10-08) — **the next product work**; Sarp designs these, no Sander
-- **Success states:** the first place saved, the first place in a new city, and similar milestones. A moment, not a receipt. (The current cards first experience is fine for now; this replaces the full "First experience" redesign.)
-- **Share sheet:** the success state's design, and the choices on the sheet don't make clear what the user is expected to do.
 
 ## Open decisions
 - **iCloud backup — deferred until after the beta (CTO call, 2026-10-02).** SwiftData + CloudKit means dropping `@Attribute(.unique)` on `Place.id`, a CloudKit container, and deploying the schema to production in the CloudKit dashboard, or TestFlight builds silently don't sync. None of it can be checked on the simulator without an iCloud sign-in, and a wrong migration the night before friends install is the worst kind of bug. Revisit when a friend loses a list, or right after the beta settles.
