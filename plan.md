@@ -8,6 +8,8 @@ _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code 
 - Beta submitted for review (see Waiting on Sarp).
 - **No Near me (Sarp):** both apps open on the town you are in (nearest place within 50 km) with a blue dot where you are. Google list share text (name + link) fixed on the server.
 - **1.0 (15) uploaded 2026-10-09**: the above plus everything in 14.
+- **Where menu: travel areas** (Costa Brava, Penedès, Priorat, Maresme, Roussillon, West Coast Sweden…) and real regions (Spanish provinces → region). **Food icons** for restaurants (GPT-6 set + library). Open: a neutral icon for plain restaurants (still gilda).
+- **1.0 (16) uploaded 2026-10-09**: areas + food icons.
 
 ## iOS Google list import — decisions (Sarp, 2026-10-09)
 - Same flow as web `/import`: paste the list link → review → import. Reuse the web review's design as is (it is already mobile).
