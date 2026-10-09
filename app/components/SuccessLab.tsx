@@ -113,10 +113,10 @@ function Flow({ entry, match, milestone }: { entry: Entry; match: Match; milesto
   const cancel = () => setStep({ at: "gone" });
 
   return (
-    <div className={`absolute inset-x-3 bottom-3 rounded-[32px] bg-white px-5 pb-6 pt-5 shadow-2xl transition-transform duration-300 ${shown ? "translate-y-0" : "translate-y-[110%]"}`}>
-      <div className="mb-4 flex items-center justify-between">
+    <div className={`absolute inset-x-3 bottom-3 rounded-[28px] bg-white px-4 pb-4 pt-4 shadow-2xl transition-transform duration-300 ${shown ? "translate-y-0" : "translate-y-[110%]"}`}>
+      <div className="mb-3 flex items-center justify-between">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/elephant-resin.png" alt="" className="h-8 w-8" />
+        <img src="/brand/elephant-resin.png" alt="" className="h-6 w-6" />
         <button onClick={cancel} className="text-sm font-medium text-stone-500">Cancel</button>
       </div>
 
@@ -137,10 +137,10 @@ function Flow({ entry, match, milestone }: { entry: Entry; match: Match; milesto
 function LinkStep({ onUse }: { onUse: () => void }) {
   return (
     <div>
-      <p className="text-[22px] font-semibold leading-tight tracking-tight">Save a place</p>
+      <p className="text-base font-semibold">Save a place</p>
       <p className="mt-1 text-sm text-stone-500">Paste a link from Instagram, TikTok or Google Maps.</p>
-      <div className="mt-4 rounded-2xl bg-stone-100 px-4 py-3.5 text-sm text-stone-400">instagram.com/p/…</div>
-      <button onClick={onUse} className="mt-3 w-full rounded-2xl bg-stone-900 py-3.5 text-base font-semibold text-white">Paste</button>
+      <div className="mt-3 rounded-xl bg-stone-100 px-3 py-2.5 text-sm text-stone-400">instagram.com/p/…</div>
+      <button onClick={onUse} className="mt-3 w-full rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white">Paste</button>
     </div>
   );
 }
@@ -161,8 +161,8 @@ function PostRow() {
 
 function Reading() {
   return (
-    <div className="pb-2 pt-6">
-      <p className="text-[22px] font-semibold leading-tight tracking-tight">Finding the place in this post…</p>
+    <div className="pb-2 pt-4">
+      <p className="text-base font-semibold">Finding the place in this post…</p>
       <div className="mt-5 h-1 overflow-hidden rounded-full bg-stone-100">
         <div className="h-full w-1/3 animate-[lab-slide_1.2s_ease-in-out_infinite] rounded-full bg-stone-400" />
       </div>
@@ -173,13 +173,13 @@ function Reading() {
 
 function Likely({ onSave, onOther }: { onSave: () => void; onOther: () => void }) {
   return (
-    <div className="pt-6">
-      <p className="text-[22px] font-semibold leading-tight tracking-tight">Is this the place?</p>
-      <div className="mt-4 rounded-2xl border border-stone-200 px-4 py-3.5">
-        <p className="text-lg font-semibold">{GUESS.name}</p>
+    <div className="pt-4">
+      <p className="text-base font-semibold">Is this the place?</p>
+      <div className="mt-3 rounded-xl border border-stone-200 px-3 py-2.5">
+        <p className="font-medium">{GUESS.name}</p>
         <p className="text-sm text-stone-500">{GUESS.type} · {GUESS.area}, {GUESS.city}</p>
       </div>
-      <button onClick={onSave} className="mt-4 w-full rounded-2xl bg-stone-900 py-3.5 text-base font-semibold text-white active:bg-stone-800">
+      <button onClick={onSave} className="mt-3 w-full rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white active:bg-stone-800">
         Save {GUESS.name}
       </button>
       <button onClick={onOther} className="mt-1 w-full py-2 text-sm font-medium text-stone-500">Search for another place</button>
@@ -192,22 +192,22 @@ function Search({ initial, guessed, onSave }: { initial: string; guessed: boolea
   const q = query.trim().toLowerCase();
   const results = q.length < 2 ? [] : DIRECTORY.filter((p) => p.name.toLowerCase().split(/\s+/).some((w) => q.split(/\s+/).some((t) => w.startsWith(t))));
   return (
-    <div className="pt-6">
-      <p className="text-[22px] font-semibold leading-tight tracking-tight">{guessed ? "Which place is it?" : "We couldn’t tell which place this is"}</p>
+    <div className="pt-4">
+      <p className="text-base font-semibold">{guessed ? "Which place is it?" : "We couldn’t tell which place this is"}</p>
       {!guessed && <p className="mt-1 text-sm text-stone-500">Search for its name to save it.</p>}
-      <label className="mt-4 block">
+      <label className="mt-3 block">
         <span className="text-xs font-medium text-stone-500">Place name</span>
         <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="e.g. Casual Bakery"
-          className="mt-1 w-full rounded-2xl bg-stone-100 px-4 py-3.5 text-base outline-none placeholder:text-stone-400" />
+          className="mt-1 w-full rounded-xl bg-stone-100 px-3 py-2.5 text-sm outline-none placeholder:text-stone-400" />
       </label>
-      <div className="mt-2 flex min-h-[132px] flex-col">
+      <div className="mt-2 flex min-h-[120px] flex-col">
         {results.slice(0, 3).map((p) => (
           <div key={p.name} className="flex items-center gap-3 border-b border-stone-100 py-2.5 last:border-0">
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{p.name}</p>
               <p className="truncate text-sm text-stone-500">{p.type} · {p.area}, {p.city}</p>
             </div>
-            <button onClick={() => onSave(p)} className="shrink-0 rounded-full bg-stone-900 px-4 py-1.5 text-sm font-semibold text-white">Save</button>
+            <button onClick={() => onSave(p)} className="shrink-0 rounded-full bg-stone-900 px-3 py-1 text-xs font-medium text-white">Save</button>
           </div>
         ))}
         {q.length >= 2 && results.length === 0 && <p className="py-3 text-sm text-stone-400">No places called that. Try the name and the town.</p>}
