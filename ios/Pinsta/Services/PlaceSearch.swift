@@ -92,11 +92,38 @@ extension PlaceSearch {
         if let full = ownerFullName?.trimmingCharacters(in: .whitespacesAndNewlines), full.count > 2 { queries.append(full) }
         if let handle = ownerUsername?.replacingOccurrences(of: "[._-]+", with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespaces), handle.count > 2 { queries.append(handle) }
+        let split = handleWithCity(ownerUsername)
+        if let split { queries.append(split) }
         guard !queries.isEmpty else { return [] }
         let merged = await runAll(queries)
         // Only places sharing a real word with the account: "jecca" must not suggest "JEC Arquitectura".
-        let nameWords = words(ownerFullName ?? "") + words(ownerUsername ?? "")
+        let nameWords = words(ownerFullName ?? "") + words(ownerUsername ?? "") + words(split ?? "")
         return merged.filter { overlaps(words($0.name), nameWords) }
+    }
+
+    // Cities restaurants glue onto their handle: "barabbacph", "joe_nyc", "cafe.sthlm".
+    // Only codes that don't end ordinary words ("ber" would split "amber"). Same list in lib/google-places.ts.
+    private static let handleCities: [(String, String)] = [
+        ("cph", "Copenhagen"), ("copenhagen", "Copenhagen"), ("kbh", "Copenhagen"),
+        ("nyc", "New York"), ("ldn", "London"), ("london", "London"), ("bcn", "Barcelona"), ("barcelona", "Barcelona"),
+        ("sthlm", "Stockholm"), ("stockholm", "Stockholm"), ("gbg", "Gothenburg"), ("malmo", "Malmö"),
+        ("cdmx", "Mexico City"), ("paris", "Paris"), ("berlin", "Berlin"), ("istanbul", "Istanbul"), ("lisbon", "Lisbon"),
+        ("lisboa", "Lisbon"), ("madrid", "Madrid"), ("milano", "Milano"), ("roma", "Rome"), ("tokyo", "Tokyo"), ("hki", "Helsinki"),
+    ]
+
+    /// "barabbacph" → "barabba Copenhagen"; nil when the handle carries no city.
+    static func handleWithCity(_ username: String?) -> String? {
+        let parts = (username ?? "").lowercased().split { "._-".contains($0) }.map(String.init)
+        for i in stride(from: parts.count - 1, through: 0, by: -1) {
+            let p = parts[i]
+            if i > 0, let city = handleCities.first(where: { $0.0 == p })?.1 {
+                return (Array(parts[..<i]) + Array(parts[(i + 1)...]) + [city]).joined(separator: " ")
+            }
+            for (code, city) in handleCities where p.count >= code.count + 3 && p.hasSuffix(code) {
+                return (Array(parts[..<i]) + [String(p.dropLast(code.count))] + Array(parts[(i + 1)...]) + [city]).joined(separator: " ")
+            }
+        }
+        return nil
     }
 
     /// A Google Maps link names one place: search its name around its pin, nearest first.

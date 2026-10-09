@@ -47,7 +47,7 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   `ios/Pinsta/Services/PlaceSearch.swift`): several cheap queries merged and
   ranked — tag, account display name, tag + category word from the caption,
   tag + a hashtag naming a known city. No tag → the posting account's name is
-  searched and offered as *suggestions* (never auto-saved).
+  searched (a city glued to the handle is split off: `barabbacph` → "barabba Copenhagen", `handleWithCity`) and offered as *suggestions* (never auto-saved).
 - **Grouping** (`lib/grouping.ts` ↔ `ios/Pinsta/Services/Grouping.swift`): the
   "Where" menu label per place. Town with 2+ places = own row; 1-place town folds
   into its region only if the region then bundles 2+. Same comments both sides —

@@ -262,6 +262,8 @@ export async function resolveAccount(input: {
   if (full && full.length > 2) queries.add(full);
   const handle = input.ownerUsername?.replace(/[._-]+/g, " ").trim();
   if (handle && handle.length > 2) queries.add(handle);
+  const split = handleWithCity(input.ownerUsername);
+  if (split) queries.add(split);
   if (queries.size === 0) return [];
 
   const results = await Promise.all(
@@ -278,8 +280,33 @@ export async function resolveAccount(input: {
     }
   }
   // Only places that share a real word with the account: "jecca" must not suggest "JEC Arquitectura".
-  const nameWords = [...words(full ?? ""), ...words(input.ownerUsername ?? "")];
+  const nameWords = [...words(full ?? ""), ...words(input.ownerUsername ?? ""), ...words(split ?? "")];
   return merged.filter((c) => overlaps(words(c.name), nameWords));
+}
+
+// Cities restaurants glue onto their handle: "barabbacph", "joe_nyc", "cafe.sthlm".
+// Only codes that don't end ordinary words ("ber" would split "amber"). Same list in PlaceSearch.swift.
+const HANDLE_CITIES: Record<string, string> = {
+  cph: "Copenhagen", copenhagen: "Copenhagen", kbh: "Copenhagen",
+  nyc: "New York", ldn: "London", london: "London", bcn: "Barcelona", barcelona: "Barcelona",
+  sthlm: "Stockholm", stockholm: "Stockholm", gbg: "Gothenburg", malmo: "Malmö",
+  cdmx: "Mexico City", paris: "Paris", berlin: "Berlin", istanbul: "Istanbul", lisbon: "Lisbon",
+  lisboa: "Lisbon", madrid: "Madrid", milano: "Milano", roma: "Rome", tokyo: "Tokyo", hki: "Helsinki",
+};
+
+/** "barabbacph" → "barabba Copenhagen"; null when the handle carries no city. */
+export function handleWithCity(username: string | null | undefined): string | null {
+  const parts = (username ?? "").toLowerCase().split(/[._-]+/).filter(Boolean);
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i];
+    if (HANDLE_CITIES[p] && i > 0) return [...parts.slice(0, i), ...parts.slice(i + 1), HANDLE_CITIES[p]].join(" ");
+    for (const [code, city] of Object.entries(HANDLE_CITIES)) {
+      if (p.length >= code.length + 3 && p.endsWith(code)) {
+        return [...parts.slice(0, i), p.slice(0, -code.length), ...parts.slice(i + 1), city].join(" ");
+      }
+    }
+  }
+  return null;
 }
 
 /**
