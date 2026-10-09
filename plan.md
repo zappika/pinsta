@@ -266,6 +266,7 @@ The web app stays live until the native one is trusted.
 pre-loaded with the shared post and saves to the same list the app shows.
 
 ## Decisions log (dated)
+- **2026-10-09 — iOS Google list import: all Apple (Sarp).** The list is read through the free getlist endpoint; each entry is matched with MapKit on the phone, with no Google. Matching starts in the background while the person picks what to import (an unticked entry is dropped), so a 150-place list being ready in ~3 min is fine. A limit applies above 250 places and is never shown below it. Photos: MapKit has none, so for now a place shows its type tile. Measured on this Mac: MKLocalSearch allows 50 searches, then returns `loadingThrottled` (MKError 3) at once, and refills on a rolling ~60 s window (100 done by 82 s).
 - **2026-10-08 — Domains: subdomains, not paths (Sarp).** vicolo.space = marketing (+ /privacy), app.vicolo.space = the product, backoffice.vicolo.space = owner tooling (usage, anything future); /import is product and lives on app.. One Vercel project; `proxy.ts` routes by host.
 - **2026-10-08 — No Sander on Vicolo (Sarp).** Sarp does the designs.
 - **2026-09-12 — Grouping is a pure count heuristic, no LLM.** A town needs 2+

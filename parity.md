@@ -7,7 +7,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-06 (build 12).
 
 | What | Web | iOS |
 |---|---|---|
-| Google Maps list import | `/import`: grouped review, Move / Move all, keeps the list's name and owner | Menu item says "Soon". Open question: photos (MapKit has none) |
+| Google Maps list import | `/import`: grouped review, Move / Move all, keeps the list's name and owner | Menu item says "Soon". Planned: matched with MapKit only, no Google; no photos (type tiles) for now |
 | Share tutorial (three pages) | No (Sarp: not needed on web) | Empty list, and menu → How to save |
 
 ## Different on purpose
