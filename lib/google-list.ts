@@ -15,7 +15,9 @@ export class ListError extends Error {}
 
 /** A short link, a placelists URL, a long Maps URL carrying the list, or the bare id. */
 export async function listIdFrom(input: string): Promise<string> {
-  let url = input.trim();
+  // A share from Google Maps on iPhone carries the list's name too ("Paris bakeries 🥐 https://…"):
+  // read the first link in the text.
+  let url = input.match(/https?:\/\/\S+/)?.[0] ?? input.trim();
   if (/^[\w-]{16,}$/.test(url)) return url;
   if (/maps\.app\.goo\.gl|goo\.gl\/maps/.test(url)) {
     const res = await fetch(url, { redirect: "follow" });
