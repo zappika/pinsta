@@ -87,18 +87,38 @@ extension PlaceSearch {
     /// No location tag: the account that posted is the lead. A venue's own
     /// account is named like the venue — a blogger's is not, so these are
     /// suggestions to tap, never to auto-save.
-    static func resolveAccount(ownerFullName: String?, ownerUsername: String?) async -> [PlaceCandidate] {
+    /// `town`: the post is tagged with a town, not a place — search the account there.
+    static func resolveAccount(ownerFullName: String?, ownerUsername: String?, town: String? = nil) async -> [PlaceCandidate] {
         var queries: [String] = []
         if let full = ownerFullName?.trimmingCharacters(in: .whitespacesAndNewlines), full.count > 2 { queries.append(full) }
         if let handle = ownerUsername?.replacingOccurrences(of: "[._-]+", with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespaces), handle.count > 2 { queries.append(handle) }
         let split = handleWithCity(ownerUsername)
         if let split { queries.append(split) }
+        if let town { queries += queries.filter { $0 != split }.map { "\($0) \(town)" } }
         guard !queries.isEmpty else { return [] }
         let merged = await runAll(queries)
         // Only places sharing a real word with the account: "jecca" must not suggest "JEC Arquitectura".
         let nameWords = words(ownerFullName ?? "") + words(ownerUsername ?? "") + words(split ?? "")
         return merged.filter { overlaps(words($0.name), nameWords) }
+    }
+
+    private static let regionNames: Set<String> = {
+        var names: Set<String> = ["usa", "uk", "uae", "england", "scotland", "italia", "españa", "deutschland", "sverige", "danmark", "türkiye"]
+        let en = Locale(identifier: "en")
+        for region in Locale.Region.isoRegions {
+            if let name = en.localizedString(forRegionCode: region.identifier) { names.insert(name.lowercased()) }
+        }
+        return names
+    }()
+
+    /// A location tag that names a town, not a place: "Ostuni, Puglia, Italy", "Paris, France".
+    /// Three or more parts, or two ending in a country. Returns the town; nil for a place tag
+    /// ("Septime, Paris" keeps its name). Same rule as `areaOfTag` in lib/google-places.ts.
+    static func areaOfTag(_ tag: String?) -> String? {
+        let parts = (tag ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        if parts.count >= 3 || (parts.count == 2 && regionNames.contains(parts[1].lowercased())) { return parts[0] }
+        return nil
     }
 
     // Cities restaurants glue onto their handle: "barabbacph", "joe_nyc", "cafe.sthlm".

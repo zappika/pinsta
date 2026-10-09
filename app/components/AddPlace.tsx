@@ -271,7 +271,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 pb-4">
+            <div className="flex-1 overflow-y-auto px-4 pb-3">
               {!editing && (
               <div className="flex gap-2">
                 <input
@@ -326,18 +326,6 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
                 <CandidateList candidates={candidates} saving={saving} onPick={(c) => save(c)} />
               )}
 
-              {validUrl && extract.status !== "loading" && extract.status !== "idle" && !saving && (
-                <input
-                  ref={queryRef}
-                  type="search"
-                  enterKeyHint="search"
-                  autoCorrect="off"
-                  placeholder={editing ? "Search the right place" : manualMode ? "Place name, e.g. Septime Paris" : "Search for another place"}
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="mt-3 w-full rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-base outline-none placeholder:text-stone-400 focus:border-stone-400"
-                />
-              )}
 
               {error && <p className="mt-3 rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-700">{error}</p>}
 
@@ -348,6 +336,21 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
               )}
               {!searching && searchActive && results.length === 0 && !error && (
                 <p className="mt-3 text-center text-sm text-stone-400">No matches. Try adding the city.</p>
+              )}
+            </div>
+            {/* The search sits pinned under the list, never below the scroll (Sarp, 2026-10-09). */}
+            <div className="px-4 pb-4 empty:hidden">
+              {validUrl && extract.status !== "loading" && extract.status !== "idle" && !saving && (
+                <input
+                  ref={queryRef}
+                  type="search"
+                  enterKeyHint="search"
+                  autoCorrect="off"
+                  placeholder={editing ? "Search the right place" : manualMode ? "Place name, e.g. Septime Paris" : "Search for another place"}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="w-full rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-base outline-none placeholder:text-stone-400 focus:border-stone-400"
+                />
               )}
             </div>
           </>

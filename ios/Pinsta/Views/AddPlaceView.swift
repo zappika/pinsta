@@ -69,6 +69,8 @@ struct AddPlaceView: View {
         return false
     }
 
+    private var showQuery: Bool { validURL != nil && reading != .loading && reading != .idle && saving == nil }
+
     /// The sheet's question lives in its small label (Sarp, 2026-10-09): no headings.
     private var label: String {
         if editing != nil { return "Change place" }
@@ -100,10 +102,10 @@ struct AddPlaceView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
-                        if editing == nil { urlField }
+                        // A shared link is already known: the field would only look like a task (Sarp, 2026-10-09).
+                        if editing == nil, initialURL == nil { urlField }
                         postSection
                         if showSuggestedFirst && saving == nil { suggested }
-                        if validURL != nil, reading != .loading, reading != .idle, saving == nil { queryField }
                         if let error {
                             Text(error).font(.subheadline).foregroundStyle(.red)
                         }
@@ -113,6 +115,11 @@ struct AddPlaceView: View {
                     .padding(.horizontal, 16).padding(.bottom, 16)
                 }
                 .scrollDismissesKeyboard(.interactively)
+                // The search sits pinned under the list, never below the scroll (Sarp, 2026-10-09);
+                // one place for it, so typing never moves it (and its focus) elsewhere.
+                if showQuery {
+                    queryField.padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 16)
+                }
             }
         }
         .frame(maxWidth: .infinity)
@@ -295,7 +302,7 @@ struct AddPlaceView: View {
                 let pin = post.near.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lng) }
                 found = await PlaceSearch.resolveLink(name: name, near: pin)
                 from = .link
-            } else if let tag = post.locationName {
+            } else if let tag = post.locationName, PlaceSearch.areaOfTag(tag) == nil {
                 found = Array(await PlaceSearch.resolveTag(
                     tag, ownerFullName: post.ownerFullName, caption: post.caption,
                     hashtags: post.hashtags ?? [], cityHints: Array(cityHints),
@@ -309,8 +316,10 @@ struct AddPlaceView: View {
                     fromCaption = Array(((try? await PlaceSearch.search(q, limit: 3)) ?? []))
                 }
                 // Three account matches at most, as on the web.
+                // A tag naming a town ("Ostuni, Puglia, Italy") says where, not what: the account, there.
                 let fromAccount = await PlaceSearch.resolveAccount(
-                    ownerFullName: post.ownerFullName, ownerUsername: post.ownerUsername
+                    ownerFullName: post.ownerFullName, ownerUsername: post.ownerUsername,
+                    town: PlaceSearch.areaOfTag(post.locationName)
                 ).prefix(3)
                 var seen = Set<String>()
                 found = Array((fromCaption + fromAccount).filter { seen.insert($0.id).inserted }.prefix(4))

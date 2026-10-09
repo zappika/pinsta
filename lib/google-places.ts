@@ -256,6 +256,8 @@ export async function resolveTag(input: {
 export async function resolveAccount(input: {
   ownerFullName?: string | null;
   ownerUsername?: string | null;
+  /** The post is tagged with a town, not a place: search the account there. */
+  town?: string | null;
 }): Promise<PlaceCandidate[]> {
   const queries = new Set<string>();
   const full = input.ownerFullName?.trim();
@@ -264,6 +266,7 @@ export async function resolveAccount(input: {
   if (handle && handle.length > 2) queries.add(handle);
   const split = handleWithCity(input.ownerUsername);
   if (split) queries.add(split);
+  if (input.town) for (const q of [...queries]) if (q !== split) queries.add(`${q} ${input.town}`);
   if (queries.size === 0) return [];
 
   const results = await Promise.all(
@@ -282,6 +285,28 @@ export async function resolveAccount(input: {
   // Only places that share a real word with the account: "jecca" must not suggest "JEC Arquitectura".
   const nameWords = [...words(full ?? ""), ...words(input.ownerUsername ?? ""), ...words(split ?? "")];
   return merged.filter((c) => overlaps(words(c.name), nameWords));
+}
+
+const REGION_NAMES = (() => {
+  const names = new Set(["usa", "uk", "uae", "england", "scotland", "italia", "españa", "deutschland", "sverige", "danmark", "türkiye"]);
+  const display = new Intl.DisplayNames(["en"], { type: "region" });
+  for (let a = 65; a <= 90; a++) for (let b = 65; b <= 90; b++) {
+    const code = String.fromCharCode(a, b);
+    const name = display.of(code);
+    if (name && name !== code) names.add(name.toLowerCase());
+  }
+  return names;
+})();
+
+/**
+ * A location tag that names a town, not a place: "Ostuni, Puglia, Italy", "Paris, France".
+ * Three or more parts, or two ending in a country. Returns the town; null for a place tag
+ * ("Bar Brutal", "Septime, Paris" keeps its name). Same rule in PlaceSearch.swift.
+ */
+export function areaOfTag(tag: string | null | undefined): string | null {
+  const parts = (tag ?? "").split(",").map((p) => p.trim()).filter(Boolean);
+  if (parts.length >= 3 || (parts.length === 2 && REGION_NAMES.has(parts[1].toLowerCase()))) return parts[0];
+  return null;
 }
 
 // Cities restaurants glue onto their handle: "barabbacph", "joe_nyc", "cafe.sthlm".

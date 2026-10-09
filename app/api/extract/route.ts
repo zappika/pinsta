@@ -3,7 +3,7 @@ import { fetchInstagramPost } from "@/lib/instagram-post";
 import { fetchTikTokPost } from "@/lib/tiktok";
 import { readGoogleLink } from "@/lib/google-link";
 import { parseSourceUrl, type SourceKind } from "@/lib/sources";
-import { captionPlaceQuery, getPlace, resolveAccount, resolveTag, searchPlaces, type PlaceCandidate } from "@/lib/google-places";
+import { areaOfTag, captionPlaceQuery, getPlace, resolveAccount, resolveTag, searchPlaces, type PlaceCandidate } from "@/lib/google-places";
 import { storeImage } from "@/lib/blob";
 import { isOwner } from "@/lib/owner";
 
@@ -87,11 +87,13 @@ export async function POST(req: Request) {
       ? body.cityHints.filter((c): c is string => typeof c === "string").slice(0, 50)
       : [];
 
+    // A tag naming a town ("Ostuni, Puglia, Italy") says where, not what: search the account there.
+    const town = areaOfTag(post.locationName);
     const source: ExtractResponse["source"] = native
       ? null
       : parsed.kind === "google"
         ? "link"
-        : post.locationName
+        : post.locationName && !town
           ? "tag"
           : "account";
 
@@ -123,7 +125,7 @@ export async function POST(req: Request) {
         // The caption naming a place beats the account; both are suggestions only.
         const q = captionPlaceQuery(post.caption);
         const fromCaption = q ? (await searchPlaces(q).catch(() => [])).slice(0, 3) : [];
-        const fromAccount = (await resolveAccount({ ownerFullName: post.ownerFullName, ownerUsername: post.ownerUsername })).slice(0, 3);
+        const fromAccount = (await resolveAccount({ ownerFullName: post.ownerFullName, ownerUsername: post.ownerUsername, town })).slice(0, 3);
         const seen = new Set<string>();
         return [...fromCaption, ...fromAccount].filter((c) => !seen.has(c.placeId) && seen.add(c.placeId)).slice(0, 4);
       }
