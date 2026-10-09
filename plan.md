@@ -13,7 +13,7 @@ _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code 
 - Over 250 places: the review asks them to untick down to 250 before Import; nobody below 250 sees the limit.
 - Places Google/Apple couldn't find: at the bottom of the review.
 - Import can be tapped before matching is done; matched picks save at once, the rest save as they match (built that way).
-- **Built 2026-10-09, checked on the simulator with Sarp's "BCN Nearby" (27):** first pass found 18; a second, looser pass adds towns and big sites; reading again marks them "Already in your list"; photos arrive. Towns come in as Other. Not yet in a TestFlight build.
+- **Built 2026-10-09, checked on the simulator with Sarp's "BCN Nearby" (27):** first pass found 18; a second, looser pass adds towns and big sites; reading again marks them "Already in your list"; photos arrive. Towns come in as Other. In **1.0 (14), uploaded 2026-10-09**.
 
 ## To design (Sarp)
 - List import success state (many places at once, not the one-place card).

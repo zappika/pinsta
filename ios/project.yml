@@ -9,7 +9,7 @@ settings:
     SWIFT_VERSION: "5.0"
     # Bump CURRENT_PROJECT_VERSION for every TestFlight upload; app and extension must match.
     MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "13"
+    CURRENT_PROJECT_VERSION: "14"
     # Paid developer team (2026-10-01). Automatic signing: Xcode registers the
     # bundle IDs + App Group and makes the profiles (archive with -allowProvisioningUpdates).
     CODE_SIGN_STYLE: Automatic
