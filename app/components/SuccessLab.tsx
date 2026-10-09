@@ -113,14 +113,17 @@ function Flow({ entry, match, milestone, suggestions }: { entry: Entry; match: M
   if (step.at === "saved") return <SavedCard place={step.place} milestone={milestone} onGone={() => setStep({ at: "gone" })} />;
 
   const save = (place: Place) => setStep({ at: "saved", place });
+  // The question lives in the sheet's small label, the size of today's "Save a place": no headings.
+  const label = step.at === "link" ? "Save a place" : step.at === "reading" ? "Finding the place…"
+    : step.at === "likely" ? (suggestions === 1 ? "Is this the place?" : "Is it one of these?")
+    : "Which place is it?";
   const cancel = () => setStep({ at: "gone" });
 
   return (
-    <div className={`absolute inset-x-3 bottom-3 rounded-[28px] bg-white px-4 pb-4 pt-4 shadow-2xl transition-transform duration-300 ${shown ? "translate-y-0" : "translate-y-[110%]"}`}>
-      <div className="mb-3 flex items-center justify-between">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/elephant-resin.png" alt="" className="h-6 w-6" />
-        <button onClick={cancel} className="text-sm font-medium text-stone-500">Cancel</button>
+    <div className={`absolute inset-x-3 bottom-3 rounded-2xl bg-white px-4 pb-4 pt-3 shadow-xl transition-transform duration-300 ${shown ? "translate-y-0" : "translate-y-[110%]"}`}>
+      <div className="flex items-center justify-between pb-1">
+        <p className="text-xs font-medium uppercase tracking-wide text-stone-400">{label}</p>
+        <button onClick={cancel} className="-mr-2 px-2 py-1 text-sm font-medium text-stone-500">Cancel</button>
       </div>
 
       {step.at === "link" ? (
@@ -140,9 +143,7 @@ function Flow({ entry, match, milestone, suggestions }: { entry: Entry; match: M
 function LinkStep({ onUse }: { onUse: () => void }) {
   return (
     <div>
-      <p className="text-base font-semibold">Save a place</p>
-      <p className="mt-1 text-sm text-stone-500">Paste a link from Instagram, TikTok or Google Maps.</p>
-      <div className="mt-3 rounded-xl bg-stone-100 px-3 py-2.5 text-sm text-stone-400">instagram.com/p/…</div>
+      <div className="mt-2 rounded-xl bg-stone-100 px-3 py-2.5 text-sm text-stone-400">Paste an Instagram, TikTok or Maps link</div>
       <button onClick={onUse} className="mt-3 w-full rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white">Paste</button>
     </div>
   );
@@ -151,12 +152,12 @@ function LinkStep({ onUse }: { onUse: () => void }) {
 /** The post, small: context for the decision, not a thing to act on. */
 function PostRow() {
   return (
-    <div className="flex items-center gap-3">
+    <div className="mt-2 flex items-center gap-3">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={PHOTO} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
+      <img src={PHOTO} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
       <div className="min-w-0">
         <p className="text-xs font-medium text-stone-500">@{POST.account}</p>
-        <p className="truncate text-sm text-stone-700">{POST.caption}</p>
+        <p className="truncate text-sm text-stone-600">{POST.caption}</p>
       </div>
     </div>
   );
@@ -164,9 +165,8 @@ function PostRow() {
 
 function Reading() {
   return (
-    <div className="pb-2 pt-4">
-      <p className="text-base font-semibold">Finding the place in this post…</p>
-      <div className="mt-5 h-1 overflow-hidden rounded-full bg-stone-100">
+    <div className="pb-1 pt-4">
+      <div className="h-1 overflow-hidden rounded-full bg-stone-100">
         <div className="h-full w-1/3 animate-[lab-slide_1.2s_ease-in-out_infinite] rounded-full bg-stone-400" />
       </div>
       <style>{`@keyframes lab-slide { from { transform: translateX(-100%) } to { transform: translateX(300%) } }`}</style>
@@ -192,9 +192,8 @@ function PlaceRow({ place, onSave }: { place: Place; onSave: (p: Place) => void 
 function Likely({ count, onSave, onOther }: { count: number; onSave: (p: Place) => void; onOther: () => void }) {
   const options = DIRECTORY.slice(0, count);
   return (
-    <div className="pt-4">
-      <p className="text-base font-semibold">{count === 1 ? "Is this the place?" : "Is it one of these?"}</p>
-      <div className="mt-1">{options.map((p) => <PlaceRow key={p.name} place={p} onSave={onSave} />)}</div>
+    <div className="pt-2">
+      <div>{options.map((p) => <PlaceRow key={p.name} place={p} onSave={onSave} />)}</div>
       <button onClick={onOther} className="mt-1 w-full py-2 text-sm font-medium text-stone-500">Search for another place</button>
     </div>
   );
@@ -205,12 +204,10 @@ function Search({ initial, guessed, onSave }: { initial: string; guessed: boolea
   const q = query.trim().toLowerCase();
   const results = q.length < 2 ? [] : DIRECTORY.filter((p) => p.name.toLowerCase().split(/\s+/).some((w) => q.split(/\s+/).some((t) => w.startsWith(t))));
   return (
-    <div className="pt-4">
-      <p className="text-base font-semibold">{guessed ? "Which place is it?" : "We couldn’t tell which place this is"}</p>
-      {!guessed && <p className="mt-1 text-sm text-stone-500">Search for its name to save it.</p>}
-      <label className="mt-3 block">
-        <span className="text-xs font-medium text-stone-500">Place name</span>
-        <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="e.g. Casual Bakery"
+    <div className="pt-3">
+      {!guessed && <p className="text-sm text-stone-500">No location on this post. Type the place’s name to save it.</p>}
+      <label className="mt-2 block">
+        <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Place name, e.g. Casual Bakery"
           className="mt-1 w-full rounded-xl bg-stone-100 px-3 py-2.5 text-sm outline-none placeholder:text-stone-400" />
       </label>
       <div className="mt-2 flex min-h-[120px] flex-col">
