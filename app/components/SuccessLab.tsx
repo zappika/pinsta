@@ -7,7 +7,7 @@
 // The flow starts where the user is: from Share the link is already known (no URL field),
 // from + it asks for one. Then, by how sure we are:
 //   Sure    — a location tag matching one place: saved straight away.
-//   Likely  — a guess (the account's name): "Is this the place?" + Save [name].
+//   Likely  — a guess (the account's name): "Is this the place?" / "Is it one of these?", rows that each Save.
 //   No idea — "We couldn't tell which place this is": a Place name field, rows that each Save.
 // Every save ends on one success card: the post photo, the place's name and type · town
 // over it, "Saved to Vicolo" with the elephant, a milestone line above the name when there
@@ -40,6 +40,7 @@ export default function SuccessLab() {
   const [entry, setEntry] = useState<Entry>("share");
   const [match, setMatch] = useState<Match>("likely");
   const [milestone, setMilestone] = useState<Milestone>("city");
+  const [suggestions, setSuggestions] = useState<"1" | "3">("3");
   const [run, setRun] = useState(0);
   const replay = () => setRun((r) => r + 1);
 
@@ -52,13 +53,15 @@ export default function SuccessLab() {
             options={[["share", "Instagram Share"], ["paste", "+ in the app"]]} />
           <Choice label="What we find" value={match} onChange={(v) => { setMatch(v); replay(); }}
             options={[["sure", "Sure: location tag"], ["likely", "Likely: account guess"], ["none", "No idea"]]} />
+          <Choice label="Account guesses" value={suggestions} onChange={(v) => { setSuggestions(v); replay(); }}
+            options={[["1", "One place"], ["3", "A few places"]]} />
           <Choice label="Milestone on the card" value={milestone} onChange={(v) => { setMilestone(v); replay(); }}
             options={[["none", "None"], ["city", "First in a city"], ["category", "First of a type"]]} />
           <button onClick={replay} className="rounded-xl bg-white py-2 text-sm font-medium">Replay</button>
         </section>
 
         <Phone>
-          <Flow key={`${run}-${entry}-${match}-${milestone}`} entry={entry} match={match} milestone={milestone} />
+          <Flow key={`${run}-${entry}-${match}-${milestone}-${suggestions}`} entry={entry} match={match} milestone={milestone} suggestions={+suggestions} />
         </Phone>
       </div>
     </main>
@@ -91,7 +94,7 @@ function Phone({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Flow({ entry, match, milestone }: { entry: Entry; match: Match; milestone: Milestone }) {
+function Flow({ entry, match, milestone, suggestions }: { entry: Entry; match: Match; milestone: Milestone; suggestions: number }) {
   const [step, setStep] = useState<Step>(entry === "paste" ? { at: "link" } : { at: "reading" });
   const [shown, setShown] = useState(false);
 
@@ -126,7 +129,7 @@ function Flow({ entry, match, milestone }: { entry: Entry; match: Match; milesto
         <>
           <PostRow />
           {step.at === "reading" && <Reading />}
-          {step.at === "likely" && <Likely onSave={() => save(GUESS)} onOther={() => setStep({ at: "search", query: GUESS.name })} />}
+          {step.at === "likely" && <Likely count={suggestions} onSave={save} onOther={() => setStep({ at: "search", query: GUESS.name })} />}
           {step.at === "search" && <Search initial={step.query} guessed={match === "likely"} onSave={save} />}
         </>
       )}
@@ -171,17 +174,27 @@ function Reading() {
   );
 }
 
-function Likely({ onSave, onOther }: { onSave: () => void; onOther: () => void }) {
+/** One way to pick a place, everywhere: the whole row saves it; the pill says so. */
+function PlaceRow({ place, onSave }: { place: Place; onSave: (p: Place) => void }) {
+  return (
+    <button type="button" onClick={() => onSave(place)}
+      className="flex w-full items-center gap-3 border-b border-stone-100 py-2.5 text-left last:border-0 active:bg-stone-50">
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-medium">{place.name}</p>
+        <p className="truncate text-sm text-stone-500">{place.type} · {place.area}, {place.city}</p>
+      </div>
+      <span className="shrink-0 rounded-full bg-stone-900 px-3 py-1 text-xs font-medium text-white">Save</span>
+    </button>
+  );
+}
+
+/** A guess from the account: one or a few places, best first. Same rows as search; no second button. */
+function Likely({ count, onSave, onOther }: { count: number; onSave: (p: Place) => void; onOther: () => void }) {
+  const options = DIRECTORY.slice(0, count);
   return (
     <div className="pt-4">
-      <p className="text-base font-semibold">Is this the place?</p>
-      <div className="mt-3 rounded-xl border border-stone-200 px-3 py-2.5">
-        <p className="font-medium">{GUESS.name}</p>
-        <p className="text-sm text-stone-500">{GUESS.type} · {GUESS.area}, {GUESS.city}</p>
-      </div>
-      <button onClick={onSave} className="mt-3 w-full rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white active:bg-stone-800">
-        Save {GUESS.name}
-      </button>
+      <p className="text-base font-semibold">{count === 1 ? "Is this the place?" : "Is it one of these?"}</p>
+      <div className="mt-1">{options.map((p) => <PlaceRow key={p.name} place={p} onSave={onSave} />)}</div>
       <button onClick={onOther} className="mt-1 w-full py-2 text-sm font-medium text-stone-500">Search for another place</button>
     </div>
   );
@@ -201,15 +214,7 @@ function Search({ initial, guessed, onSave }: { initial: string; guessed: boolea
           className="mt-1 w-full rounded-xl bg-stone-100 px-3 py-2.5 text-sm outline-none placeholder:text-stone-400" />
       </label>
       <div className="mt-2 flex min-h-[120px] flex-col">
-        {results.slice(0, 3).map((p) => (
-          <div key={p.name} className="flex items-center gap-3 border-b border-stone-100 py-2.5 last:border-0">
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{p.name}</p>
-              <p className="truncate text-sm text-stone-500">{p.type} · {p.area}, {p.city}</p>
-            </div>
-            <button onClick={() => onSave(p)} className="shrink-0 rounded-full bg-stone-900 px-3 py-1 text-xs font-medium text-white">Save</button>
-          </div>
-        ))}
+        {results.slice(0, 3).map((p) => <PlaceRow key={p.name} place={p} onSave={onSave} />)}
         {q.length >= 2 && results.length === 0 && <p className="py-3 text-sm text-stone-400">No places called that. Try the name and the town.</p>}
       </div>
     </div>
