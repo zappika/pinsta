@@ -199,3 +199,11 @@ body {
   :root:not([data-theme="light"]) .vicolo-logo-light { display: none; }
   :root:not([data-theme="light"]) .vicolo-logo-dark { display: block; }
 }
+
+/* The "you are here" dot on the web map (PlacesMap): Google's blue with a white ring and a soft halo. Under the pins. */
+.pinsta-here {
+  width: 16px; height: 16px; border-radius: 9999px;
+  background: #1a73e8; border: 3px solid #fff;
+  box-shadow: 0 0 0 7px rgba(26, 115, 232, 0.18), 0 1px 3px rgba(0, 0, 0, 0.3);
+  z-index: 0; pointer-events: none;
+}

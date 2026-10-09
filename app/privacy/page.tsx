@@ -46,9 +46,9 @@ export default function Privacy() {
 
       <h2 className="mt-8 font-semibold text-stone-900">Location</h2>
       <p className="mt-2">
-        Vicolo opens on <em>Near me</em>, so it asks for your location when you first open it. Your location is used on
-        the phone to show saved places within 50 km, and is never stored or sent anywhere. If you say no, the app opens
-        on your whole list instead.
+        Once you have saved three places, Vicolo asks for your location so it can open on the town you are in and show
+        where you are on the map. Your location is used only on the phone and is never stored or sent anywhere. If you
+        say no, the app opens on your whole list instead.
       </p>
 
       <h2 className="mt-8 font-semibold text-stone-900">Questions</h2>

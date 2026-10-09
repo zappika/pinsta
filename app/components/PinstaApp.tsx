@@ -19,7 +19,7 @@ import BuddyMenu from "./BuddyMenu";
 import { MAPS_LABEL, defaultMaps, openIn, setDefaultMaps, type MapsApp } from "@/lib/directions";
 import ViewSwitch, { type View } from "./ViewSwitch";
 import { destinationLabels } from "@/lib/grouping";
-import { NEAR, NEAR_KM, currentPosition, kmBetween, locationOnOpen } from "@/lib/geo";
+import { NEAR_KM, currentPosition, kmBetween, locationOnOpen } from "@/lib/geo";
 
 export default function PinstaApp() {
   const [places, setPlaces] = useState<Place[] | null>(null);
@@ -154,19 +154,16 @@ export default function PinstaApp() {
 
   const labels = useMemo(() => destinationLabels(places ?? []), [places]);
 
-  // "Near me": asked for only when chosen, never on load.
+  // Where you are, once the browser shares it: the blue dot, row distances, and the opening city.
   const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
-  const [locError, setLocError] = useState<string | null>(null);
   const wherePick = useRef(0);
-  const nearIds = useMemo(
-    () => (here ? new Set((places ?? []).filter((p) => kmBetween(here, p) <= NEAR_KM).map((p) => p.id)) : null),
-    [here, places],
-  );
 
-  // Opening screen: the map, Near me. Offline, no location, or a map that does not
-  // load → the list of everything. Nothing within reach → the map of everything.
-  // Whatever was picked meanwhile wins. Below ASK_AFTER places, a browser that
-  // hasn't been asked yet opens on the map of everything, without a prompt.
+  // Opening screen: the map of the town you're in (Sarp, 2026-10-09: no "Near me" row;
+  // it just opens on Barcelona when you're in Barcelona). The town is the Where row of your
+  // nearest place within NEAR_KM. Offline or a map that does not load → the list of
+  // everything. No location, or nothing within reach → the map of everything. Whatever was picked
+  // meanwhile wins. Below ASK_AFTER places, a browser that hasn't been asked yet opens on
+  // the map of everything, without a prompt.
   const started = useRef(false);
   useEffect(() => {
     if (started.current || !places || places.length === 0) return;
@@ -175,25 +172,30 @@ export default function PinstaApp() {
     if (!navigator.onLine) return toList();
     locationOnOpen(places.length)
       .then(async (may) => {
-        if (may === "wait") return; // not asked yet and the list is still small: no prompt
-        if (may === "refused") return toList();
+        // Not asked yet and the list is still small, or refused: the map of everything.
+        if (may !== "locate") return;
         const pos = await currentPosition();
         setHere(pos);
         if (wherePick.current > 0) return; // a pick (even "everywhere") came first
-        if (places.some((p) => kmBetween(pos, p) <= NEAR_KM)) setCity((c) => c ?? NEAR);
-        else setNotice(`Nothing saved within ${NEAR_KM} km, so here is everything.`);
+        const nearest = places
+          .map((p) => ({ p, km: kmBetween(pos, p) }))
+          .filter((x) => x.km <= NEAR_KM)
+          .sort((a, b) => a.km - b.km)[0];
+        const town = nearest && labels.get(nearest.p.id);
+        if (town) setCity((c) => c ?? town);
       })
-      .catch(toList);
+      .catch(() => undefined); // no fix: the map of everything
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the list first arrives
   }, [places]);
 
   const visible = useMemo(() => {
     if (!places) return [];
     return places.filter(
       (p) =>
-        (city === null || (city === NEAR ? nearIds?.has(p.id) : labels.get(p.id) === city)) &&
+        (city === null || labels.get(p.id) === city) &&
         (category === null || p.category === category),
     );
-  }, [places, labels, nearIds, city, category]);
+  }, [places, labels, city, category]);
 
   // Everywhere on the map frames one country, not the world (Sarp, 2026-10-06:
   // Japan and Spain in one frame showed neither). Without a location, the one
@@ -256,23 +258,11 @@ export default function PinstaApp() {
         <Filters
           places={places}
           labels={labels}
-          nearIds={nearIds}
           city={city}
           category={category}
-          onCity={async (c) => {
-            // Locating can take seconds; a Where picked meanwhile wins over a late fix.
-            const pick = ++wherePick.current;
-            setLocError(null);
-            if (c === NEAR) {
-              try {
-                const pos = await currentPosition();
-                if (pick !== wherePick.current) return;
-                setHere(pos);
-              } catch {
-                if (pick === wherePick.current) setLocError("Location is off. Allow it for this site to use Near me.");
-                return;
-              }
-            }
+          onCity={(c) => {
+            // Locating can take seconds on open; a Where picked meanwhile wins over a late fix.
+            wherePick.current++;
             setCity(c);
             setCategory(null);
             setPeek(null);
@@ -299,7 +289,6 @@ export default function PinstaApp() {
               : "flex-1 px-5 pb-28"
         }
       >
-        {locError && <p className="mb-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">{locError}</p>}
         {error && (
           <p className="mt-6 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>
         )}
@@ -335,6 +324,7 @@ export default function PinstaApp() {
           <PlacesMap
             places={visible}
             focus={framed?.places}
+            here={here}
             selected={peekId}
             onSelect={setPeek}
             onFail={() => {

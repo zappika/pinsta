@@ -1,6 +1,5 @@
-/** "Near me" = within this many km of where the browser says you are. */
+/** The map opens on your town when a saved place is within this many km of you. */
 export const NEAR_KM = 50;
-export const NEAR = "__near__";
 
 export function kmBetween(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const r = (d: number) => (d * Math.PI) / 180;
@@ -17,7 +16,6 @@ export const ASK_AFTER = 3;
  * What the opening screen may do with location: "locate" when the browser already
  * allows it or it hasn't been asked and the list has ASK_AFTER places; "wait" when
  * it hasn't been asked and the list is smaller (no prompt on a new list); "refused".
- * Picking Near me always may ask.
  */
 export async function locationOnOpen(placeCount: number): Promise<"locate" | "wait" | "refused"> {
   const state = await navigator.permissions

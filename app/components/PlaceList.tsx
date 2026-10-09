@@ -8,7 +8,7 @@ type Props = {
   places: Place[];
   selected: string | null;
   onSelect: (p: Place) => void;
-  /** Known only after "Near me" was used; then each row shows its distance. */
+  /** Where you are, once location is allowed; then each row shows its distance. */
   here: { lat: number; lng: number } | null;
   hideCategory?: boolean;
   hideCity?: (p: Place) => boolean;

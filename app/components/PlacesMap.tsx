@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import type * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { iconFor, tintFor } from "@/lib/categories";
+import { NEAR_KM, kmBetween } from "@/lib/geo";
 import { isDark } from "@/lib/theme";
 import type { Place } from "./types";
 
@@ -23,6 +24,8 @@ type Props = {
   onFail?: () => void;
   /** What to frame, when not all of `places` (Everywhere: one country, see PinstaApp). */
   focus?: Place[];
+  /** Where you are, when location is allowed: a blue dot, like Google Maps (Sarp, 2026-10-09). */
+  here?: { lat: number; lng: number } | null;
 };
 
 /**
@@ -33,7 +36,7 @@ type Props = {
 /** A map that has not drawn by then is treated as offline. */
 const LOAD_TIMEOUT_MS = 12_000;
 
-export default function PlacesMap({ places, selected, onSelect, onFail, focus }: Props) {
+export default function PlacesMap({ places, selected, onSelect, onFail, focus, here = null }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markers = useRef<Map<string, { marker: maplibregl.Marker; pin: HTMLDivElement }>>(new Map());
@@ -89,7 +92,9 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus }:
         loaded = true;
         ready.current = true;
         clearTimeout(timer);
+        libRef.current = lib;
         setPlaces(lib, m);
+        showHere();
       });
     })();
     return () => {
@@ -101,9 +106,43 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus }:
       ready.current = false;
       markers.current.clear();
       clusterMarkers.current = [];
+      hereMarker.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const libRef = useRef<typeof maplibregl | null>(null);
+  const hereRef = useRef(here);
+  hereRef.current = here;
+  const hereMarker = useRef<maplibregl.Marker | null>(null);
+
+  /** The blue dot: drawn under the pins, moved when the fix changes. */
+  function showHere() {
+    const lib = libRef.current, m = map.current, at = hereRef.current;
+    if (!lib || !m || !ready.current) return;
+    if (!at) {
+      hereMarker.current?.remove();
+      hereMarker.current = null;
+      return;
+    }
+    if (!hereMarker.current) {
+      const dot = document.createElement("div");
+      dot.className = "pinsta-here";
+      dot.setAttribute("aria-label", "You are here");
+      hereMarker.current = new lib.Marker({ element: dot }).setLngLat([at.lng, at.lat]).addTo(m);
+    } else {
+      hereMarker.current.setLngLat([at.lng, at.lat]);
+    }
+  }
+  useEffect(showHere, [here]);
+  // A fix that arrives after the map drew: frame again so the dot is in view.
+  const hadHere = useRef(false);
+  useEffect(() => {
+    if (!here || hadHere.current) return;
+    hadHere.current = true;
+    if (libRef.current && map.current && ready.current) setPlaces(libRef.current, map.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [here]);
 
   const placesRef = useRef(places);
   placesRef.current = places;
@@ -120,6 +159,9 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus }:
     if (list.length === 0) return;
     const bounds = new lib.LngLatBounds();
     for (const p of list) bounds.extend([p.lng, p.lat]);
+    // You're among these places: the frame takes you in too, so the dot shows.
+    const at = hereRef.current;
+    if (at && list.some((p) => kmBetween(at, p) <= NEAR_KM)) bounds.extend([at.lng, at.lat]);
     // One place → a neighbourhood, not a dot at max zoom.
     m.fitBounds(bounds, { padding: { top: 60, bottom: 180, left: 50, right: 50 }, maxZoom: 15, duration: 600 });
     // Pins that overlap at this zoom are grouped; regroup whenever the map settles.
