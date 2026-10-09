@@ -7,7 +7,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-06 (build 12).
 
 | What | Web | iOS |
 |---|---|---|
-| Google Maps list import | `/import`: grouped review, Move / Move all, keeps the list's name and owner | Menu item says "Soon". Planned: matched with MapKit only, no Google; photo from Google by name + pin afterwards |
+| Google Maps list import | `/import`: grouped review, Move / Move all, keeps the list's name and owner; Google matches on the server | Same screen (buddy menu → Import from Google): the list read by `/api/list`, matched with MapKit on the phone (a second, looser pass for towns and big sites), Import any time, carries on in the background, 250 at most; photos by name + pin from `/api/photo`. Keeps the list's name and owner, not shown yet |
 | Share tutorial (three pages) | No (Sarp: not needed on web) | Empty list, and menu → How to save |
 
 ## Different on purpose

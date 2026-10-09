@@ -36,7 +36,11 @@ struct ImportView: View {
             }
             .safeAreaInset(edge: .bottom) { if !job.rows.isEmpty { importButton } }
         }
-        .onAppear { if url.isEmpty, let link = job.link { url = link } }
+        .onAppear {
+            if url.isEmpty, let link = job.link { url = link }
+            // Testing: `-importURL <link>` opens here and reads that list.
+            if job.rows.isEmpty, let link = UserDefaults.standard.string(forKey: "importURL") { url = link; read() }
+        }
     }
 
     private var linkField: some View {

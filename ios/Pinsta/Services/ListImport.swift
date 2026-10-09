@@ -71,7 +71,7 @@ final class ListImport {
             rows = list.entries.enumerated().map { i, e in
                 var row = Row(id: i, name: e.name, note: e.note, address: e.address, latitude: e.lat, longitude: e.lng)
                 // Already a card: the entry's own name and pin are enough to tell, no search.
-                if saved.contains(where: { SamePlace.matches($0, name: e.name, latitude: e.lat, longitude: e.lng) }) {
+                if saved.contains(where: { $0.allPostURLs.contains(Self.link(row)) || SamePlace.matches($0, name: e.name, latitude: e.lat, longitude: e.lng) }) {
                     row.status = .already
                     row.picked = false
                 }
@@ -114,16 +114,26 @@ final class ListImport {
         let pin = CLLocationCoordinate2D(latitude: row.latitude, longitude: row.longitude)
         while !Task.isCancelled {
             do {
-                let found = try await PlaceSearch.search(row.name, limit: 5, near: pin)
                 let here = CLLocation(latitude: row.latitude, longitude: row.longitude)
                 // The list's pin is Google's own: the right place is the nearest, a few metres off.
                 // Further than 150 m means MapKit found something else: no match, not a guess.
-                let near = found
-                    .map { ($0, CLLocation(latitude: $0.latitude, longitude: $0.longitude).distance(from: here)) }
-                    .filter { $0.1 <= 150 }
-                    .min { $0.1 < $1.1 }?.0
+                var near = Self.nearest(try await PlaceSearch.search(row.name, limit: 5, near: pin), to: here, within: 150)
+                // Second pass (BCN Nearby, 2026-10-09: 9 of 27 missed): towns and beaches aren't
+                // points of interest, and big sites sit far from Google's pin. Any kind of result,
+                // up to 2 km, but only one sharing a real word with the list's name.
+                if near == nil {
+                    let words = Self.words(row.name)
+                    let wider = try? await Self.anything(row.name, near: pin)
+                    near = Self.nearest((wider ?? []).filter { !Self.words($0.name).isDisjoint(with: words) }, to: here, within: 2000)
+                }
                 guard i < rows.count, rows[i].id == row.id else { return }
-                if let near {
+                // A match can still be a card under MapKit's name rather than the list's.
+                let saved = (try? context?.fetch(FetchDescriptor<Place>())) ?? []
+                if let near, saved.contains(where: { SamePlace.matches($0, name: near.name, latitude: near.latitude, longitude: near.longitude) }) {
+                    rows[i].match = near
+                    rows[i].status = .already
+                    rows[i].picked = false
+                } else if let near {
                     rows[i].match = near
                     rows[i].category = near.category
                     rows[i].status = .matched
@@ -143,6 +153,34 @@ final class ListImport {
         }
     }
 
+    /// The card's "post" is the list entry itself (name and Google's pin): reading the list
+    /// again finds it and adds nothing.
+    static func link(_ row: Row) -> String {
+        var link = URLComponents(string: "https://www.google.com/maps/search/")!
+        link.queryItems = [.init(name: "api", value: "1"), .init(name: "query", value: "\(row.name) \(row.latitude),\(row.longitude)")]
+        return link.url?.absoluteString ?? "https://www.google.com/maps"
+    }
+
+    private static func nearest(_ found: [PlaceCandidate], to here: CLLocation, within metres: Double) -> PlaceCandidate? {
+        found
+            .map { ($0, CLLocation(latitude: $0.latitude, longitude: $0.longitude).distance(from: here)) }
+            .filter { $0.1 <= metres }
+            .min { $0.1 < $1.1 }?.0
+    }
+
+    private static func anything(_ name: String, near pin: CLLocationCoordinate2D) async throws -> [PlaceCandidate] {
+        let request = MKLocalSearch.Request()
+        request.naturalLanguageQuery = name
+        request.resultTypes = [.pointOfInterest, .address]
+        request.region = MKCoordinateRegion(center: pin, latitudinalMeters: 10_000, longitudinalMeters: 10_000)
+        return try await MKLocalSearch(request: request).start().mapItems.prefix(8).map(PlaceCandidate.init)
+    }
+
+    private static func words(_ s: String) -> Set<String> {
+        Set(s.lowercased().folding(options: .diacriticInsensitive, locale: nil)
+            .split { !$0.isLetter && !$0.isNumber }.map(String.init).filter { $0.count > 2 })
+    }
+
     // MARK: Importing
 
     func startImport() {
@@ -160,11 +198,8 @@ final class ListImport {
             rows[i].status = .already
             return
         }
-        // The card's "post" is the Google place itself: importing the list again adds nothing.
-        var link = URLComponents(string: "https://www.google.com/maps/search/")!
-        link.queryItems = [.init(name: "api", value: "1"), .init(name: "query", value: "\(rows[i].name) \(rows[i].latitude),\(rows[i].longitude)")]
         let place = Place(
-            instagramURL: link.url?.absoluteString ?? "https://www.google.com/maps",
+            instagramURL: Self.link(rows[i]),
             name: c.name, latitude: c.latitude, longitude: c.longitude,
             address: c.address, city: c.city, region: c.region, country: c.country,
             category: rows[i].category

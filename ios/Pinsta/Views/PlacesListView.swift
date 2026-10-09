@@ -215,6 +215,7 @@ private struct PlacesContent: View {
         .sheet(isPresented: Bindable(settings).showingSheet) { SettingsSheet() }
         .sheet(isPresented: Bindable(settings).showingBeenThere) { BeenThereSheet() }
         .sheet(isPresented: Bindable(settings).showingImport) { ImportView() }
+        .onAppear { if UserDefaults.standard.string(forKey: "importURL") != nil { settings.showingImport = true } }
         .fullScreenCover(isPresented: Bindable(settings).showingTutorial) {
             TutorialCover(onPaste: { settings.showingTutorial = false; adding = true })
                 .preferredColorScheme(settings.appearance.scheme)
