@@ -22,6 +22,7 @@ enum Metros {
         Metro(name: "Berlin", lat: 52.52, lng: 13.405, km: 18),
         Metro(name: "Amsterdam", lat: 52.373, lng: 4.893, km: 9),
         Metro(name: "Barcelona", lat: 41.389, lng: 2.165, km: 7),
+        Metro(name: "Girona", lat: 41.98, lng: 2.82, km: 4),
         Metro(name: "Madrid", lat: 40.417, lng: -3.704, km: 12),
         Metro(name: "Lisbon", lat: 38.722, lng: -9.139, km: 8),
         Metro(name: "Rome", lat: 41.893, lng: 12.483, km: 12),
@@ -39,6 +40,31 @@ enum Metros {
         Metro(name: "Bangkok", lat: 13.756, lng: 100.502, km: 18),
         Metro(name: "Buenos Aires", lat: -34.604, lng: -58.382, km: 14),
     ]
+
+    /// Travel areas: what you'd say for a place outside a city ("Costa Brava", not "Begur" or
+    /// the province "Girona"). Sarp, 2026-10-09. Filed under in the Where menu even when the
+    /// village has several places; cities come first. First circle that holds a point wins.
+    /// Same list as `AREAS` in lib/metros.ts.
+    static let areas: [Metro] = [
+        // Catalonia
+        Metro(name: "Costa Brava", lat: 42.07, lng: 3.07, km: 38),
+        Metro(name: "Priorat", lat: 41.17, lng: 0.8, km: 15),
+        Metro(name: "Penedès", lat: 41.33, lng: 1.75, km: 20),
+        Metro(name: "Maresme", lat: 41.55, lng: 2.45, km: 18),
+        // France
+        Metro(name: "Roussillon", lat: 42.62, lng: 2.85, km: 30),
+        Metro(name: "Côte d'Azur", lat: 43.62, lng: 7.1, km: 40),
+        Metro(name: "Provence", lat: 43.85, lng: 5.2, km: 45),
+        // Italy
+        Metro(name: "Amalfi Coast", lat: 40.63, lng: 14.55, km: 18),
+        Metro(name: "Cinque Terre", lat: 44.12, lng: 9.71, km: 10),
+        Metro(name: "Langhe", lat: 44.6, lng: 8.0, km: 22),
+    ]
+
+    /// The travel area a point lies in, or nil.
+    static func area(lat: Double, lng: Double) -> String? {
+        areas.first { km(lat, lng, $0.lat, $0.lng) <= $0.km }?.name
+    }
 
     /// The metro a point lies in, the nearest one if radii overlap.
     static func at(lat: Double, lng: Double) -> String? {

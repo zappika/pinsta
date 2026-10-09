@@ -19,13 +19,16 @@ enum Grouping {
         var labels: [UUID: String] = [:]
         var places: [Place] = []
         for p in all {
-            if let metro = Metros.at(lat: p.latitude, lng: p.longitude) { labels[p.id] = metro } else { places.append(p) }
+            // A city first, then a travel area ("Costa Brava"), even alone and even for a busy village.
+            if let metro = Metros.at(lat: p.latitude, lng: p.longitude) ?? Metros.area(lat: p.latitude, lng: p.longitude) {
+                labels[p.id] = metro
+            } else { places.append(p) }
         }
 
         var byCity: [String: Int] = [:]
         for p in places { byCity[p.city ?? "", default: 0] += 1 }
 
-        func regionOf(_ p: Place) -> String { cleanRegion(p.region) ?? p.country ?? "Elsewhere" }
+        func regionOf(_ p: Place) -> String { regionName(p.region, country: p.country) ?? p.country ?? "Elsewhere" }
 
         var singletonsByRegion: [String: Int] = [:]
         for p in places where (byCity[p.city ?? ""] ?? 0) < ownRowAt {
@@ -42,6 +45,40 @@ enum Grouping {
             labels[p.id] = (singletonsByRegion[r] ?? 0) >= ownRowAt ? r : (city.isEmpty ? r : city)
         }
         return labels
+    }
+
+    /// MapKit names a Spanish province where the region is wanted, and Sweden by its län
+    /// letter ("M"): both read as the region people say. Same tables as lib/grouping.ts.
+    private static let spain: [String: String] = {
+        let regions: [String: [String]] = [
+            "Catalonia": ["Barcelona", "Girona", "Gerona", "Lleida", "Lérida", "Tarragona", "Catalunya", "Cataluña"],
+            "Andalusia": ["Almería", "Cádiz", "Córdoba", "Granada", "Huelva", "Jaén", "Málaga", "Sevilla", "Seville", "Andalucía"],
+            "Basque Country": ["Álava", "Araba", "Bizkaia", "Vizcaya", "Gipuzkoa", "Guipúzcoa", "País Vasco", "Euskadi"],
+            "Valencia": ["Alicante", "Alacant", "Castellón", "Castelló", "Valencia", "València", "Comunitat Valenciana"],
+            "Galicia": ["A Coruña", "La Coruña", "Lugo", "Ourense", "Pontevedra"],
+            "Aragon": ["Huesca", "Teruel", "Zaragoza", "Aragón"],
+            "Castile and León": ["Ávila", "Burgos", "León", "Palencia", "Salamanca", "Segovia", "Soria", "Valladolid", "Zamora"],
+            "Castilla-La Mancha": ["Albacete", "Ciudad Real", "Cuenca", "Guadalajara", "Toledo"],
+            "Extremadura": ["Badajoz", "Cáceres"],
+            "Balearic Islands": ["Illes Balears", "Islas Baleares", "Baleares", "Mallorca"],
+            "Canary Islands": ["Las Palmas", "Santa Cruz de Tenerife", "Canarias"],
+        ]
+        var map: [String: String] = [:]
+        for (region, names) in regions { for n in names { map[n.lowercased()] = region } }
+        return map
+    }()
+    private static let sweden: [String: String] = [
+        "AB": "Stockholm", "C": "Uppsala", "D": "Södermanland", "E": "Östergötland", "F": "Jönköping", "G": "Kronoberg", "H": "Kalmar",
+        "I": "Gotland", "K": "Blekinge", "M": "Skåne", "N": "Halland", "O": "Västra Götaland", "S": "Värmland", "T": "Örebro",
+        "U": "Västmanland", "W": "Dalarna", "X": "Gävleborg", "Y": "Västernorrland", "Z": "Jämtland", "AC": "Västerbotten", "BD": "Norrbotten",
+    ]
+
+    static func regionName(_ region: String?, country: String?) -> String? {
+        guard let r = region?.trimmingCharacters(in: .whitespaces), !r.isEmpty else { return nil }
+        let c = (country ?? "").lowercased()
+        if c == "spain" || c == "españa" { return spain[r.lowercased()] ?? cleanRegion(r) }
+        if c == "sweden" || c == "sverige", let name = sweden[r] { return name }
+        return cleanRegion(r)
     }
 
     /// "Hallands län" → "Halland", "Skåne County" → "Skåne", "Province of X" → "X".
