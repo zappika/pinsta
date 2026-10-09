@@ -12,15 +12,19 @@ Things that make what exists better. Hours, not weeks.
 - **Per-install usage?** The usage numbers are totals per service. Telling friends' saves apart would need an anonymous install id sent with each save: a small privacy call.
 - **Share tutorial on the web:** iOS-only for now (Sarp, 2026-10-06: not needed on web).
 - **"Why it's here" wording:** a first draft in `lib/why-here.ts`; worth a pass with Sander.
+- **Import photos arrive five at a time** (iOS): `PhotoRetry` takes 5 per run, so after a big list import the rest wait for the next open or return to the app. Keep running until none are due while an import is on.
+- **Towns import as "Other"** (iOS list import): Begur, Portbou… come in with a town photo but no fitting type. Maybe a Town type, or leave them unticked by default.
+- **Location question over the success card:** opening the app straight into a save (`-addURL`) can raise the location prompt on top of the card once the list reaches 3 places. Seen only with the test shortcut; check whether a real + save or share can hit it.
+- **iOS town-tag fix not run on a real post:** the Burro post's link was cut off in the screenshot; Sarp's phone test of build 14 covers it.
 
 ## Big feature directions
 Each one is weeks, and needs a design pass before code.
 
-- **First experience** — before the beta (Sarp, 2026-10-06). The share tutorial is in (build 9). Still open: the first save as a moment rather than a receipt, and when the list starts to feel like *yours*. Design with Sander.
-- **Import from Google Maps lists** — choose what comes in, check and fix each category, skip duplicates. MVP on the web first.
+- **First experience** — the share tutorial (build 9) and the success card (build 13, 2026-10-09) are in. Still open: when the list starts to feel like *yours*.
+- **Import from Google Maps lists** — built on web and iOS (build 14). Open design items are in plan.md "To design".
 - **Hooks that bring people back** — nothing does today. Options: "you're near a saved place" (needs Always location), a Home Screen widget of nearby/random places (no new permission), "you have 6 places in Paris" on arrival (Always location again).
 - **Social: "Nika saved a place in Tokyo"** — see what friends save, send a place to a friend. Accounts arrive here and only here.
-- **Check-ins** — "Been there" / "Want to go" per place, with filters; meets Social ("Nika wants to go here").
+- **Check-ins** — Want to go / Been there with faces is in (build 12). Still open: filters, and meeting Social ("Nika wants to go here").
 - **iCloud sync** — the list survives a reinstall and appears on other devices. Deferred until the data model settles (plan.md, Open decisions).
 - **Lists kept elsewhere** — notes or text lists of places, read and turned into cards.
 - **Cheaper Instagram reads** — only once Apify cost becomes a problem (Sarp, 2026-10-06: keep Apify for now).
