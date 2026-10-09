@@ -457,7 +457,6 @@ export default function PinstaApp() {
           }}
           onSaved={onSaved}
           onUpdated={onUpdated}
-          onRemoved={(id) => setPlaces((ps) => ps?.filter((p) => p.id !== id) ?? null)}
         />
       )}
     </main>

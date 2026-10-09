@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { parseSourceUrl, SOURCE_LABEL, type SourceKind } from "@/lib/sources";
 import { api } from "@/lib/api";
+import { iconFor, tintFor } from "@/lib/categories";
+import { milestoneFor } from "@/lib/milestone";
 import type { Place, PlaceCandidate } from "./types";
 // Type only: nothing of the server route reaches the client bundle.
 import type { ExtractResponse } from "@/app/api/extract/route";
@@ -13,10 +15,8 @@ type Props = {
   editing?: Place | null;
   onUpdated?: (place: Place) => void;
   onClose: () => void;
-  /** The place is in the list from this moment; the sheet stays to show the receipt. */
+  /** The place is in the list from this moment; the sheet becomes the success card. */
   onSaved: (place: Place) => void;
-  /** "Wrong place?" — the save is taken back. */
-  onRemoved: (id: string) => void;
 };
 
 // What the sheet uses of /api/extract's post; edit mode builds one from a saved card, without kind.
@@ -31,14 +31,14 @@ type Extract =
   | { status: "done"; post: PostInfo; source: Source }
   | { status: "error"; message: string };
 
-type Saved = { place: Place; automatic: boolean; already: boolean; changed?: boolean; merged?: boolean };
+type Saved = { place: Place; already: boolean; changed?: boolean; merged?: boolean; milestone?: string | null };
 
 /**
  * A small sheet at the bottom, sized like the "Where" picker. Paste a link →
  * the post is read → the tag becomes a place. One match saves itself; several
  * ask for a tap; none hands over to search.
  */
-export default function AddPlace({ places, editing = null, onUpdated, onClose, onSaved, onRemoved }: Props) {
+export default function AddPlace({ places, editing = null, onUpdated, onClose, onSaved }: Props) {
   const [url, setUrl] = useState(editing?.instagramUrl ?? "");
   const [extract, setExtract] = useState<Extract>(
     editing
@@ -62,7 +62,6 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
   const [saved, setSaved] = useState<Saved | null>(null);
-  const [autoSaveDeclined, setAutoSaveDeclined] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const urlRef = useRef<HTMLInputElement>(null);
   const queryRef = useRef<HTMLInputElement>(null);
@@ -92,7 +91,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
     }
     const existing = places.find((p) => p.instagramUrl === validUrl || p.posts?.some((x) => x.instagramUrl === validUrl));
     if (existing) {
-      setSaved({ place: existing, automatic: false, already: true });
+      setSaved({ place: existing, already: true });
       return;
     }
     const ctrl = new AbortController();
@@ -123,8 +122,8 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
         setExtract({ status: "done", post: data.post, source: data.source ?? null });
         setCandidates(found);
         // Only a location tag is trusted enough to save without a tap.
-        if (found.length === 1 && (data.source === "tag" || data.source === "link") && !autoSaveDeclined) {
-          void save(found[0], data.post, true);
+        if (found.length === 1 && (data.source === "tag" || data.source === "link")) {
+          void save(found[0], data.post);
         } else if (found.length === 0) {
           queryRef.current?.focus();
         }
@@ -179,14 +178,14 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
     };
   }, [query]);
 
-  // The receipt closes itself — unless it's telling you nothing new was saved.
+  // The success card closes itself (or on a tap).
   useEffect(() => {
-    if (!saved || saved.already) return;
-    const t = setTimeout(onClose, saved.automatic ? 3000 : 1500);
+    if (!saved) return;
+    const t = setTimeout(onClose, SAVED_MS);
     return () => clearTimeout(t);
   }, [saved, onClose]);
 
-  async function save(c: PlaceCandidate, p: PostInfo | null = post, automatic = false) {
+  async function save(c: PlaceCandidate, p: PostInfo | null = post) {
     if (!validUrl || saving) return;
     setSaving(c.placeId);
     setError(null);
@@ -200,7 +199,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
         const data = (await res.json().catch(() => ({}))) as { place?: Place; error?: string };
         if (!res.ok || !data.place) throw new Error(data.error ?? "Could not change place");
         onUpdated?.(data.place);
-        setSaved({ place: data.place, automatic: false, already: false, changed: true });
+        setSaved({ place: data.place, already: false, changed: true });
         return;
       }
       const res = await api("/api/places", {
@@ -221,33 +220,13 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
       if (!res.ok || !data.place) throw new Error(data.error ?? "Could not save");
       if (data.merged) onUpdated?.(data.place);
       else if (!data.already) onSaved(data.place);
-      setSaved({ place: data.place, automatic, already: !!data.already, merged: !!data.merged });
+      const fresh = !data.already && !data.merged;
+      setSaved({ place: data.place, already: !!data.already, merged: !!data.merged, milestone: fresh ? milestoneFor(data.place, places) : null });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save");
     } finally {
       setSaving(null);
     }
-  }
-
-  async function undo() {
-    // "Already saved" is an earlier save, not this one: nothing to take back.
-    if (!saved || saved.already) return;
-    const { place, merged } = saved;
-    setSaved(null);
-    setAutoSaveDeclined(true);
-    if (merged && validUrl) {
-      const res = await api(`/api/places/${place.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ removePost: post?.url ?? validUrl }),
-      }).catch(() => null);
-      const data = res ? ((await res.json().catch(() => ({}))) as { place?: Place }) : null;
-      if (data?.place) onUpdated?.(data.place);
-    } else {
-      onRemoved(place.id);
-      await api(`/api/places/${place.id}`, { method: "DELETE" }).catch(() => undefined);
-    }
-    queryRef.current?.focus();
   }
 
 
@@ -266,19 +245,27 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
   const listed = searchActive ? results : candidates;
   const manualMode =
     extract.status === "error" || (extract.status === "done" && extract.source === null);
+  // The sheet's question lives in its small label (Sarp, 2026-10-09): no headings.
+  const label = editing ? "Change place"
+    : !validUrl ? "Save a place"
+    : extract.status === "loading" ? "Finding the place…"
+    : saving ? "Saving…"
+    : showTaggedFirst ? (candidates.length === 1 ? "Is this the place?" : "Is it one of these?")
+    : "Which place is it?";
 
   return (
     <div className="fixed inset-0 z-20 mx-auto flex max-w-md flex-col justify-end" role="dialog" aria-label="Save a place">
       <button type="button" aria-label="Close" onClick={onClose} className="pinsta-fade absolute inset-0 bg-black/30" />
       {/* Fixed height: the sheet never resizes as the post, candidates or receipt come in.
           Sits above the + (which becomes ×) and rises out of it. */}
+      {saved ? (
+        <SavedCard saved={saved} onDone={onClose} />
+      ) : (
       <div className="pinsta-rise relative m-3 mb-[calc(env(safe-area-inset-bottom)+5.25rem)] flex h-[340px] flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
-        {saved ? (
-          <Receipt saved={saved} onUndo={undo} onDone={onClose} />
-        ) : (
+        {(
           <>
             <div className="flex items-center justify-between px-4 pt-3 pb-1">
-              <p className="text-xs font-medium uppercase tracking-wide text-stone-400">{editing ? "Change place" : "Save a place"}</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-stone-400">{label}</p>
               <button type="button" onClick={onClose} className="-mr-2 rounded-full px-2 py-1 text-sm font-medium text-stone-500 active:bg-stone-100">
                 Cancel
               </button>
@@ -318,31 +305,25 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
                     <div className="h-12 w-12 shrink-0 animate-pulse rounded-lg bg-stone-100" />
                     <p className="text-sm text-stone-500">{({ instagram: "Instagram post", tiktok: "TikTok video", google: "Google Maps link" } as Record<SourceKind, string>)[parseSourceUrl(validUrl ?? "")?.kind ?? "instagram"]}</p>
                   </div>
-                  <LoadingSteps />
+                  <LoadingBar />
                 </div>
               )}
 
-              {post && <PostRow post={post} />}
+              {post && <PostRow post={post} category={candidates[0]?.category ?? null} />}
 
               {extract.status === "error" && (
-                <p className="mt-3 text-sm text-stone-500">Couldn&apos;t read that post ({extract.message}). Type the place below.</p>
+                <p className="mt-3 text-sm text-stone-500">Couldn&apos;t read that post. Type the place&apos;s name to save it.</p>
+              )}
+              {!editing && manualMode && extract.status === "done" && !searchActive && (
+                <p className="mt-3 text-sm text-stone-500">No location on this post. Type the place&apos;s name to save it.</p>
               )}
 
               {saving && showTaggedFirst && candidates.length === 1 && (
                 <p className="mt-3 text-sm text-stone-500">Saving {candidates[0].name}…</p>
               )}
 
-              {showTaggedFirst && !saving && (
-                <>
-                  <p className="mt-3 mb-1 text-xs font-medium uppercase tracking-wide text-stone-400">
-                    {source === "link"
-                      ? `From ${SOURCE_LABEL.google} — ${candidates.length > 1 ? "which one?" : "tap to save"}`
-                      : source === "account"
-                        ? "No location tag — is it one of these?"
-                        : `Tagged “${post?.locationName}” — ${candidates.length > 1 ? "which one?" : "tap to save"}`}
-                  </p>
-                  <CandidateList candidates={candidates} saving={saving} onPick={(c) => save(c)} />
-                </>
+              {showTaggedFirst && !(saving && candidates.length === 1) && (
+                <CandidateList candidates={candidates} saving={saving} onPick={(c) => save(c)} />
               )}
 
               {validUrl && extract.status !== "loading" && extract.status !== "idle" && !saving && (
@@ -351,7 +332,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
                   type="search"
                   enterKeyHint="search"
                   autoCorrect="off"
-                  placeholder={editing ? "Search the right place" : manualMode ? "Which place is it? e.g. Septime Paris" : "Not the right place? Search"}
+                  placeholder={editing ? "Search the right place" : manualMode ? "Place name, e.g. Septime Paris" : "Search for another place"}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   className="mt-3 w-full rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-base outline-none placeholder:text-stone-400 focus:border-stone-400"
@@ -368,64 +349,77 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
               {!searching && searchActive && results.length === 0 && !error && (
                 <p className="mt-3 text-center text-sm text-stone-400">No matches. Try adding the city.</p>
               )}
-              {!editing && manualMode && extract.status === "done" && query.trim().length < 2 && (
-                <p className="mt-2 text-xs text-stone-400">No location tag on this post, and the account didn&apos;t match a place.</p>
-              )}
             </div>
           </>
         )}
       </div>
+      )}
     </div>
   );
 }
 
-/** The moment after a save: what it is, where it went, and a way to say "not that one". */
-function Receipt({ saved, onUndo, onDone }: { saved: Saved; onUndo: () => void; onDone: () => void }) {
-  const { place, automatic, already, changed, merged } = saved;
-  const postCount = 1 + (place.posts?.length ?? 0);
-  const where = [place.category, place.city ?? place.country].filter(Boolean).join(" · ");
+const SAVED_MS = 2600;
+// The bar waits for the card to settle, then starts slow: a timer from the first frame felt stressful (Sarp).
+const BAR_DELAY_MS = 500;
+
+/**
+ * One card for every save (Sarp, 2026-10-09): the post photo with the place's name and
+ * type · town over it, "Saved to Vicolo" with the elephant, and a milestone line above the
+ * name when there is one. No photo → the type icon on its tint. Tap or wait to close.
+ * Mirrors SavedCard in the iOS AddPlaceView.
+ */
+function SavedCard({ saved, onDone }: { saved: Saved; onDone: () => void }) {
+  const { place, already, changed, merged, milestone } = saved;
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const a = requestAnimationFrame(() => setShown(true));
+    return () => cancelAnimationFrame(a);
+  }, []);
+  const photo = place.imageUrl;
+  const badge = already ? "Already in Vicolo" : changed ? "Changed" : "Saved to Vicolo";
+  const line = merged ? "Another post for this place" : milestone ?? null;
+  const town = place.city ?? place.country;
   return (
-    <div className="flex flex-1 flex-col justify-center px-4 pt-3 pb-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-stone-400">{already ? "Already saved" : changed ? "Changed" : merged ? `Added to this place · ${postCount} posts` : "Saved"}</p>
-      <div className="mt-2 flex items-center gap-3">
-        {place.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={place.imageUrl} alt="" className="h-14 w-14 shrink-0 rounded-xl bg-stone-100 object-cover" />
-        ) : (
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-400">
-            <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M3 8.5l3.5 3.5L13 5" /></svg>
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{place.name}</p>
-          <p className="truncate text-sm text-stone-500">{where}</p>
+    <button type="button" onClick={onDone}
+      className="pinsta-rise relative m-3 mb-[calc(env(safe-area-inset-bottom)+5.25rem)] block overflow-hidden rounded-2xl text-left shadow-xl">
+      {photo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={photo} alt="" className="block aspect-[4/5] max-h-[60dvh] w-full bg-stone-200 object-cover" />
+      ) : (
+        <div className="flex aspect-[4/5] max-h-[60dvh] w-full items-center justify-center pb-24" style={{ backgroundColor: tintFor(place.category) }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={iconFor(place.category)} alt="" className="h-40 w-40 object-contain" />
         </div>
-        {!already && (
-          <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-green-600" aria-hidden>
-            <path d="M3 8.5l3.5 3.5L13 5" />
-          </svg>
-        )}
+      )}
+      <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-[#fffdf8]/85 py-1 pl-1 pr-3 backdrop-blur">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/elephant-resin.png" alt="" className="h-7 w-7" />
+        <span className="text-sm font-semibold text-[#1f1c1a]">{badge}</span>
       </div>
-      <div className="mt-3 flex gap-2">
-        {automatic && !already && (
-          <button type="button" onClick={onUndo} className="flex-1 rounded-xl border border-stone-200 py-2.5 text-sm font-medium text-stone-700 active:bg-stone-50">
-            Wrong place?
-          </button>
-        )}
-        <button type="button" onClick={onDone} className="flex-1 rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white active:bg-stone-800">
-          Done
-        </button>
+      <div className={`absolute inset-x-0 bottom-0 px-5 pb-6 pt-20 ${photo ? "bg-gradient-to-t from-black/75 via-black/35 to-transparent text-[#fffdf8]" : "text-[#1f1c1a]"}`}>
+        {line && <p className="mb-1 text-xs font-semibold uppercase tracking-wider opacity-80">{line}</p>}
+        <p className="text-[28px] font-semibold leading-tight tracking-tight">{place.name}</p>
+        <p className="mt-0.5 text-base opacity-80">{[place.category, town].filter(Boolean).join(" · ")}</p>
       </div>
-    </div>
+      <div className={`absolute inset-x-0 bottom-0 h-1 ${photo ? "bg-white/10" : "bg-black/5"}`}>
+        <div className={`h-full ${photo ? "bg-white/50" : "bg-black/25"}`}
+          style={{ width: shown ? "100%" : "0%", transition: `width ${SAVED_MS - BAR_DELAY_MS}ms cubic-bezier(.45,0,.8,1) ${BAR_DELAY_MS}ms` }} />
+      </div>
+    </button>
   );
 }
 
-function PostRow({ post }: { post: PostInfo }) {
+function PostRow({ post, category }: { post: PostInfo; category: string | null }) {
   return (
     <div className="mt-3 flex items-center gap-3">
       {post.imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={post.imageUrl} alt="" className="h-12 w-12 shrink-0 rounded-lg bg-stone-100 object-cover" />
+      ) : category ? (
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: tintFor(category) }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={iconFor(category)} alt="" className="h-9 w-9 object-contain" />
+        </div>
       ) : (
         <div className="h-12 w-12 shrink-0 rounded-lg bg-stone-100" />
       )}
@@ -442,7 +436,8 @@ function PostRow({ post }: { post: PostInfo }) {
 }
 
 /**
- * Candidates read "Name — City". Country appears only when the list spans
+ * One way to pick a place everywhere (tag, account guesses, search): the whole row saves,
+ * the Save pill says so. "Type · City" under the name. Country appears only when the list spans
  * countries; the street address only when two rows would otherwise be identical.
  */
 function CandidateList({
@@ -475,14 +470,12 @@ function CandidateList({
               className="flex w-full items-center gap-3 px-3.5 py-3 text-left active:bg-stone-50 disabled:opacity-60"
             >
               <div className="min-w-0 flex-1">
-                <p className="flex min-w-0 items-baseline font-medium">
-                  <span className="truncate">{c.name}</span>
-                  {where && <span className="shrink-0 font-normal text-stone-400">&nbsp;— {where}</span>}
-                </p>
+                <p className="truncate font-medium">{c.name}</p>
+                <p className="truncate text-sm text-stone-500">{[c.category, where].filter(Boolean).join(" · ")}</p>
                 {tieBreak && <p className="mt-0.5 truncate text-xs text-stone-400">{tieBreak}</p>}
               </div>
-              <span className="shrink-0 rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600">
-                {busy ? "Saving…" : c.category}
+              <span className="shrink-0 rounded-full bg-stone-900 px-3 py-1 text-xs font-medium text-white">
+                {busy ? "Saving…" : "Save"}
               </span>
             </button>
           </li>
@@ -493,12 +486,11 @@ function CandidateList({
 }
 
 /**
- * Reading a post takes 5–20 s (Apify). The wait should read as work: named
- * steps and a bar that keeps creeping (to 70% while reading). Mirrors
- * LoadingSteps in the iOS AddPlaceView; the web reads and finds in one call,
- * so only the first step runs here.
+ * Reading a post takes 5–20 s (Apify). One quiet line in the label ("Finding the place…")
+ * and a bar that keeps creeping (to 70%) — the steps made it look like work to watch
+ * (Sarp, 2026-10-09). Mirrors LoadingBar in the iOS AddPlaceView.
  */
-function LoadingSteps() {
+function LoadingBar() {
   const [t, setT] = useState(0);
   useEffect(() => {
     const start = Date.now();
@@ -506,26 +498,9 @@ function LoadingSteps() {
     return () => clearInterval(id);
   }, []);
   const value = 0.7 * (1 - Math.exp(-t / 6));
-  const steps: [string, "active" | "waiting"][] = [
-    ["Reading the post", "active"],
-    ["Finding the place", "waiting"],
-    ["Saving to your list", "waiting"],
-  ];
   return (
-    <div className="mt-3.5 space-y-2.5">
-      {steps.map(([label, state]) => (
-        <div key={label} className="flex items-center gap-2.5 text-sm">
-          {state === "active" ? (
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-stone-300 border-t-stone-700" />
-          ) : (
-            <span className="h-4 w-4 rounded-full border-2 border-stone-200" />
-          )}
-          <span className={state === "active" ? "text-stone-900" : "text-stone-400"}>{label}</span>
-        </div>
-      ))}
-      <div className="h-1 overflow-hidden rounded-full bg-stone-100">
-        <div className="h-full rounded-full bg-stone-800 transition-[width] duration-100 ease-linear" style={{ width: `${value * 100}%` }} />
-      </div>
+    <div className="mt-4 h-1 overflow-hidden rounded-full bg-stone-100">
+      <div className="h-full rounded-full bg-stone-400 transition-[width] duration-100 ease-linear" style={{ width: `${value * 100}%` }} />
     </div>
   );
 }
