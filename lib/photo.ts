@@ -68,3 +68,28 @@ export async function googlePhoto(placeId: string, key: string): Promise<string 
     return null;
   }
 }
+
+/**
+ * Google's photo for a place known only by name and pin (an iOS list import).
+ * The Text Search asks for ids only (the free IDs Only SKU) inside ~150 m of the
+ * pin, so a match elsewhere can't happen; then googlePhoto, the one paid call.
+ * Throws when Google itself fails, so the app tries again later.
+ */
+export async function googlePhotoNear(name: string, lat: number, lng: number): Promise<string | null> {
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+  if (!apiKey) return null;
+  const d = 0.0015; // ≈150 m of latitude; a little less of longitude away from the equator
+  const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Goog-Api-Key": apiKey, "X-Goog-FieldMask": "places.id" },
+    body: JSON.stringify({
+      textQuery: name,
+      pageSize: 1,
+      locationRestriction: { rectangle: { low: { latitude: lat - d, longitude: lng - d }, high: { latitude: lat + d, longitude: lng + d } } },
+    }),
+  });
+  if (!res.ok) throw new Error(`Places search failed: ${res.status}`);
+  const id = ((await res.json()) as { places?: { id: string }[] }).places?.[0]?.id;
+  if (!id) return null;
+  return googlePhoto(id, `list-${id.slice(-12)}`);
+}

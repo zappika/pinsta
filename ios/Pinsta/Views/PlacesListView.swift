@@ -214,6 +214,7 @@ private struct PlacesContent: View {
         .animation(.snappy, value: notice)
         .sheet(isPresented: Bindable(settings).showingSheet) { SettingsSheet() }
         .sheet(isPresented: Bindable(settings).showingBeenThere) { BeenThereSheet() }
+        .sheet(isPresented: Bindable(settings).showingImport) { ImportView() }
         .fullScreenCover(isPresented: Bindable(settings).showingTutorial) {
             TutorialCover(onPaste: { settings.showingTutorial = false; adding = true })
                 .preferredColorScheme(settings.appearance.scheme)

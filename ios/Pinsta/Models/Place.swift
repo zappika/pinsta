@@ -51,6 +51,10 @@ final class Place {
     /// How it was after Been there: 1 😞 2 🙂 3 😃; nil = not said.
     var rating: Int?
 
+    /// Imported from a shared Google Maps list (web: `from_list`): its name and owner. Not shown yet.
+    var fromListTitle: String?
+    var fromListOwner: String?
+
     /// "$" for the card, or nil.
     var priceLabel: String? {
         guard let priceLevel, (1...4).contains(priceLevel) else { return nil }

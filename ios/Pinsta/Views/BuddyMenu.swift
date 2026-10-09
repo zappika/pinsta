@@ -1,8 +1,7 @@
 import SwiftUI
 
-/// The round elephant button, top right: a short menu, like the web's. Settings
-/// and Been there open as their own sheets; Import from Google is a roadmap placeholder
-/// (plan.md: Menu, Settings and Imports). Accounts belong to the Social package.
+/// The round elephant button, top right: a short menu, like the web's. Settings,
+/// Been there and Import from Google open as their own sheets. Accounts belong to the Social package.
 struct BuddyMenu: View {
     private let settings = Settings.shared
 
@@ -23,11 +22,15 @@ struct BuddyMenu: View {
             } label: {
                 Label("How to save", systemImage: "questionmark.circle")
             }
-            Button {} label: {
+            Button {
+                settings.showingImport = true
+            } label: {
                 Label("Import from Google", systemImage: "square.and.arrow.down")
-                Text("Soon")
+                // Matching and saving go on in the background; the menu says so.
+                if ListImport.shared.busy {
+                    Text(ListImport.shared.importing ? "Importing… \(ListImport.shared.savedCount) done" : "Finding places…")
+                }
             }
-            .disabled(true)
         } label: {
             // Explicit colour: a Menu label otherwise takes the tint, which vanished in dark.
             // The flat Vicolo mark (a template image, so it takes the ink), never the resin one at this size.

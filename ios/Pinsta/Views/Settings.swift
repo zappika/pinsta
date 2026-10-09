@@ -31,6 +31,7 @@ final class Settings {
     var showingTutorial = false
     /// Buddy menu → Been there.
     var showingBeenThere = false
+    var showingImport = false
 
     private init() {
         mapsApp = UserDefaults.standard.string(forKey: "vicolo.maps").flatMap(MapsApp.init(rawValue:))
