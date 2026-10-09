@@ -591,8 +591,8 @@ private struct FloatingSheet<Content: View>: View {
                 .ignoresSafeArea()
                 .onTapGesture(perform: onClose)
                 .transition(.opacity)
+            // The sheet sizes itself: fixed while saving, taller for the success card.
             content()
-                .frame(height: AddPlaceView.sheetHeight)
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .padding(.horizontal, 12)
                 // Sits above the + (now ×), which stays on top to close it.

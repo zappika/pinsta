@@ -63,6 +63,8 @@ targets:
       - path: Pinsta/Models
       - path: Pinsta/Services
       - path: Pinsta/Views/AddPlaceView.swift
+      # The success card draws the type icons and the elephant.
+      - path: Pinsta/Resources/Assets.xcassets
     entitlements:
       path: PinstaShare/PinstaShare.entitlements
       properties:

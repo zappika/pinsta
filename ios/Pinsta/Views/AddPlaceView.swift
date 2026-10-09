@@ -8,6 +8,9 @@ import MapKit
 /// In edit mode the post is known and only the place changes.
 struct AddPlaceView: View {
     static let sheetHeight: CGFloat = 360
+    /// The success card is taller: the post photo at 4:5.
+    static let savedHeight: CGFloat = 460
+    static let savedSeconds: Double = 2.6
 
     /// Pre-filled link (the share extension passes the shared URL).
     var initialURL: String? = nil
@@ -29,7 +32,6 @@ struct AddPlaceView: View {
     @State private var searching = false
     @State private var saving: String?
     @State private var saved: Saved?
-    @State private var autoSaveDeclined = false
     @State private var error: String?
     /// Between reading the post and having candidates: the steps stay on screen.
     @State private var finding = false
@@ -39,9 +41,12 @@ struct AddPlaceView: View {
     private enum Field { case url, query }
     private enum Source { case tag, account, link }
     fileprivate struct Saved {
-        let place: Place; let automatic: Bool; let already: Bool; let changed: Bool
+        let place: Place; let already: Bool; let changed: Bool
         /// The post was added to a place already in the list, not saved as a new one.
         var mergedURL: String? = nil
+        var milestone: String? = nil
+        /// The post's picture, until the place's own copy has downloaded.
+        var imageURL: String? = nil
     }
     private enum Reading: Equatable {
         case idle, loading, done(InstagramPost), failed(String)
@@ -64,20 +69,28 @@ struct AddPlaceView: View {
         return false
     }
 
+    /// The sheet's question lives in its small label (Sarp, 2026-10-09): no headings.
+    private var label: String {
+        if editing != nil { return "Change place" }
+        if validURL == nil { return "Save a place" }
+        if reading == .loading || finding { return "Finding the place…" }
+        if saving != nil { return "Saving…" }
+        if showSuggestedFirst { return candidates.count == 1 ? "Is this the place?" : "Is it one of these?" }
+        return "Which place is it?"
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             if let saved {
-                Receipt(saved: saved, onUndo: undo, onDone: finish)
+                SavedCard(saved: saved, onDone: finish)
                     .task(id: saved.place.id) {
-                        // "Already saved" waits for Done — it's news, not a receipt.
-                        guard !saved.already else { return }
-                        try? await Task.sleep(for: .seconds(saved.automatic ? 3 : 1.5))
+                        try? await Task.sleep(for: .seconds(Self.savedSeconds))
                         guard !Task.isCancelled else { return }
                         finish()
                     }
             } else {
                 HStack {
-                    sectionLabel(editing != nil ? "Change place" : "Save a place")
+                    sectionLabel(label)
                     Spacer()
                     Button("Cancel") { finish() }
                         .font(.subheadline.weight(.medium))
@@ -102,9 +115,11 @@ struct AddPlaceView: View {
                 .scrollDismissesKeyboard(.interactively)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity)
+        .frame(height: saved == nil ? Self.sheetHeight : Self.savedHeight)
         // Raised surface: white in light, the elevated grey in dark (never pure black on black).
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(saved == nil ? Color(.secondarySystemGroupedBackground) : .clear)
+        .animation(.snappy, value: saved == nil)
         .onAppear {
             if let editing {
                 reading = .done(InstagramPost(
@@ -179,37 +194,26 @@ struct AddPlaceView: View {
                     Text(["instagram": "Instagram post", "tiktok": "TikTok video", "google": "Google Maps link"][SourceURL.parse(validURL ?? "")?.kind.rawValue ?? ""] ?? "Link")
                         .font(.subheadline).foregroundStyle(.secondary)
                 }
-                LoadingSteps(read: false, tag: nil, started: readStarted)
+                LoadingBar(read: false, started: readStarted)
             }
         case .done(let post):
             VStack(alignment: .leading, spacing: 14) {
-                PostRow(post: post, fallbackImage: editing?.imageData)
-                if finding { LoadingSteps(read: true, tag: post.locationName, started: readStarted) }
+                PostRow(post: post, fallbackImage: editing?.imageData, category: candidates.first?.category)
+                if finding { LoadingBar(read: true, started: readStarted) }
             }
-        case .failed(let message):
-            Text("Couldn't read that post (\(message)). Type the place below.")
+        case .failed:
+            Text("Couldn't read that post. Type the place's name to save it.")
                 .font(.subheadline).foregroundStyle(.secondary)
         case .idle:
             EmptyView()
         }
     }
 
-    private var suggested: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if source == .link {
-                sectionLabel("From Google Maps — \(candidates.count > 1 ? "which one?" : "tap to save")")
-            } else if source == .account {
-                sectionLabel("No location tag — is it one of these?")
-            } else {
-                sectionLabel("Tagged “\(post?.locationName ?? "")” — \(candidates.count > 1 ? "which one?" : "tap to save")")
-            }
-            candidateList
-        }
-    }
+    private var suggested: some View { candidateList }
 
     private var queryField: some View {
         TextField(
-            editing != nil ? "Search the right place" : (manualMode ? "Which place is it? e.g. Septime Paris" : "Not the right place? Search"),
+            editing != nil ? "Search the right place" : (manualMode ? "Place name, e.g. Septime Paris" : "Search for another place"),
             text: $query
         )
         .autocorrectionDisabled()
@@ -225,15 +229,13 @@ struct AddPlaceView: View {
 
     @ViewBuilder
     private var footnotes: some View {
-        if let saving, showSuggestedFirst, let c = candidates.first(where: { $0.id == saving }) {
-            Text("Saving \(c.name)…").font(.subheadline).foregroundStyle(.secondary)
-        } else if searching && candidates.isEmpty {
+        if searching && candidates.isEmpty {
             Text("Searching…").font(.subheadline).foregroundStyle(.tertiary).frame(maxWidth: .infinity)
         } else if !searching && query.trimmed.count >= 2 && candidates.isEmpty && error == nil {
             Text("No matches. Try adding the city.").font(.subheadline).foregroundStyle(.tertiary).frame(maxWidth: .infinity)
         } else if editing == nil, manualMode, case .done = reading, query.trimmed.count < 2 {
-            Text("No location tag on this post, and the account didn't match a place.")
-                .font(.caption).foregroundStyle(.tertiary)
+            Text("No location on this post. Type the place's name to save it.")
+                .font(.subheadline).foregroundStyle(.secondary)
         }
     }
 
@@ -268,7 +270,7 @@ struct AddPlaceView: View {
         guard !Task.isCancelled else { return }
         if let existing = existingPlace(for: validURL) {
             reading = .idle
-            withAnimation(.snappy) { saved = Saved(place: existing, automatic: false, already: true, changed: false) }
+            withAnimation(.snappy) { saved = Saved(place: existing, already: true, changed: false, imageURL: nil) }
             return
         }
         do {
@@ -278,7 +280,7 @@ struct AddPlaceView: View {
             // canonical URL. The pre-read duplicate check cannot see that.
             if let existing = existingPlace(for: post.url) {
                 reading = .idle
-                withAnimation(.snappy) { saved = Saved(place: existing, automatic: false, already: true, changed: false) }
+                withAnimation(.snappy) { saved = Saved(place: existing, already: true, changed: false, imageURL: nil) }
                 return
             }
             withAnimation(.snappy) {
@@ -320,8 +322,8 @@ struct AddPlaceView: View {
             candidates = found
             source = found.isEmpty ? nil : from
             // Only a location tag or a Maps link is trusted enough to save without a tap.
-            if candidates.count == 1, source == .tag || source == .link, !autoSaveDeclined {
-                save(candidates[0], automatically: true)
+            if candidates.count == 1, source == .tag || source == .link {
+                save(candidates[0])
             } else if candidates.isEmpty {
                 focus = .query
             }
@@ -349,7 +351,7 @@ struct AddPlaceView: View {
         }
     }
 
-    private func save(_ c: PlaceCandidate, automatically: Bool = false) {
+    private func save(_ c: PlaceCandidate) {
         guard let validURL, saving == nil else { return }
         saving = c.id
         Task {
@@ -370,7 +372,7 @@ struct AddPlaceView: View {
                 persist()
                 Task { await PriceLookup.check(editing, in: context) }
                 saving = nil
-                withAnimation(.snappy) { saved = Saved(place: editing, automatic: false, already: false, changed: true) }
+                withAnimation(.snappy) { saved = Saved(place: editing, already: false, changed: true) }
                 return
             }
             let url = post?.url ?? validURL
@@ -379,13 +381,13 @@ struct AddPlaceView: View {
             if let same = all.first(where: { SamePlace.matches($0, name: c.name, latitude: c.latitude, longitude: c.longitude) }) {
                 if same.allPostURLs.contains(url) {
                     saving = nil
-                    withAnimation(.snappy) { saved = Saved(place: same, automatic: false, already: true, changed: false) }
+                    withAnimation(.snappy) { saved = Saved(place: same, already: true, changed: false, imageURL: post?.imageURL) }
                     return
                 }
                 same.extraPostURLs.append(url)
                 persist()
                 saving = nil
-                withAnimation(.snappy) { saved = Saved(place: same, automatic: automatically, already: false, changed: false, mergedURL: url) }
+                withAnimation(.snappy) { saved = Saved(place: same, already: false, changed: false, mergedURL: url, imageURL: post?.imageURL) }
                 return
             }
             let place = Place(
@@ -410,7 +412,8 @@ struct AddPlaceView: View {
             persist()
             Task { await PriceLookup.check(place, in: context) }
             saving = nil
-            withAnimation(.snappy) { saved = Saved(place: place, automatic: automatically, already: false, changed: false) }
+            let line = Milestone.line(for: place, among: all)
+            withAnimation(.snappy) { saved = Saved(place: place, already: false, changed: false, milestone: line, imageURL: post?.imageURL) }
             let id = place.id
             if let image = await ImageLoader.data(from: post?.imageURL), let place = Place.find(id, in: context) {
                 place.imageData = image
@@ -429,21 +432,6 @@ struct AddPlaceView: View {
         ((try? context.fetch(FetchDescriptor<Place>())) ?? []).first { $0.allPostURLs.contains(url) }
     }
 
-    /// "Wrong place?" — take the save back and hand control to the user.
-    private func undo() {
-        // "Already saved" points at an existing place: never take that one back.
-        guard let saved, !saved.already else { return }
-        if let url = saved.mergedURL {
-            saved.place.extraPostURLs.removeAll { $0 == url }
-        } else {
-            context.delete(saved.place)
-        }
-        persist()
-        autoSaveDeclined = true
-        withAnimation(.snappy) { self.saved = nil }
-        focus = .query
-    }
-
     private func finish() {
         if let onFinish { onFinish() } else { dismiss() }
     }
@@ -451,117 +439,134 @@ struct AddPlaceView: View {
 
 // MARK: - Pieces
 
-/// The moment after a save: what it is, where it went, and — when the app
-/// picked the place itself — a way to say it got it wrong.
-private struct Receipt: View {
+/// One card for every save (Sarp, 2026-10-09): the post photo with the place's name and
+/// type · town over it, "Saved to Vicolo" with the elephant, and a milestone line above the
+/// name when there is one. No photo → the type icon on its tint. Tap or wait to close.
+/// Mirrors SavedCard in the web's AddPlace.tsx.
+private struct SavedCard: View {
     let saved: AddPlaceView.Saved
-    let onUndo: () -> Void
     let onDone: () -> Void
+    @State private var image: UIImage?
+    @State private var started = false
+
+    private static let ink = Color(hex: 0x1F1C1A)
+    private static let paper = Color(hex: 0xFFFDF8)
+    /// The bar waits for the card to settle, then starts slow: a timer from the first frame felt stressful (Sarp).
+    private static let barDelay = 0.5
 
     var body: some View {
         let place = saved.place
-        VStack(alignment: .leading, spacing: 14) {
-            Text((saved.already ? "Already saved" : saved.changed ? "Changed" : saved.mergedURL != nil ? "Added to this place · \(saved.place.allPostURLs.count) posts" : "Saved").uppercased())
-                .font(.caption.weight(.medium)).foregroundStyle(.secondary)
-            HStack(spacing: 14) {
-                if let data = place.imageData, let image = UIImage(data: data) {
-                    Image(uiImage: image).resizable().scaledToFill()
-                        .frame(width: 56, height: 56).clipShape(RoundedRectangle(cornerRadius: 12))
-                } else {
-                    RoundedRectangle(cornerRadius: 12).fill(Color(.tertiarySystemFill)).frame(width: 56, height: 56)
-                }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(place.name).font(.body.weight(.medium)).lineLimit(1)
-                    Text([place.category.rawValue, place.city ?? place.country].compactMap { $0 }.joined(separator: " · "))
-                        .font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
-                }
-                Spacer(minLength: 0)
-                if !saved.already {
-                    Image(systemName: "checkmark").font(.title3.weight(.semibold)).foregroundStyle(.green)
-                }
-            }
-            HStack(spacing: 10) {
-                if saved.automatic && !saved.already {
-                    Button(action: onUndo) {
-                        Text("Wrong place?")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.primary)
-                            .frame(maxWidth: .infinity).padding(.vertical, 11)
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.separator)))
+        let line = saved.mergedURL != nil ? "Another post for this place" : saved.milestone
+        let badge = saved.already ? "Already in Vicolo" : saved.changed ? "Changed" : "Saved to Vicolo"
+        let photo = image != nil
+        Button(action: onDone) {
+            ZStack(alignment: .bottomLeading) {
+                // A clear base takes the card's size; the photo fills it without pushing it wider.
+                Color.clear
+                    .overlay {
+                        if let image {
+                            Image(uiImage: image).resizable().scaledToFill().allowsHitTesting(false)
+                        } else {
+                            place.category.tint
+                                .overlay(alignment: .center) {
+                                    place.category.icon.resizable().scaledToFit().frame(width: 150, height: 150)
+                                        .padding(.bottom, 90)
+                                }
+                        }
                     }
-                }
-                Button(action: onDone) {
-                    Text("Done")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color(.systemBackground))
-                        .frame(maxWidth: .infinity).padding(.vertical, 11)
-                        .background(Color(.label), in: RoundedRectangle(cornerRadius: 12))
-                }
-            }
-        }
-        .buttonStyle(.plain)
-        .padding(16)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-    }
-}
+                    .clipped()
 
-/// Reading a post takes 5–20 s (Apify). The wait should read as work: named
-/// steps, the tag being looked up, and a bar that never stops creeping.
-private struct LoadingSteps: View {
-    /// The post is read; the place is being found.
-    let read: Bool
-    let tag: String?
-    let started: Date
+                if photo {
+                    LinearGradient(colors: [.black.opacity(0.75), .black.opacity(0.35), .clear], startPoint: .bottom, endPoint: .top)
+                        .frame(height: 220)
+                }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 10) {
-                step(read ? "Read the post" : "Reading the post", read ? .done : .active)
-                step(tag.map { "Finding “\($0)”" } ?? "Finding the place", read ? .active : .waiting)
-                step("Saving to your list", .waiting)
-            }
-            TimelineView(.periodic(from: .now, by: 0.1)) { ctx in
-                // Eases toward 70% while reading, then on toward 95%; it only hits 100% by finishing.
-                let t = ctx.date.timeIntervalSince(started)
-                let reading = 0.7 * (1 - exp(-t / 6))
-                let value = read ? 0.7 + 0.25 * (1 - exp(-t / 8)) : reading
+                VStack(alignment: .leading, spacing: 2) {
+                    if let line {
+                        Text(line.uppercased()).font(.caption.weight(.semibold)).tracking(0.8).opacity(0.8).padding(.bottom, 2)
+                    }
+                    Text(place.name).font(.system(size: 28, weight: .semibold)).lineLimit(2)
+                    Text([place.category.rawValue, place.city ?? place.country].compactMap { $0 }.joined(separator: " · "))
+                        .font(.body).opacity(0.8).lineLimit(1)
+                }
+                .foregroundStyle(photo ? Self.paper : Self.ink)
+                .padding(.horizontal, 20).padding(.bottom, 24)
+
                 GeometryReader { geo in
-                    Capsule().fill(Color(.tertiarySystemFill))
+                    Rectangle().fill(photo ? Color.white.opacity(0.1) : Color.black.opacity(0.05))
                         .overlay(alignment: .leading) {
-                            Capsule().fill(Color.primary.opacity(0.8))
-                                .frame(width: geo.size.width * min(value, 0.95))
-                                .animation(.linear(duration: 0.1), value: value)
+                            Rectangle().fill(photo ? Color.white.opacity(0.5) : Color.black.opacity(0.25))
+                                .frame(width: started ? geo.size.width : 0)
                         }
                 }
                 .frame(height: 4)
             }
+            .overlay(alignment: .topLeading) {
+                HStack(spacing: 6) {
+                    Image("ElephantResin").resizable().scaledToFit().frame(width: 28, height: 28)
+                    Text(badge).font(.subheadline.weight(.semibold)).foregroundStyle(Self.ink)
+                }
+                .padding(.leading, 4).padding(.trailing, 12).padding(.vertical, 4)
+                .background(.ultraThinMaterial, in: Capsule())
+                .background(Self.paper.opacity(0.6), in: Capsule())
+                .environment(\.colorScheme, .light)
+                .padding(16)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(place.category.tint)
+        }
+        .buttonStyle(.plain)
+        .task(id: place.id) {
+            withAnimation(.timingCurve(0.45, 0, 0.8, 1, duration: AddPlaceView.savedSeconds - Self.barDelay).delay(Self.barDelay)) { started = true }
+            // The place's own copy if it has one; else the post's picture (it downloads after the save).
+            if let data = place.imageData { image = await Self.decode(data) }
+            else if let data = await ImageLoader.data(from: saved.imageURL) { image = await Self.decode(data) }
         }
     }
 
-    private enum StepState { case waiting, active, done }
+    /// Decoded off the main thread, at about the card's size.
+    private static func decode(_ data: Data) async -> UIImage? {
+        await Task.detached(priority: .userInitiated) {
+            guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+            let opts: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceThumbnailMaxPixelSize: 1400, kCGImageSourceCreateThumbnailWithTransform: true]
+            return CGImageSourceCreateThumbnailAtIndex(source, 0, opts as CFDictionary).map(UIImage.init(cgImage:))
+        }.value
+    }
+}
 
-    private func step(_ text: String, _ state: StepState) -> some View {
-        HStack(spacing: 10) {
-            Group {
-                switch state {
-                case .done: Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                case .active: ProgressView().controlSize(.small)
-                case .waiting: Image(systemName: "circle").foregroundStyle(.quaternary)
-                }
+/// Reading a post takes 5–20 s (Apify). One quiet line in the label ("Finding the place…")
+/// and a bar that never stops creeping — the steps made it look like work to watch
+/// (Sarp, 2026-10-09). Mirrors LoadingBar in the web's AddPlace.tsx.
+private struct LoadingBar: View {
+    /// The post is read; the place is being found.
+    let read: Bool
+    let started: Date
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 0.1)) { ctx in
+            // Eases toward 70% while reading, then on toward 95%; it only hits 100% by finishing.
+            let t = ctx.date.timeIntervalSince(started)
+            let reading = 0.7 * (1 - exp(-t / 6))
+            let value = read ? 0.7 + 0.25 * (1 - exp(-t / 8)) : reading
+            GeometryReader { geo in
+                Capsule().fill(Color(.tertiarySystemFill))
+                    .overlay(alignment: .leading) {
+                        Capsule().fill(Color.secondary)
+                            .frame(width: geo.size.width * min(value, 0.95))
+                            .animation(.linear(duration: 0.1), value: value)
+                    }
             }
-            .frame(width: 20, height: 20)
-            Text(text)
-                .font(.subheadline)
-                .foregroundStyle(state == .waiting ? .tertiary : state == .done ? .secondary : .primary)
-                .lineLimit(1)
+            .frame(height: 4)
         }
-        .transition(.opacity)
+        .padding(.top, 4)
     }
 }
 
 private struct PostRow: View {
     let post: InstagramPost
     var fallbackImage: Data? = nil
+    /// No picture (a Maps link): the type icon on its tint, as photo-less tiles do.
+    var category: PlaceCategory? = nil
     @State private var image: UIImage?
 
     var body: some View {
@@ -569,6 +574,8 @@ private struct PostRow: View {
             Group {
                 if let image {
                     Image(uiImage: image).resizable().scaledToFill()
+                } else if let category, post.imageURL == nil {
+                    category.tint.overlay { category.icon.resizable().scaledToFit().padding(6) }
                 } else {
                     Color(.tertiarySystemFill)
                 }
@@ -592,7 +599,8 @@ private struct PostRow: View {
     }
 }
 
-/// "Name — City". Country only when the list spans countries; street address
+/// One way to pick a place everywhere (tag, account guesses, search): the whole row saves,
+/// the Save pill says so. "Type · City" under the name. Country only when the list spans countries; street address
 /// only when two rows would otherwise be identical.
 private struct CandidateList: View {
     let candidates: [PlaceCandidate]
@@ -628,23 +636,19 @@ private struct CandidateList: View {
         let key = "\(c.name)|\(c.city ?? "")".lowercased()
         return HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 0) {
-                    // The name keeps its room; the city truncates first.
-                    Text(c.name).font(.body.weight(.medium)).lineLimit(1).layoutPriority(1)
-                    if !whereText.isEmpty {
-                        Text(" — \(whereText)").font(.body).foregroundStyle(.tertiary).lineLimit(1)
-                    }
-                }
+                Text(c.name).font(.body.weight(.medium)).lineLimit(1)
+                Text([c.category.rawValue, whereText.isEmpty ? nil : whereText].compactMap { $0 }.joined(separator: " · "))
+                    .font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
                 if dupes.contains(key), let address = c.address {
                     Text(address).font(.caption).foregroundStyle(.tertiary).lineLimit(1)
                 }
             }
             Spacer(minLength: 8)
-            Text(saving == c.id ? "Saving…" : c.category.rawValue)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 8).padding(.vertical, 3)
-                .background(Color(.tertiarySystemFill), in: Capsule())
+            Text(saving == c.id ? "Saving…" : "Save")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(Color(.systemBackground))
+                .padding(.horizontal, 12).padding(.vertical, 4)
+                .background(Color(.label), in: Capsule())
         }
         .padding(.horizontal, 14).padding(.vertical, 12)
         .contentShape(Rectangle())

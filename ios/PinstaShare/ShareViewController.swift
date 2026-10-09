@@ -59,7 +59,7 @@ final class ShareViewController: UIViewController {
     /// Slide the card away before handing back to the host app.
     private func close(_ finish: @escaping (NSExtensionContext) -> Void) {
         UIView.animate(withDuration: 0.22, animations: {
-            self.card?.transform = CGAffineTransform(translationX: 0, y: AddPlaceView.sheetHeight + 40)
+            self.card?.transform = CGAffineTransform(translationX: 0, y: AddPlaceView.savedHeight + 40)
         }, completion: { _ in
             if let context = self.extensionContext { finish(context) }
         })
@@ -108,6 +108,8 @@ final class ShareViewController: UIViewController {
         // The card itself follows the keyboard (keyboardLayoutGuide below); without
         // this the hosted view avoided it a second time and its content jumped.
         host.safeAreaRegions = .container
+        // The sheet sets its own height (taller for the success card); the card follows it.
+        host.sizingOptions = .intrinsicContentSize
         addChild(host)
         host.view.layer.cornerRadius = 20
         host.view.layer.cornerCurve = .continuous
@@ -118,12 +120,11 @@ final class ShareViewController: UIViewController {
             host.view.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
             host.view.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
             host.view.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor, constant: -12),
-            host.view.heightAnchor.constraint(equalToConstant: AddPlaceView.sheetHeight),
         ])
         host.didMove(toParent: self)
         card = host.view
         // Rise in from the bottom edge, like the app's own sheet.
-        host.view.transform = CGAffineTransform(translationX: 0, y: AddPlaceView.sheetHeight + 40)
+        host.view.transform = CGAffineTransform(translationX: 0, y: AddPlaceView.savedHeight + 40)
         UIView.animate(withDuration: 0.45, delay: 0, usingSpringWithDamping: 0.85, initialSpringVelocity: 0) {
             host.view.transform = .identity
         }

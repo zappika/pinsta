@@ -61,9 +61,13 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   iOS: `PhotoRetry` re-reads photo-less posts on launch/foreground, with `Backoff` (6 h doubling to 2 weeks, six tries; the least-tried first) and `photoGaveUp` once `/api/extract` says `permanent: true` (deleted/private post, 404). `PriceLookup` uses the same backoff. No Google there.
   Shown through `PlacePhoto` (downsampled once, off the main thread, cached) — never `UIImage(data:)` in a view body.
 - **Save flow** (`app/components/AddPlace.tsx` ↔ `ios/Pinsta/Views/AddPlaceView.swift`):
-  fixed-height bottom sheet; one tag match saves itself → receipt with
-  "Wrong place?"; several → tap; none → account suggestions → search. Same link
-  twice → "Already saved". Edit mode re-selects the place behind a card.
+  fixed-height bottom sheet whose small label asks the question (Finding the place… / Is this the place? /
+  Is it one of these? / Which place is it?). One tag match saves itself; otherwise every row (tag, account
+  guess, search) has a Save pill and saves on tap. Every save ends on the success card (post photo or type
+  icon on its tint, name, "Saved to Vicolo" + elephant, a milestone line from `lib/milestone.ts` ↔
+  `Milestone.swift`), 2.6 s or a tap; it is taller than the sheet (iOS `savedHeight`). No "Wrong place?"
+  until the flow before it is reworked. Design sandbox: `/success` (backoffice). Same link
+  twice → "Already in Vicolo". Edit mode re-selects the place behind a card.
 - **Google list import** (web, `/import` → `app/api/import/google`, `lib/google-list.ts`): a shared list link is read through Google Maps' unofficial `entitylist/getlist` (free, no key; positions documented in the file). Each entry: already a card → no call; matched in the last 30 days → `list_matches` table, no call; else one Text Search at its pin (≤150 m or no match). Review is grouped by category (Move / Move all), then saves through `POST /api/places` (takes `category` and `fromList` {title, owner}, stored in `places.from_list`).
 - **One place, many posts** (`lib/same-place.ts`): a save that matches an existing place (same Google id, or ≤60 m + a shared name word) appends to its `posts` jsonb instead of inserting. First post stays in the row columns.
 - **Usage (cost tracker):** every paid call bumps a per-day row in `usage` via `countCall()` (`lib/usage.ts`, which also holds the SKU prices and free allowances): Apify reads, Google Text Search Pro (`searchPlaces`) / Enterprise (`findPriceLevel`), Place Details Pro / Enterprise (`getPlace` without / with price), Place Photos (the media call in `lib/photo.ts`; its details call asks only `photos`, the free IDs Only SKU). A new paid call needs a `countCall` and, for a new SKU, an entry in `SERVICES`. Owner-only `GET /api/usage` sums the month, and Apify's real dollars come from its API (`/users/me/usage/monthly` + plan credit from `/users/me`). Buddy menu → Usage.
