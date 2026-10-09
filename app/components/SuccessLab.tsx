@@ -14,6 +14,8 @@ type Kind = "everyday" | "city" | "category";
 const TYPES = ["Bakery", "Restaurant", "Cafe", "Bar", "Vineyard", "Hotel", "Shop", "Attraction", "Museum", "Nature"];
 const PLURAL: Record<string, string> = { Bakery: "bakery", Cafe: "café", Nature: "nature spot" };
 const SHOW_MS = 2600;
+// The bar waits for the card to settle, then starts slow: a timer that runs from the first frame felt stressful (Sarp).
+const BAR_DELAY_MS = 500;
 
 export default function SuccessLab() {
   const [kind, setKind] = useState<Kind>("city");
@@ -101,8 +103,8 @@ function Sheet({ kind, name, city, type, photo }: { kind: Kind; name: string; ci
         <p className="text-[28px] font-semibold leading-tight tracking-tight">{name}</p>
         <p className="mt-0.5 text-base text-white/85">{type} · {city}</p>
       </div>
-      <div className="absolute inset-x-0 bottom-0 h-1 bg-white/15">
-        <div className="h-full bg-white/70" style={{ width: shown ? "100%" : "0%", transition: `width ${SHOW_MS}ms linear` }} />
+      <div className="absolute inset-x-0 bottom-0 h-1 bg-white/10">
+        <div className="h-full bg-white/50" style={{ width: shown ? "100%" : "0%", transition: `width ${SHOW_MS - BAR_DELAY_MS}ms cubic-bezier(.45,0,.8,1) ${BAR_DELAY_MS}ms` }} />
       </div>
     </button>
   );
