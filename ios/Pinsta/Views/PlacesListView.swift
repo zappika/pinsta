@@ -104,12 +104,8 @@ private struct PlacesContent: View {
     private var labels: [UUID: String] { Grouping.destinationLabels(places) }
     private var shown: [Place] { places.filter { !hidden.contains($0.id) } }
 
-    // "Near me": located on launch for the opening screen, or when picked (fix in `screen.here`).
+    // Where you are: located on launch for the opening town and the map's frame (fix in `screen.here`).
     @State private var nearMe = NearMe()
-    private var nearIDs: Set<UUID> {
-        guard let here else { return [] }
-        return Set(shown.filter { here.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude)) <= NearMe.km * 1000 }.map(\.id))
-    }
 
     /// Everywhere on the map frames one country, not the world (port of the web,
     /// 2026-10-06): the one with most places, or with a location fix the nearest.
@@ -131,10 +127,8 @@ private struct PlacesContent: View {
 
     private var visible: [Place] {
         let labels = labels
-        let near = city == NearMe.tag ? nearIDs : []
         return shown.filter { p in
-            (city == nil || (city == NearMe.tag ? near.contains(p.id) : labels[p.id] == city))
-                && (category == nil || p.category == category)
+            (city == nil || labels[p.id] == city) && (category == nil || p.category == category)
         }
     }
 
@@ -239,19 +233,9 @@ private struct PlacesContent: View {
         }
         .onChange(of: places.isEmpty) { _, _ in start() }
         .onChange(of: Launch.shared.splashDone) { _, _ in start() }
-        .onChange(of: city) { old, new in
+        .onChange(of: city) { _, _ in
             category = nil
             peek = nil
-            // The opening screen may already have a fix.
-            guard new == NearMe.tag, here == nil else { return }
-            Task {
-                if let fix = await nearMe.locate() {
-                    here = fix
-                } else {
-                    city = old
-                    showNotice("Location is off. Allow it for Vicolo in Settings to use Near me.")
-                }
-            }
         }
         .onChange(of: category) { _, _ in peek = nil }
         // A place waiting behind the Undo toast is gone as far as a new save is
@@ -264,9 +248,10 @@ private struct PlacesContent: View {
 
     // MARK: - Opening screen
 
-    /// The map, Near me. Offline or no location → the list of everything.
-    /// Nothing within reach → the map of everything. Whatever was picked
-    /// meanwhile wins. Once per launch, once there is a list and the splash is
+    /// The map of the town you're in (Sarp, 2026-10-09: no "Near me" row; it just opens
+    /// on Barcelona in Barcelona): the Where row of your nearest place within `NearMe.km`.
+    /// Offline → the list of everything. No location, or nothing within reach → the map
+    /// of everything. Whatever was picked meanwhile wins. Once per launch, once there is a list and the splash is
     /// over. Location is asked here only from `NearMe.askAfter` places on (Sarp,
     /// 2026-10-05); before that the map of everything opens, no question.
     private func start() {
@@ -275,18 +260,14 @@ private struct PlacesContent: View {
         let toList = { if view == .map { view = .list } }
         Task {
             guard await NearMe.online() else { return toList() }
-            switch nearMe.onOpen(placeCount: places.count) {
-            case .wait: return  // the map of everything, no question yet
-            case .refused: return toList()
-            case .locate: break
-            }
-            guard let fix = await nearMe.locate() else { return toList() }
+            // Not asked yet with a small list, or refused: the map of everything.
+            guard nearMe.onOpen(placeCount: places.count) == .locate, let fix = await nearMe.locate() else { return }
             here = fix
-            if shown.contains(where: { fix.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude)) <= NearMe.km * 1000 }) {
-                if city == nil { city = NearMe.tag }
-            } else {
-                showNotice("Nothing saved within \(Int(NearMe.km)) km, so here is everything.")
-            }
+            let nearest = shown
+                .map { ($0, fix.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude))) }
+                .filter { $0.1 <= NearMe.km * 1000 }
+                .min { $0.1 < $1.1 }?.0
+            if city == nil, let nearest, let town = labels[nearest.id] { city = town }
         }
     }
 
@@ -308,7 +289,7 @@ private struct PlacesContent: View {
             EmptyTutorial(page: Bindable(screen).tutorialPage, onPaste: { adding = true })
                 .ignoresSafeArea(.keyboard)
         } else if v == .map {
-            PlacesMapView(places: visible, selected: $peek, focus: framed?.places)
+            PlacesMapView(places: visible, selected: $peek, focus: framed?.places, here: here)
                 .ignoresSafeArea(edges: .bottom)
         } else if visible.isEmpty {
             ScrollView { noMatchState }
@@ -422,9 +403,7 @@ private struct PlacesContent: View {
 
     private var categories: [(PlaceCategory, Int)] {
         let labels = labels
-        let near = city == NearMe.tag ? nearIDs : []  // once, not per place
-        let scoped = city == NearMe.tag ? shown.filter { near.contains($0.id) }
-            : city == nil ? shown : shown.filter { labels[$0.id] == city }
+        let scoped = city == nil ? shown : shown.filter { labels[$0.id] == city }
         var counts: [PlaceCategory: Int] = [:]
         for p in scoped { counts[p.category, default: 0] += 1 }
         return PlaceCategory.allCases.compactMap { c in counts[c].map { (c, $0) } }
@@ -444,10 +423,7 @@ private struct PlacesContent: View {
         } else {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Button { picking = .city } label: {
-                    HStack(spacing: 6) {
-                        if city == NearMe.tag { Image(systemName: "location.fill").font(.title3.weight(.semibold)).foregroundStyle(Color(.label)) }
-                        headerLabel(city == NearMe.tag ? "Near me" : (city ?? "Everywhere"), muted: false)
-                    }
+                    headerLabel(city ?? "Everywhere", muted: false)
                 }
                 .buttonStyle(.plain)
                 .layoutPriority(1)
@@ -476,7 +452,6 @@ private struct PlacesContent: View {
     private var whereOptions: [FilterPicker.Option] {
         var options: [FilterPicker.Option] = [
             FilterPicker.Option(id: "everywhere", label: "Everywhere", count: shown.count, selected: city == nil) { pick { city = nil } },
-            FilterPicker.Option(id: NearMe.tag, label: "Near me", count: here == nil ? nil : nearIDs.count, locate: true, selected: city == NearMe.tag) { pick { city = NearMe.tag } },
         ]
         for (name, count) in destinations {
             options.append(FilterPicker.Option(id: "city-\(name)", label: name, count: count, selected: city == name) { pick { city = name } })

@@ -33,6 +33,6 @@ closes a difference (CLAUDE.md). Last updated 2026-10-06 (build 12).
 - Category icons: Sarp's 3D set (web `public/types`, iOS `Type*` assets).
 - The post button opens the post; no embedded posts.
 - Where/What pickers, grouping (`lib/grouping.ts` ↔ `Grouping.swift`), metros, same-place merging.
-- Near me (50 km), location asked on open only from 3 places.
+- Opens on the town you're in (nearest place within 50 km), with a blue dot where you are; location asked on open only from 3 places. No Near me row.
 - Settings: Directions app, Appearance.
 - Swipe-to-delete with a 5 s Undo.

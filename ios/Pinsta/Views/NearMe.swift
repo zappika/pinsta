@@ -1,12 +1,11 @@
 import CoreLocation
 import Network
 
-/// "Near me": one location fix, asked for on launch (the opening screen) or
-/// when the option is picked. Port of the web's lib/geo.ts (50 km).
+/// Where you are: one location fix on launch, for the town the map opens on and its
+/// frame (no "Near me" row since 2026-10-09). Port of the web's lib/geo.ts (50 km).
 @MainActor
 final class NearMe: NSObject, CLLocationManagerDelegate {
     static let km: Double = 50
-    static let tag = "__near__"
 
     private let manager = CLLocationManager()
     /// Everyone asking while a fix is on its way gets that fix. (A second ask used
@@ -36,7 +35,7 @@ final class NearMe: NSObject, CLLocationManagerDelegate {
 
     /// The opening screen may use location: already allowed, or not yet asked and
     /// the list has grown to `askAfter` places. A new user's first launches never
-    /// open on a permission question; picking Near me always may ask.
+    /// open on a permission question.
     static let askAfter = 3
 
     enum OnOpen { case locate, wait, refused }
