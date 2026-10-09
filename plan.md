@@ -3,7 +3,7 @@
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
 ## Last session — 2026-10-09: save flow + success card, web + iOS
-- **Save flow redesigned in a sandbox** (`/success`, backoffice) and built on both apps: the question in the sheet's small label, one loading bar, Save pills on every row, one success card for every save (post photo or type icon on its tint, "Saved to Vicolo" + elephant, milestone line: first save in a town, else first of a type). "Wrong place?" removed for now. iOS **not yet in a TestFlight build**; the share extension end to end is unchecked (Safari share ignores taps on the simulator).
+- **Save flow redesigned in a sandbox** (`/success`, backoffice) and built on both apps: the question in the sheet's small label, one loading bar, Save pills on every row, one success card for every save (post photo or type icon on its tint, "Saved to Vicolo" + elephant, milestone line: first save in a town, else first of a type). "Wrong place?" removed for now. iOS in **1.0 (13), uploaded to TestFlight 2026-10-09**; the share extension end to end is unchecked (Safari share ignores taps on the simulator).
 - **Account match:** a city glued to the handle is split off (`barabbacph` → "barabba Copenhagen"), web + iOS.
 - Beta submitted for review (see Waiting on Sarp).
 
