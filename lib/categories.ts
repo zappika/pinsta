@@ -124,6 +124,6 @@ export function iconFor(category: string | null | undefined): string {
 }
 
 /** A place's icon: its food icon when it's a restaurant we can read (lib/food), else its type's. */
-export function placeIcon(p: { category: string | null; primaryType?: string | null; name?: string | null; caption?: string | null }): string {
+export function placeIcon(p: { category: string | null; primaryType?: string | null; name?: string | null; caption?: string | null; ownerUsername?: string | null }): string {
   return foodIcon(p) ?? iconFor(p.category);
 }

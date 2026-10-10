@@ -2,6 +2,12 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
+## 2026-10-10: three save-flow fixes after build 16 (Sarp, on the phone)
+- **Share card is a full-width sheet on the bottom edge** (was a floating card): the system share sheet stays up behind the extension and showed around and below the card. Not checked end to end: Safari's share ignores taps on the simulator, so it needs a TestFlight build.
+- **Success card opens with its photo**: the photo is fetched while the place is found and decoded before the card shows (2 s at most, then the icon). It used to open on the type icon and jump. The card's fallback is now the food icon, not the plain Restaurant (gilda). Checked on the simulator (new save and "Already in Vicolo").
+- **Food icon reads the account handle too**, glued words included (`hundredburgers_` → burger), web + iOS.
+- The "No location on this post" line and search field no longer flash while the place is still being found.
+
 ## Last session — 2026-10-09: save flow + success card, web + iOS
 - **Save flow redesigned in a sandbox** (`/success`, backoffice) and built on both apps: the question in the sheet's small label, one loading bar, Save pills on every row, one success card for every save (post photo or type icon on its tint, "Saved to Vicolo" + elephant, milestone line: first save in a town, else first of a type). "Wrong place?" removed for now. iOS in **1.0 (13), uploaded to TestFlight 2026-10-09**; the share extension end to end is unchecked (Safari share ignores taps on the simulator).
 - **Account match:** a city glued to the handle is split off (`barabbacph` → "barabba Copenhagen"), web + iOS.

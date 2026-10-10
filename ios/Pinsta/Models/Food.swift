@@ -23,11 +23,20 @@ enum Food {
     ]
 
     /// The asset name ("Food/pizza"), or nil.
-    static func icon(name: String, caption: String?) -> String? {
+    static func icon(name: String, caption: String?, handle: String? = nil) -> String? {
         let text = " " + (name + " " + (caption ?? "")).lowercased()
         for kind in kinds {
             for w in kind.words where text.range(of: "(^|[^a-z])" + NSRegularExpression.escapedPattern(for: w), options: .regularExpression) != nil {
                 return "Food/" + kind.icon
+            }
+        }
+        // The account's handle is glued ("hundredburgers_"), so there a word counts anywhere
+        // in it (Sarp, 2026-10-10: a burger place's name and caption never said burger).
+        if let handle = handle?.lowercased(), !handle.isEmpty {
+            for kind in kinds {
+                for w in kind.words where !w.contains(" ") && w.count >= 4 && handle.contains(w) {
+                    return "Food/" + kind.icon
+                }
             }
         }
         return nil
@@ -37,7 +46,7 @@ enum Food {
 extension Place {
     /// The food icon for a restaurant we can read, else the type's icon.
     var icon: Image {
-        if category == .restaurant, let food = Food.icon(name: name, caption: caption) { return Image(food) }
+        if category == .restaurant, let food = Food.icon(name: name, caption: caption, handle: ownerUsername) { return Image(food) }
         return category.icon
     }
 }

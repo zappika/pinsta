@@ -24,11 +24,15 @@ const FOODS: Food[] = [
 ];
 
 /** The food icon for a restaurant, or null (then the Restaurant type icon). */
-export function foodIcon(p: { category?: string | null; primaryType?: string | null; name?: string | null; caption?: string | null }): string | null {
+export function foodIcon(p: { category?: string | null; primaryType?: string | null; name?: string | null; caption?: string | null; ownerUsername?: string | null }): string | null {
   if (p.category !== "Restaurant") return null;
   const byType = p.primaryType && FOODS.find((f) => f.types.includes(p.primaryType!));
   if (byType) return `/types/food/${byType.icon}.png`;
   const text = `${p.name ?? ""} ${p.caption ?? ""}`.toLowerCase();
-  const byWord = FOODS.find((f) => f.words.some((w) => new RegExp(`(^|[^a-z])${w}`).test(text)));
+  // The account's handle is glued ("hundredburgers_"), so there a word counts anywhere in it
+  // (Sarp, 2026-10-10: a burger place's name and caption never said burger).
+  const handle = (p.ownerUsername ?? "").toLowerCase();
+  const byWord = FOODS.find((f) => f.words.some((w) => new RegExp(`(^|[^a-z])${w}`).test(text)))
+    ?? (handle ? FOODS.find((f) => f.words.some((w) => !w.includes(" ") && w.length >= 4 && handle.includes(w))) : undefined);
   return byWord ? `/types/food/${byWord.icon}.png` : null;
 }

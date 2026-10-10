@@ -20,6 +20,8 @@ struct AddPlaceView: View {
     var onFinish: (() -> Void)? = nil
     /// Extensions can't read the general pasteboard.
     var allowsPasteboard = true
+    /// The share card sits on the screen's bottom edge: room for the home indicator.
+    var bottomInset: CGFloat = 0
 
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
@@ -36,6 +38,8 @@ struct AddPlaceView: View {
     /// Between reading the post and having candidates: the steps stay on screen.
     @State private var finding = false
     @State private var readStarted = Date()
+    /// The post's picture, fetched while the place is being found: the success card opens with it.
+    @State private var postImage: Data?
     @FocusState private var focus: Field?
 
     private enum Field { case url, query }
@@ -47,6 +51,8 @@ struct AddPlaceView: View {
         var milestone: String? = nil
         /// The post's picture, until the place's own copy has downloaded.
         var imageURL: String? = nil
+        /// Decoded before the card shows, so it never opens on the type icon and then jumps.
+        var image: UIImage? = nil
     }
     private enum Reading: Equatable {
         case idle, loading, done(InstagramPost), failed(String)
@@ -69,7 +75,7 @@ struct AddPlaceView: View {
         return false
     }
 
-    private var showQuery: Bool { validURL != nil && reading != .loading && reading != .idle && saving == nil }
+    private var showQuery: Bool { validURL != nil && reading != .loading && reading != .idle && !finding && saving == nil }
 
     /// The sheet's question lives in its small label (Sarp, 2026-10-09): no headings.
     private var label: String {
@@ -84,7 +90,7 @@ struct AddPlaceView: View {
     var body: some View {
         VStack(spacing: 0) {
             if let saved {
-                SavedCard(saved: saved, onDone: finish)
+                SavedCard(saved: saved, bottomInset: bottomInset, onDone: finish)
                     .task(id: saved.place.id) {
                         try? await Task.sleep(for: .seconds(Self.savedSeconds))
                         guard !Task.isCancelled else { return }
@@ -120,10 +126,11 @@ struct AddPlaceView: View {
                 if showQuery {
                     queryField.padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 16)
                 }
+                Color.clear.frame(height: bottomInset)
             }
         }
         .frame(maxWidth: .infinity)
-        .frame(height: saved == nil ? Self.sheetHeight : Self.savedHeight)
+        .frame(height: (saved == nil ? Self.sheetHeight : Self.savedHeight) + bottomInset)
         // Raised surface: white in light, the elevated grey in dark (never pure black on black).
         .background(saved == nil ? Color(.secondarySystemGroupedBackground) : .clear)
         .animation(.snappy, value: saved == nil)
@@ -240,7 +247,7 @@ struct AddPlaceView: View {
             Text("Searching…").font(.subheadline).foregroundStyle(.tertiary).frame(maxWidth: .infinity)
         } else if !searching && query.trimmed.count >= 2 && candidates.isEmpty && error == nil {
             Text("No matches. Try adding the city.").font(.subheadline).foregroundStyle(.tertiary).frame(maxWidth: .infinity)
-        } else if editing == nil, manualMode, case .done = reading, query.trimmed.count < 2 {
+        } else if editing == nil, manualMode, !finding, case .done = reading, query.trimmed.count < 2 {
             Text("No location on this post. Type the place's name to save it.")
                 .font(.subheadline).foregroundStyle(.secondary)
         }
@@ -277,7 +284,7 @@ struct AddPlaceView: View {
         guard !Task.isCancelled else { return }
         if let existing = existingPlace(for: validURL) {
             reading = .idle
-            withAnimation(.snappy) { saved = Saved(place: existing, already: true, changed: false, imageURL: nil) }
+            await show(Saved(place: existing, already: true, changed: false))
             return
         }
         do {
@@ -287,13 +294,15 @@ struct AddPlaceView: View {
             // canonical URL. The pre-read duplicate check cannot see that.
             if let existing = existingPlace(for: post.url) {
                 reading = .idle
-                withAnimation(.snappy) { saved = Saved(place: existing, already: true, changed: false, imageURL: nil) }
+                await show(Saved(place: existing, already: true, changed: false))
                 return
             }
             withAnimation(.snappy) {
                 reading = .done(post)
                 finding = true
             }
+            postImage = nil
+            Task { postImage = await ImageLoader.data(from: post.imageURL) }
             defer { withAnimation(.snappy) { finding = false } }
             let cityHints = Set((try? context.fetch(FetchDescriptor<Place>()))?.compactMap(\.city) ?? [])
             var found: [PlaceCandidate]
@@ -380,8 +389,8 @@ struct AddPlaceView: View {
                 editing.priceChecked = false
                 persist()
                 Task { await PriceLookup.check(editing, in: context) }
+                await show(Saved(place: editing, already: false, changed: true))
                 saving = nil
-                withAnimation(.snappy) { saved = Saved(place: editing, already: false, changed: true) }
                 return
             }
             let url = post?.url ?? validURL
@@ -389,14 +398,14 @@ struct AddPlaceView: View {
             let all = (try? context.fetch(FetchDescriptor<Place>())) ?? []
             if let same = all.first(where: { SamePlace.matches($0, name: c.name, latitude: c.latitude, longitude: c.longitude) }) {
                 if same.allPostURLs.contains(url) {
+                    await show(Saved(place: same, already: true, changed: false, imageURL: post?.imageURL))
                     saving = nil
-                    withAnimation(.snappy) { saved = Saved(place: same, already: true, changed: false, imageURL: post?.imageURL) }
                     return
                 }
                 same.extraPostURLs.append(url)
                 persist()
+                await show(Saved(place: same, already: false, changed: false, mergedURL: url, imageURL: post?.imageURL))
                 saving = nil
-                withAnimation(.snappy) { saved = Saved(place: same, already: false, changed: false, mergedURL: url, imageURL: post?.imageURL) }
                 return
             }
             let place = Place(
@@ -420,15 +429,38 @@ struct AddPlaceView: View {
             context.insert(place)
             persist()
             Task { await PriceLookup.check(place, in: context) }
-            saving = nil
             let line = Milestone.line(for: place, among: all)
-            withAnimation(.snappy) { saved = Saved(place: place, already: false, changed: false, milestone: line, imageURL: post?.imageURL) }
             let id = place.id
-            if let image = await ImageLoader.data(from: post?.imageURL), let place = Place.find(id, in: context) {
+            // The picture usually arrived while the place was being found; it is the card's photo too.
+            let image: Data?
+            if let postImage { image = postImage } else { image = await ImageLoader.data(from: post?.imageURL) }
+            if let image, let place = Place.find(id, in: context) {
                 place.imageData = image
                 persist()
             }
+            await show(Saved(place: place, already: false, changed: false, milestone: line, imageURL: post?.imageURL))
+            saving = nil
         }
+    }
+
+    /// The success card, with its photo decoded first (Sarp, 2026-10-10: it opened on the
+    /// type icon and then jumped to the photo). A slow download waits 2 s at most; then
+    /// the card opens on the icon and stays there.
+    private func show(_ s: Saved) async {
+        var s = s
+        let url = s.imageURL
+        var data = s.place.imageData
+        if data == nil {
+            data = await withTaskGroup(of: Data?.self) { group in
+                group.addTask { await ImageLoader.data(from: url) }
+                group.addTask { try? await Task.sleep(for: .seconds(2)); return nil }
+                let first = await group.next() ?? nil
+                group.cancelAll()
+                return first
+            }
+        }
+        if let data { s.image = await SavedCard.decode(data) }
+        withAnimation(.snappy) { saved = s }
     }
 
     /// Save, and tell the app when this is the share extension saving.
@@ -454,8 +486,8 @@ struct AddPlaceView: View {
 /// Mirrors SavedCard in the web's AddPlace.tsx.
 private struct SavedCard: View {
     let saved: AddPlaceView.Saved
+    var bottomInset: CGFloat = 0
     let onDone: () -> Void
-    @State private var image: UIImage?
     @State private var started = false
 
     private static let ink = Color(hex: 0x1F1C1A)
@@ -467,6 +499,7 @@ private struct SavedCard: View {
         let place = saved.place
         let line = saved.mergedURL != nil ? "Another post for this place" : saved.milestone
         let badge = saved.already ? "Already in Vicolo" : saved.changed ? "Changed" : "Saved to Vicolo"
+        let image = saved.image
         let photo = image != nil
         Button(action: onDone) {
             ZStack(alignment: .bottomLeading) {
@@ -478,7 +511,7 @@ private struct SavedCard: View {
                         } else {
                             place.category.tint
                                 .overlay(alignment: .center) {
-                                    place.category.icon.resizable().scaledToFit().frame(width: 150, height: 150)
+                                    place.icon.resizable().scaledToFit().frame(width: 150, height: 150)
                                         .padding(.bottom, 90)
                                 }
                         }
@@ -487,7 +520,7 @@ private struct SavedCard: View {
 
                 if photo {
                     LinearGradient(colors: [.black.opacity(0.75), .black.opacity(0.35), .clear], startPoint: .bottom, endPoint: .top)
-                        .frame(height: 220)
+                        .frame(height: 220 + bottomInset)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -499,7 +532,7 @@ private struct SavedCard: View {
                         .font(.body).opacity(0.8).lineLimit(1)
                 }
                 .foregroundStyle(photo ? Self.paper : Self.ink)
-                .padding(.horizontal, 20).padding(.bottom, 24)
+                .padding(.horizontal, 20).padding(.bottom, 24 + bottomInset)
 
                 GeometryReader { geo in
                     Rectangle().fill(photo ? Color.white.opacity(0.1) : Color.black.opacity(0.05))
@@ -509,6 +542,7 @@ private struct SavedCard: View {
                         }
                 }
                 .frame(height: 4)
+                .padding(.bottom, bottomInset)
             }
             .overlay(alignment: .topLeading) {
                 HStack(spacing: 6) {
@@ -527,14 +561,11 @@ private struct SavedCard: View {
         .buttonStyle(.plain)
         .task(id: place.id) {
             withAnimation(.timingCurve(0.45, 0, 0.8, 1, duration: AddPlaceView.savedSeconds - Self.barDelay).delay(Self.barDelay)) { started = true }
-            // The place's own copy if it has one; else the post's picture (it downloads after the save).
-            if let data = place.imageData { image = await Self.decode(data) }
-            else if let data = await ImageLoader.data(from: saved.imageURL) { image = await Self.decode(data) }
         }
     }
 
     /// Decoded off the main thread, at about the card's size.
-    private static func decode(_ data: Data) async -> UIImage? {
+    static func decode(_ data: Data) async -> UIImage? {
         await Task.detached(priority: .userInitiated) {
             guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
             let opts: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceThumbnailMaxPixelSize: 1400, kCGImageSourceCreateThumbnailWithTransform: true]
