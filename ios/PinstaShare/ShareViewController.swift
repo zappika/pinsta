@@ -19,28 +19,17 @@ final class ShareViewController: UIViewController {
     }
 
     private weak var card: UIView?
-    /// The card waits for the view to be on screen: its home-indicator room comes from the safe area.
-    private var appeared = false
-    private var pendingURL: String??
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .clear
         view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapOutside)))
-        Task {
-            let url = await sharedURL()
-            if appeared { present(url: url) } else { pendingURL = .some(url) }
-        }
+        Task { await present(url: await sharedURL()) }
     }
 
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
         clearSheetBackground()
-        appeared = true
-        if let url = pendingURL {
-            pendingURL = nil
-            present(url: url)
-        }
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -97,9 +86,6 @@ final class ShareViewController: UIViewController {
 
     @MainActor
     private func present(url: String?) {
-        // A full-width sheet on the bottom edge, not a floating card: the system share sheet
-        // stays up behind the extension and showed around and below a smaller card (Sarp, 2026-10-10).
-        let bottomInset = max(view.safeAreaInsets.bottom, view.window?.safeAreaInsets.bottom ?? 0)
         // A store that won't open shows why, rather than saving somewhere the app can't see.
         let root: AnyView
         switch Persistence.opened {
@@ -109,8 +95,7 @@ final class ShareViewController: UIViewController {
                 onFinish: { [weak self] in
                     self?.close { $0.completeRequest(returningItems: nil) }
                 },
-                allowsPasteboard: false,
-                bottomInset: bottomInset
+                allowsPasteboard: false
             )
             .modelContainer(container))
         case .failure:
@@ -122,22 +107,19 @@ final class ShareViewController: UIViewController {
         let host = UIHostingController(rootView: root)
         // The card itself follows the keyboard (keyboardLayoutGuide below); without
         // this the hosted view avoided it a second time and its content jumped.
-        host.safeAreaRegions = []
+        host.safeAreaRegions = .container
         // The sheet sets its own height (taller for the success card); the card follows it.
         host.sizingOptions = .intrinsicContentSize
         addChild(host)
-        host.view.layer.cornerRadius = 28
+        host.view.layer.cornerRadius = 20
         host.view.layer.cornerCurve = .continuous
-        host.view.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
         host.view.clipsToBounds = true
         host.view.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(host.view)
-        // On the bottom edge, not above the home indicator (the card makes its own room for it).
-        view.keyboardLayoutGuide.usesBottomSafeArea = false
         NSLayoutConstraint.activate([
-            host.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            host.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            host.view.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor),
+            host.view.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
+            host.view.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
+            host.view.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor, constant: -12),
         ])
         host.didMove(toParent: self)
         card = host.view

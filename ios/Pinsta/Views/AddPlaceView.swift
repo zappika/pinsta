@@ -2,12 +2,13 @@ import SwiftUI
 import SwiftData
 import MapKit
 
-/// A small, fixed-height sheet. Paste a link → the post is read (cloud) → the
+/// A small sheet that fits what it shows (the /success sandbox, Sarp 2026-10-10). Paste a link → the post is read (cloud) → the
 /// tag becomes a place (MapKit, on device). One match saves itself; several ask
 /// for a tap; none falls back to the account that posted, then to search.
 /// In edit mode the post is known and only the place changes.
 struct AddPlaceView: View {
-    static let sheetHeight: CGFloat = 360
+    /// Above this the list scrolls.
+    static let maxScroll: CGFloat = 380
     /// The success card is taller: the post photo at 4:5.
     static let savedHeight: CGFloat = 460
     static let savedSeconds: Double = 2.6
@@ -20,8 +21,6 @@ struct AddPlaceView: View {
     var onFinish: (() -> Void)? = nil
     /// Extensions can't read the general pasteboard.
     var allowsPasteboard = true
-    /// The share card sits on the screen's bottom edge: room for the home indicator.
-    var bottomInset: CGFloat = 0
 
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
@@ -40,6 +39,7 @@ struct AddPlaceView: View {
     @State private var readStarted = Date()
     /// The post's picture, fetched while the place is being found: the success card opens with it.
     @State private var postImage: Data?
+    @State private var contentHeight: CGFloat = 0
     @FocusState private var focus: Field?
 
     private enum Field { case url, query }
@@ -90,7 +90,7 @@ struct AddPlaceView: View {
     var body: some View {
         VStack(spacing: 0) {
             if let saved {
-                SavedCard(saved: saved, bottomInset: bottomInset, onDone: finish)
+                SavedCard(saved: saved, onDone: finish)
                     .task(id: saved.place.id) {
                         try? await Task.sleep(for: .seconds(Self.savedSeconds))
                         guard !Task.isCancelled else { return }
@@ -119,18 +119,20 @@ struct AddPlaceView: View {
                         footnotes
                     }
                     .padding(.horizontal, 16).padding(.bottom, 16)
+                    .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { contentHeight = $0 }
                 }
+                .frame(height: min(contentHeight, Self.maxScroll))
+                .scrollBounceBehavior(.basedOnSize)
                 .scrollDismissesKeyboard(.interactively)
                 // The search sits pinned under the list, never below the scroll (Sarp, 2026-10-09);
                 // one place for it, so typing never moves it (and its focus) elsewhere.
                 if showQuery {
                     queryField.padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 16)
                 }
-                Color.clear.frame(height: bottomInset)
             }
         }
         .frame(maxWidth: .infinity)
-        .frame(height: (saved == nil ? Self.sheetHeight : Self.savedHeight) + bottomInset)
+        .frame(height: saved == nil ? nil : Self.savedHeight)
         // Raised surface: white in light, the elevated grey in dark (never pure black on black).
         .background(saved == nil ? Color(.secondarySystemGroupedBackground) : .clear)
         .animation(.snappy, value: saved == nil)
@@ -486,7 +488,6 @@ struct AddPlaceView: View {
 /// Mirrors SavedCard in the web's AddPlace.tsx.
 private struct SavedCard: View {
     let saved: AddPlaceView.Saved
-    var bottomInset: CGFloat = 0
     let onDone: () -> Void
     @State private var started = false
 
@@ -520,7 +521,7 @@ private struct SavedCard: View {
 
                 if photo {
                     LinearGradient(colors: [.black.opacity(0.75), .black.opacity(0.35), .clear], startPoint: .bottom, endPoint: .top)
-                        .frame(height: 220 + bottomInset)
+                        .frame(height: 220)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -532,7 +533,7 @@ private struct SavedCard: View {
                         .font(.body).opacity(0.8).lineLimit(1)
                 }
                 .foregroundStyle(photo ? Self.paper : Self.ink)
-                .padding(.horizontal, 20).padding(.bottom, 24 + bottomInset)
+                .padding(.horizontal, 20).padding(.bottom, 24)
 
                 GeometryReader { geo in
                     Rectangle().fill(photo ? Color.white.opacity(0.1) : Color.black.opacity(0.05))
@@ -542,7 +543,6 @@ private struct SavedCard: View {
                         }
                 }
                 .frame(height: 4)
-                .padding(.bottom, bottomInset)
             }
             .overlay(alignment: .topLeading) {
                 HStack(spacing: 6) {
@@ -664,10 +664,9 @@ private struct CandidateList: View {
                     Button { onPick(c) } label: { row(c) }
                         .buttonStyle(.plain)
                         .disabled(saving != nil)
-                    if index < candidates.count - 1 { Divider().padding(.leading, 14) }
+                    if index < candidates.count - 1 { Divider() }
                 }
             }
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.separator).opacity(0.5)))
         }
     }
 
@@ -690,7 +689,7 @@ private struct CandidateList: View {
                 .padding(.horizontal, 12).padding(.vertical, 4)
                 .background(Color(.label), in: Capsule())
         }
-        .padding(.horizontal, 14).padding(.vertical, 12)
+        .padding(.vertical, 10)
         .contentShape(Rectangle())
     }
 }

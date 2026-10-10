@@ -61,7 +61,7 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   iOS: `PhotoRetry` re-reads photo-less posts on launch/foreground, with `Backoff` (6 h doubling to 2 weeks, six tries; the least-tried first) and `photoGaveUp` once `/api/extract` says `permanent: true` (deleted/private post, 404). `PriceLookup` uses the same backoff. No Google there.
   Shown through `PlacePhoto` (downsampled once, off the main thread, cached) — never `UIImage(data:)` in a view body.
 - **Save flow** (`app/components/AddPlace.tsx` ↔ `ios/Pinsta/Views/AddPlaceView.swift`):
-  fixed-height bottom sheet whose small label asks the question (Finding the place… / Is this the place? /
+  bottom sheet that fits what it shows (as the `/success` sandbox; scrolls past a cap) whose small label asks the question (Finding the place… / Is this the place? /
   Is it one of these? / Which place is it?). One tag match saves itself; otherwise every row (tag, account
   guess, search) has a Save pill and saves on tap. Every save ends on the success card (post photo or type
   icon on its tint, name, "Saved to Vicolo" + elephant, a milestone line from `lib/milestone.ts` ↔

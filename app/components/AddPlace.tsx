@@ -256,12 +256,13 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
   return (
     <div className="fixed inset-0 z-20 mx-auto flex max-w-md flex-col justify-end" role="dialog" aria-label="Save a place">
       <button type="button" aria-label="Close" onClick={onClose} className="pinsta-fade absolute inset-0 bg-black/30" />
-      {/* Fixed height: the sheet never resizes as the post, candidates or receipt come in.
+      {/* Fits what it shows, as in the /success sandbox (Sarp, 2026-10-10): finding the place is
+          the post row and a bar, no empty sheet. Grows up to a cap, then scrolls.
           Sits above the + (which becomes ×) and rises out of it. */}
       {saved ? (
         <SavedCard saved={saved} onDone={onClose} />
       ) : (
-      <div className="pinsta-rise relative m-3 mb-[calc(env(safe-area-inset-bottom)+5.25rem)] flex h-[340px] flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
+      <div className="pinsta-rise relative m-3 mb-[calc(env(safe-area-inset-bottom)+5.25rem)] flex max-h-[min(480px,calc(100dvh-9rem))] flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
         {(
           <>
             <div className="flex items-center justify-between px-4 pt-3 pb-1">
@@ -271,7 +272,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 pb-3">
+            <div className="min-h-0 overflow-y-auto px-4 pb-3">
               {!editing && (
               <div className="flex gap-2">
                 <input
@@ -459,7 +460,7 @@ function CandidateList({
   const dupes = new Set(candidates.map(keyOf).filter((k, i, arr) => arr.indexOf(k) !== i));
 
   return (
-    <ul className="mt-2 divide-y divide-stone-100 overflow-hidden rounded-xl border border-stone-100">
+    <ul className="mt-2 divide-y divide-stone-100">
       {candidates.map((c) => {
         const busy = saving === c.placeId;
         const where = [c.city, multiCountry ? c.country : null].filter(Boolean).join(", ");
@@ -470,7 +471,7 @@ function CandidateList({
               type="button"
               onClick={() => onPick(c)}
               disabled={saving !== null}
-              className="flex w-full items-center gap-3 px-3.5 py-3 text-left active:bg-stone-50 disabled:opacity-60"
+              className="flex w-full items-center gap-3 py-2.5 text-left active:bg-stone-50 disabled:opacity-60"
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{c.name}</p>
