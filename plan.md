@@ -6,6 +6,7 @@ _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code 
 - **Save sheet matches the /success sandbox again**, web + iOS: it fits what it shows (finding = the post row and a bar, no empty white sheet; scrolls past a cap) and the place rows are a plain list, no outlined box. The share card stays a floating card, as in the sandbox (a full-width try earlier the same day was undone). Checked on the simulator: finding, "Which place is it?" with a result row, success card. Web: tsc only.
 - **Success card opens with its photo**: the photo is fetched while the place is found and decoded before the card shows (2 s at most, then the icon). It used to open on the type icon and jump. The card's fallback is now the food icon, not the plain Restaurant (gilda). Checked on the simulator (new save and "Already in Vicolo").
 - **Food icon reads the account handle too**, glued words included (`hundredburgers_` → burger), web + iOS.
+- **1.0 (17) uploaded 2026-10-10** with all of the above.
 - The "No location on this post" line and search field no longer flash while the place is still being found.
 
 ## Last session — 2026-10-09: save flow + success card, web + iOS
