@@ -23,7 +23,6 @@ final class ShareViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .clear
-        view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapOutside)))
         Task { await present(url: await sharedURL()) }
     }
 
@@ -51,15 +50,14 @@ final class ShareViewController: UIViewController {
         view.window?.backgroundColor = .clear
     }
 
-    @objc private func tapOutside(_ tap: UITapGestureRecognizer) {
-        if let card, card.frame.contains(tap.location(in: view)) { return }
+    private func cancel() {
         close { $0.cancelRequest(withError: NSError(domain: "se.sarper.vicolo", code: 0)) }
     }
 
     /// Slide the card away before handing back to the host app.
     private func close(_ finish: @escaping (NSExtensionContext) -> Void) {
         UIView.animate(withDuration: 0.22, animations: {
-            self.card?.transform = CGAffineTransform(translationX: 0, y: AddPlaceView.savedHeight + 40)
+            self.card?.transform = CGAffineTransform(translationX: 0, y: self.view.bounds.height)
         }, completion: { _ in
             if let context = self.extensionContext { finish(context) }
         })
@@ -104,22 +102,22 @@ final class ShareViewController: UIViewController {
             })
         }
 
-        let host = UIHostingController(rootView: root)
+        let host = UIHostingController(rootView: ShareStage(card: root, onOutside: { [weak self] in self?.cancel() }))
         // The card itself follows the keyboard (keyboardLayoutGuide below); without
         // this the hosted view avoided it a second time and its content jumped.
         host.safeAreaRegions = .container
-        // The sheet sets its own height (taller for the success card); the card follows it.
-        host.sizingOptions = .intrinsicContentSize
+        // The host fills the screen and SwiftUI places the card: its height changes then
+        // animate with the sheet's steps. Sized by UIKit (intrinsic size) the card snapped
+        // to each new height, which Sarp saw as jumps between steps (2026-10-10).
         addChild(host)
-        host.view.layer.cornerRadius = 20
-        host.view.layer.cornerCurve = .continuous
-        host.view.clipsToBounds = true
+        host.view.backgroundColor = .clear
         host.view.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(host.view)
         NSLayoutConstraint.activate([
-            host.view.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
-            host.view.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
-            host.view.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor, constant: -12),
+            host.view.topAnchor.constraint(equalTo: view.topAnchor),
+            host.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            host.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            host.view.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor),
         ])
         host.didMove(toParent: self)
         card = host.view
@@ -127,6 +125,22 @@ final class ShareViewController: UIViewController {
         host.view.transform = CGAffineTransform(translationX: 0, y: AddPlaceView.savedHeight + 40)
         UIView.animate(withDuration: 0.45, delay: 0, usingSpringWithDamping: 0.85, initialSpringVelocity: 0) {
             host.view.transform = .identity
+        }
+    }
+}
+
+/// The card at the bottom; a tap above it cancels. The system already dims the host app.
+private struct ShareStage: View {
+    let card: AnyView
+    let onOutside: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Color.clear.contentShape(Rectangle()).onTapGesture(perform: onOutside)
+            card
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .padding(.horizontal, 12)
+                .padding(.bottom, 12)
         }
     }
 }

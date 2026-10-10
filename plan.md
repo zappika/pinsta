@@ -7,6 +7,7 @@ _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code 
 - **Success card opens with its photo**: the photo is fetched while the place is found and decoded before the card shows (2 s at most, then the icon). It used to open on the type icon and jump. The card's fallback is now the food icon, not the plain Restaurant (gilda). Checked on the simulator (new save and "Already in Vicolo").
 - **Food icon reads the account handle too**, glued words included (`hundredburgers_` → burger), web + iOS.
 - **1.0 (17) uploaded 2026-10-10** with all of the above.
+- **Steps no longer jump (Sarp on build 17):** the sheet's height was measured a frame after its content changed, and the share card was sized by UIKit, which snapped. Now the height is decided in the same layout pass (`CappedHeight`), every step change is one animation, and the share card is placed by SwiftUI inside a full-screen host. Checked frame by frame on the simulator (finding → saved); the share path and "Is this the place?" are for the phone. **1.0 (18) uploaded 2026-10-10.**
 - The "No location on this post" line and search field no longer flash while the place is still being found.
 
 ## Last session — 2026-10-09: save flow + success card, web + iOS

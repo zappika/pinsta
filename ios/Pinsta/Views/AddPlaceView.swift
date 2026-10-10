@@ -39,7 +39,6 @@ struct AddPlaceView: View {
     @State private var readStarted = Date()
     /// The post's picture, fetched while the place is being found: the success card opens with it.
     @State private var postImage: Data?
-    @State private var contentHeight: CGFloat = 0
     @FocusState private var focus: Field?
 
     private enum Field { case url, query }
@@ -91,12 +90,14 @@ struct AddPlaceView: View {
         VStack(spacing: 0) {
             if let saved {
                 SavedCard(saved: saved, onDone: finish)
+                    .transition(.opacity)
                     .task(id: saved.place.id) {
                         try? await Task.sleep(for: .seconds(Self.savedSeconds))
                         guard !Task.isCancelled else { return }
                         finish()
                     }
             } else {
+              VStack(spacing: 0) {
                 HStack {
                     sectionLabel(label)
                     Spacer()
@@ -106,36 +107,29 @@ struct AddPlaceView: View {
                 }
                 .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 8)
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
-                        // A shared link is already known: the field would only look like a task (Sarp, 2026-10-09).
-                        if editing == nil, initialURL == nil { urlField }
-                        postSection
-                        if showSuggestedFirst && saving == nil { suggested }
-                        if let error {
-                            Text(error).font(.subheadline).foregroundStyle(.red)
-                        }
-                        if !showSuggestedFirst { candidateList }
-                        footnotes
-                    }
-                    .padding(.horizontal, 16).padding(.bottom, 16)
-                    .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { contentHeight = $0 }
+                // Sized in the same layout pass as its content, so the sheet and what's in it
+                // move together (a measured height lagged a frame: Sarp saw it jump, 2026-10-10).
+                // Scrolls only past the cap.
+                CappedHeight(max: Self.maxScroll) {
+                    ScrollView { form }
+                        .scrollBounceBehavior(.basedOnSize)
+                        .scrollDismissesKeyboard(.interactively)
                 }
-                .frame(height: min(contentHeight, Self.maxScroll))
-                .scrollBounceBehavior(.basedOnSize)
-                .scrollDismissesKeyboard(.interactively)
                 // The search sits pinned under the list, never below the scroll (Sarp, 2026-10-09);
                 // one place for it, so typing never moves it (and its focus) elsewhere.
                 if showQuery {
                     queryField.padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 16)
                 }
+              }
+              .transition(.opacity)
             }
         }
         .frame(maxWidth: .infinity)
         .frame(height: saved == nil ? nil : Self.savedHeight)
         // Raised surface: white in light, the elevated grey in dark (never pure black on black).
         .background(saved == nil ? Color(.secondarySystemGroupedBackground) : .clear)
-        .animation(.snappy, value: saved == nil)
+        // Every step (finding → the question → saved) resizes the sheet in one animation.
+        .animation(.snappy, value: step)
         .onAppear {
             if let editing {
                 reading = .done(InstagramPost(
@@ -162,6 +156,28 @@ struct AddPlaceView: View {
         }
         .task(id: validURL) { if editing == nil { await readPost() } }
         .task(id: query) { await manualSearch() }
+    }
+
+    /// What changes the sheet's size: one value, so each change animates once.
+    private var step: String {
+        [label, candidates.map(\.id).joined(separator: ","), saving ?? "", error ?? "",
+         saved.map { $0.place.id.uuidString } ?? "", showQuery ? "q" : "", finding ? "f" : ""].joined(separator: "|")
+    }
+
+    private var form: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // A shared link is already known: the field would only look like a task (Sarp, 2026-10-09).
+            if editing == nil, initialURL == nil { urlField }
+            postSection
+            if showSuggestedFirst && saving == nil { suggested }
+            if let error {
+                Text(error).font(.subheadline).foregroundStyle(.red)
+            }
+            if !showSuggestedFirst { candidateList }
+            footnotes
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16).padding(.bottom, 16)
     }
 
     // MARK: Sections
@@ -571,6 +587,21 @@ private struct SavedCard: View {
             let opts: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceThumbnailMaxPixelSize: 1400, kCGImageSourceCreateThumbnailWithTransform: true]
             return CGImageSourceCreateThumbnailAtIndex(source, 0, opts as CFDictionary).map(UIImage.init(cgImage:))
         }.value
+    }
+}
+
+/// As tall as its content up to `max`, decided in one layout pass (no measured state a frame late).
+private struct CappedHeight: Layout {
+    let max: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let child = subviews.first else { return .zero }
+        let ideal = child.sizeThatFits(ProposedViewSize(width: proposal.width, height: nil))
+        return CGSize(width: proposal.width ?? ideal.width, height: min(ideal.height, max))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        subviews.first?.place(at: bounds.origin, proposal: ProposedViewSize(bounds.size))
     }
 }
 
