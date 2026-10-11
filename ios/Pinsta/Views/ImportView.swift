@@ -140,6 +140,9 @@ struct ImportView: View {
         let picked = job.picked.count
         let over = picked - ListImport.limit
         let done = job.importing && job.waitingCount == 0 && picked == 0
+        let unasked = !done && !job.importing && job.visited == nil
+        HStack(spacing: 8) {
+        if !done { VisitPick() }
         Button {
             if done { dismiss() } else { job.startImport() }
         } label: {
@@ -148,16 +151,47 @@ struct ImportView: View {
                 : job.importing ? "Importing… \(job.savedCount) done\(job.waitingCount > 0 ? ", \(job.waitingCount) still finding" : "")"
                 : over > 0 ? "Untick \(over) to import (\(ListImport.limit) at most)"
                 : picked == 0 ? "Nothing selected"
-                : "Import \(count(picked, "place"))"
+                : unasked ? "Want to go or been there?"
+                : "Import \(count(picked, "place")) as \(job.visited == true ? "Been there" : "Want to go")"
             )
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(Color(.systemBackground))
             .frame(maxWidth: .infinity).padding(.vertical, 15)
             .background(Color(.label), in: RoundedRectangle(cornerRadius: 16))
         }
-        .disabled(!done && (job.importing || picked == 0 || over > 0))
-        .opacity(!done && (picked == 0 || over > 0) ? 0.4 : 1)
+        .disabled(!done && (job.importing || picked == 0 || over > 0 || unasked))
+        .opacity(!done && (picked == 0 || over > 0 || unasked) ? 0.4 : 1)
+        }
         .padding(.horizontal, 16).padding(.bottom, 8)
+    }
+}
+
+/// Want to go or Been there for the whole import, icons only: a bookmark and a check (web: VisitPick).
+private struct VisitPick: View {
+    private var job: ListImport { .shared }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            option(false, "Want to go", "bookmark")
+            option(true, "Been there", "checkmark")
+        }
+        .padding(4)
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
+        .disabled(job.importing)
+    }
+
+    private func option(_ been: Bool, _ label: String, _ symbol: String) -> some View {
+        let on = job.visited == been
+        return Button { job.visited = been } label: {
+            Image(systemName: symbol)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(on ? Color(.systemBackground) : .secondary)
+                .frame(width: 44, height: 44)
+                .background(on ? Color(.label) : .clear, in: RoundedRectangle(cornerRadius: 12))
+        }
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(on ? .isSelected : [])
     }
 }
 

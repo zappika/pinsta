@@ -39,6 +39,9 @@ final class ListImport {
     private(set) var title: String?
     private(set) var owner: String?
     var rows: [Row] = []
+    /// The whole list goes in as Been there (true) or Want to go (false); nil until picked,
+    /// so the import asks (Sarp, 2026-10-11: sixty unsorted places would never get sorted).
+    var visited: Bool?
     private(set) var reading = false
     private(set) var error: String?
     /// Import was tapped: picked rows save as soon as they're matched.
@@ -88,6 +91,7 @@ final class ListImport {
         matcher = nil
         link = nil; title = nil; owner = nil; error = nil
         rows = []
+        visited = nil
         importing = false
     }
 
@@ -184,7 +188,7 @@ final class ListImport {
     // MARK: Importing
 
     func startImport() {
-        guard !importing || waitingCount == 0 else { return }
+        guard visited != nil, !importing || waitingCount == 0 else { return }
         importing = true
         for i in rows.indices where rows[i].status == .matched && rows[i].picked && rows[i].save != .saved {
             save(i)
@@ -207,6 +211,7 @@ final class ListImport {
         place.website = c.website
         place.fromListTitle = title ?? "Google Maps list"
         place.fromListOwner = owner
+        if visited == true { place.visitedAt = Date() }
         context.insert(place)
         do {
             try context.save()

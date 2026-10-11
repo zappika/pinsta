@@ -43,6 +43,8 @@ export async function POST(req: Request) {
     category: CATEGORIES.includes(raw.category as Category) ? (raw.category as Category) : undefined,
     /** The Google list it was imported from, for the card's "why it's here". */
     fromList: listOf(raw.fromList),
+    /** Imported as Been there (the import asks for the whole list), not Want to go. */
+    visited: raw.visited === true,
   };
 
   // Field keeps its old name; it holds any supported link (Instagram, TikTok, Google Maps).
@@ -137,6 +139,7 @@ export async function POST(req: Request) {
         igLocationName: body.igLocationName || null,
         ownerUsername: body.ownerUsername || null,
         fromList: body.fromList,
+        visitedAt: body.visited ? new Date() : null,
       })
       .returning();
     return NextResponse.json({ place: row }, { status: 201 });

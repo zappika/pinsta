@@ -2,6 +2,9 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
+## 2026-10-11: list import asks Want to go or Been there (Sarp)
+- A Google list import goes in as one or the other for the whole list; otherwise sixty places land unsorted in Want to go. Icon-only pick (bookmark / check) beside the Import button, nothing picked at first, the button says "Want to go or been there?" until then and "Import 23 places as Been there" after. Web (`POST /api/places` takes `visited`) + iOS (`ListImport.visited`). Checked: web review with a stubbed list at phone size; iOS with BCN Nearby on the simulator (no import run). **1.0 (19) uploaded.**
+
 ## 2026-10-10: three save-flow fixes after build 16 (Sarp, on the phone)
 - **Save sheet matches the /success sandbox again**, web + iOS: it fits what it shows (finding = the post row and a bar, no empty white sheet; scrolls past a cap) and the place rows are a plain list, no outlined box. The share card stays a floating card, as in the sandbox (a full-width try earlier the same day was undone). Checked on the simulator: finding, "Which place is it?" with a result row, success card. Web: tsc only.
 - **Success card opens with its photo**: the photo is fetched while the place is found and decoded before the card shows (2 s at most, then the icon). It used to open on the type icon and jump. The card's fallback is now the food icon, not the plain Restaurant (gilda). Checked on the simulator (new save and "Already in Vicolo").

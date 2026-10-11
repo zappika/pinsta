@@ -17,6 +17,8 @@ type Item = {
 };
 type Row = Item & { key: number; picked: boolean; category: Category; state: "idle" | "saving" | "saved" | "failed" };
 type Preview = { title: string | null; owner: string | null; total: number; rows: Row[] };
+/** The whole list goes in as one or the other (Sarp, 2026-10-11): sixty unsorted places would never get sorted. */
+type Visit = "want" | "been";
 
 /**
  * /import: a shared Google Maps list becomes Vicolo places. Paste the list's
@@ -32,6 +34,7 @@ export default function ImportPage() {
   const [importing, setImporting] = useState(false);
   const [locked, setLocked] = useState(false);
   const [keyTried, setKeyTried] = useState(false);
+  const [visit, setVisit] = useState<Visit | null>(null);
 
   useEffect(() => {
     const onLocked = () => setLocked(true);
@@ -83,7 +86,7 @@ export default function ImportPage() {
   const savedCount = preview?.rows.filter((r) => r.state === "saved").length ?? 0;
 
   async function runImport() {
-    if (!preview || importing) return;
+    if (!preview || importing || !visit) return;
     setImporting(true);
     // Two at a time: each save is a Google details call plus a photo.
     const queue = [...picked];
@@ -91,7 +94,7 @@ export default function ImportPage() {
       [0, 1].map(async () => {
         for (let r = queue.shift(); r; r = queue.shift()) {
           update(r.key, { state: "saving" });
-          const ok = await save(r, { title: preview.title, owner: preview.owner });
+          const ok = await save(r, { title: preview.title, owner: preview.owner }, visit === "been");
           update(r.key, { state: ok ? "saved" : "failed", picked: !ok });
         }
       }),
@@ -193,18 +196,53 @@ export default function ImportPage() {
               Done · see {count(savedCount, "place")} in your list
             </a>
           ) : (
-            <button
-              type="button"
-              disabled={picked.length === 0 || importing}
-              onClick={runImport}
-              className="w-full rounded-2xl bg-stone-900 py-3.5 text-sm font-semibold text-white shadow-lg active:bg-stone-800 disabled:opacity-40"
-            >
-              {importing ? `Importing… ${savedCount} done` : picked.length === 0 ? "Nothing selected" : `Import ${count(picked.length, "place")}`}
-            </button>
+            <div className="flex gap-2">
+              <VisitPick value={visit} disabled={importing} onChange={setVisit} />
+              <button
+                type="button"
+                disabled={picked.length === 0 || importing || !visit}
+                onClick={runImport}
+                className="min-w-0 flex-1 rounded-2xl bg-stone-900 py-3.5 text-sm font-semibold text-white shadow-lg active:bg-stone-800 disabled:opacity-40"
+              >
+                {importing ? `Importing… ${savedCount} done`
+                  : picked.length === 0 ? "Nothing selected"
+                  : !visit ? "Want to go or been there?"
+                  : `Import ${count(picked.length, "place")} as ${visit === "been" ? "Been there" : "Want to go"}`}
+              </button>
+            </div>
           )}
         </div>
       )}
     </main>
+  );
+}
+
+/**
+ * Want to go or Been there for the whole import, icons only (Sarp, 2026-10-11): a bookmark
+ * and a check. Nothing is picked at first, so the import asks; the button says which.
+ */
+function VisitPick({ value, disabled, onChange }: { value: Visit | null; disabled: boolean; onChange: (v: Visit) => void }) {
+  const option = (v: Visit, label: string, path: string) => (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={value === v}
+      aria-label={label}
+      title={label}
+      disabled={disabled}
+      onClick={() => onChange(v)}
+      className={`flex w-12 items-center justify-center rounded-xl ${value === v ? "bg-stone-900 text-white" : "text-stone-500 active:bg-stone-100"}`}
+    >
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d={path} />
+      </svg>
+    </button>
+  );
+  return (
+    <div role="radiogroup" aria-label="Import as" className="flex shrink-0 gap-1 rounded-2xl bg-white p-1 shadow-lg">
+      {option("want", "Want to go", "M6 4h12v16l-6-4-6 4z")}
+      {option("been", "Been there", "M5 12.5l4.5 4.5L19 7")}
+    </div>
   );
 }
 
@@ -333,14 +371,14 @@ const count = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
  * the place as its source: the card's "post" is the Google place itself, and
  * importing the same list again finds the link and adds nothing.
  */
-async function save(r: Row, fromList: { title: string | null; owner: string | null }): Promise<boolean> {
+async function save(r: Row, fromList: { title: string | null; owner: string | null }, visited: boolean): Promise<boolean> {
   if (!r.match) return false;
   const link = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.match.name)}&query_place_id=${r.match.placeId}`;
   try {
     const res = await api("/api/places", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ instagramUrl: link, placeId: r.match.placeId, category: r.category, fromList }),
+      body: JSON.stringify({ instagramUrl: link, placeId: r.match.placeId, category: r.category, fromList, visited }),
     });
     return res.ok;
   } catch {
