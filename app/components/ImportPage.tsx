@@ -207,7 +207,7 @@ export default function ImportPage() {
                 {importing ? `Importing… ${savedCount} done`
                   : picked.length === 0 ? "Nothing selected"
                   : !visit ? "Want to go or been there?"
-                  : `Import ${count(picked.length, "place")} as ${visit === "been" ? "Been there" : "Want to go"}`}
+                  : `Import ${count(picked.length, "place")}`}
               </button>
             </div>
           )}
@@ -219,7 +219,7 @@ export default function ImportPage() {
 
 /**
  * Want to go or Been there for the whole import, icons only (Sarp, 2026-10-11): a bookmark
- * and a check. Nothing is picked at first, so the import asks; the button says which.
+ * and a check. Nothing is picked at first, so the import asks.
  */
 function VisitPick({ value, disabled, onChange }: { value: Visit | null; disabled: boolean; onChange: (v: Visit) => void }) {
   const option = (v: Visit, label: string, path: string) => (

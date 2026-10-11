@@ -152,7 +152,7 @@ struct ImportView: View {
                 : over > 0 ? "Untick \(over) to import (\(ListImport.limit) at most)"
                 : picked == 0 ? "Nothing selected"
                 : unasked ? "Want to go or been there?"
-                : "Import \(count(picked, "place")) as \(job.visited == true ? "Been there" : "Want to go")"
+                : "Import \(count(picked, "place"))"
             )
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(Color(.systemBackground))
