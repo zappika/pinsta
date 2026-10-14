@@ -59,6 +59,7 @@ Everything below the line is built and in **1.0 (23)**; this is what is not.
 - What to offer for list places that couldn't be found (web has the same gap).
 - "From Emilie's list" on the iOS place card.
 - "Wrong place?" after an automatic save, as part of reworking the steps before the success card.
+- Two ideas from Corner's onboarding (2026-10-14), written up under First experience: "Try it with one of these" seed posts, and human "why it's here" lines.
 
 ## Asset library — 2026-10-09
 - Converted all 72 city/object crops to transparent RGBA PNGs using local masks, with manual repairs and dark-background review. Original artwork retained in `source-crops/`. Menu assets unchanged. Catalog reports transparency accurately.
@@ -150,6 +151,13 @@ Known limits for the beta (tell friends):
 Sarp tried the app fresh twice: it's flat and boring. Friends and family see it next, so the first minutes have to be great. Design it properly first (web prototype, then iOS); don't patch it.
 - Questions for the design pass: what the first screen shows before anything is saved, how the first share is taught (share sheet → More → Favorites is a real hurdle), what the first save feels like (a moment, not a receipt), and when the list starts to feel like *yours*.
 - Folds in the "What's New" idea: an Apple-style splash with a few highlights, on first launch and after meaningful updates, never on every launch.
+- **Idea, not decided (2026-10-14): "Try it with one of these."** Seen in Corner's onboarding ("add 3 spots that are your vibe", a city list over the map). Copied as is it doesn't fit: Vicolo has no catalog, a picked place isn't from *your* post, and ticking cards doesn't teach the Share to… step testers get stuck on. The version that fits: 3 real Instagram posts from the user's city (hand-picked JSON, a few per tester city: Stockholm, Göteborg, Barcelona, Copenhagen); a tap runs the real save sheet in the app, as `-addURL` does, and ends on the real success card. Every place still has its post, the map isn't empty, and 3 saves reach `ASK_AFTER` (the location question and opening on your town). It comes before the Share tutorial, maybe instead of "Go to Instagram" opening Ästad Vingård. For Sander.
+- **Idea, not decided (2026-10-14): human "why it's here" lines.** Sarp likes Corner's touches: "newly opened", "because you like actually good food", "Eliza wants to try this". Corner's come from other users' data; ours can come from what's already stored, by heuristics with no LLM and no new paid calls. Each place gets one line, the strongest signal, falling back to today's source line (`lib/why-here.ts`):
+  - from the post: *Just opened* (caption words like new opening / just opened / nyöppnat / recién abierto, on a recent post), *You've saved this 3 times* (`posts`), *@account posted it* (the poster as the person who recommended it)
+  - from you: *Saved in June, still haven't been* (save date + Want to go), *Same account as Bar Gros, which you loved 😃* (rating + same poster), *Like the 4 wine bars you rated 😃* (ratings by type)
+  - from where you are: *Around the corner from Focacha* (a place you know, not metres)
+  - from friends: "From Emilie's list" exists; "your friend saved this" waits for Social.
+  Also usable on the "Try one of these" cards. Wording with Sander; prototype on the web card first.
 
 ## Expansion: Menu, Settings and Imports (Sarp, 2026-10-01)
 - [x] The buddy button opens a real menu; Settings (Appearance, Directions) and Usage are sheets inside it.
