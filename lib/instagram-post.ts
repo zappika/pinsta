@@ -15,6 +15,8 @@ export type InstagramPost = {
   ownerUsername: string | null;
   ownerFullName: string | null;
   hashtags: string[];
+  /** A collab post's other authors ("brothboy.ramen x vra"): one of them is often the venue. */
+  coauthors: string[];
 };
 
 type RawItem = {
@@ -27,6 +29,7 @@ type RawItem = {
   ownerUsername?: string;
   ownerFullName?: string;
   hashtags?: string[];
+  coauthorProducers?: { username?: string }[];
   error?: string;
   errorDescription?: string;
 };
@@ -76,5 +79,6 @@ export async function fetchInstagramPost(postUrl: string): Promise<InstagramPost
     ownerUsername: it.ownerUsername ?? null,
     ownerFullName: it.ownerFullName ?? null,
     hashtags: it.hashtags ?? [],
+    coauthors: (it.coauthorProducers ?? []).map((c) => c.username).filter((u): u is string => !!u),
   };
 }

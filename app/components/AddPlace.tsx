@@ -69,6 +69,11 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
   const source0 = parseSourceUrl(url);
   const validUrl = source0?.url ?? null;
   const urlTouched = url.trim().length > 0;
+  // Not a link: a place name, or an @handle read as one ("@richter.holtermann" → "richter holtermann").
+  // Mert typed names into the first field and only got an error (2026-10-14).
+  const looksLikeLink = /:\/\/|^www\.|\.(com|se|gl|app)\b|\//i.test(url.trim());
+  const nameQuery = !validUrl && !editing && !looksLikeLink ? url.trim().replace(/^@/, "").replace(/(?<=\S)[._]+(?=\S)/g, " ") : "";
+  const byName = nameQuery.length >= 3;
   const post = extract.status === "done" ? extract.post : null;
 
   useEffect(() => {
@@ -142,9 +147,11 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
 
   // Manual search (debounced) — shown instead of the extracted candidates while
   // there is a query; clearing it brings those back.
+  // Three letters at least: "vR" offered Stockholm Central.
+  const typed = byName ? nameQuery : query.trim();
   useEffect(() => {
-    const q = query.trim();
-    if (q.length < 2) {
+    const q = typed;
+    if (q.length < 3) {
       setSearching(false);
       setResults([]);
       return;
@@ -176,7 +183,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [query]);
+  }, [typed]);
 
   // The success card closes itself (or on a tap).
   useEffect(() => {
@@ -186,7 +193,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
   }, [saved, onClose]);
 
   async function save(c: PlaceCandidate, p: PostInfo | null = post) {
-    if (!validUrl || saving) return;
+    if ((!validUrl && !byName) || saving) return;
     setSaving(c.placeId);
     setError(null);
     try {
@@ -206,7 +213,8 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          instagramUrl: p?.url ?? validUrl,
+          // Saved by name, no post: a Maps link to the place stands in, as for list imports.
+          instagramUrl: p?.url ?? validUrl ?? mapsLink(c),
           placeId: c.placeId,
           imageUrl: p?.imageUrl ?? null,
           caption: p?.caption ?? null,
@@ -240,13 +248,14 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
   }
 
   const source = extract.status === "done" ? extract.source : null;
-  const searchActive = query.trim().length >= 2;
+  const searchActive = typed.length >= 3;
   const showTaggedFirst = candidates.length > 0 && source !== null && !searchActive;
   const listed = searchActive ? results : candidates;
   const manualMode =
     extract.status === "error" || (extract.status === "done" && extract.source === null);
   // The sheet's question lives in its small label (Sarp, 2026-10-09): no headings.
   const label = editing ? "Change place"
+    : byName ? "Which place is it?"
     : !validUrl ? "Save a place"
     : extract.status === "loading" ? "Finding the place…"
     : saving ? "Saving…"
@@ -277,16 +286,15 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
               <div className="flex gap-2">
                 <input
                   ref={urlRef}
-                  type="url"
-                  inputMode="url"
+                  type="text"
                   autoCapitalize="off"
                   autoCorrect="off"
                   spellCheck={false}
-                  placeholder="Paste an Instagram, TikTok or Maps link"
+                  placeholder="Paste a link, or type a place"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   className={`min-w-0 flex-1 rounded-xl border bg-stone-50 px-3.5 py-2.5 text-base outline-none placeholder:text-stone-400 ${
-                    urlTouched && !validUrl ? "border-red-300 focus:border-red-400" : "border-stone-200 focus:border-stone-400"
+                    urlTouched && !validUrl && looksLikeLink ? "border-red-300 focus:border-red-400" : "border-stone-200 focus:border-stone-400"
                   }`}
                 />
                 {!url && (
@@ -296,7 +304,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
                 )}
               </div>
               )}
-              {!editing && urlTouched && !validUrl && (
+              {!editing && urlTouched && !validUrl && looksLikeLink && (
                 <p className="mt-1.5 text-xs text-red-600">Needs to be an Instagram post, a TikTok video, or a Google Maps place.</p>
               )}
 
@@ -360,6 +368,15 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
       )}
     </div>
   );
+}
+
+/** A place saved by name has no post: a Maps search link to it (lib/sources.ts reads it as a Maps place). */
+function mapsLink(c: PlaceCandidate) {
+  const u = new URL("https://www.google.com/maps/search/");
+  u.searchParams.set("api", "1");
+  u.searchParams.set("query", c.name);
+  u.searchParams.set("query_place_id", c.placeId);
+  return u.toString();
 }
 
 const SAVED_MS = 2600;

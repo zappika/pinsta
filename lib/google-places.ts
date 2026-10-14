@@ -245,7 +245,7 @@ export async function resolveTag(input: {
     if (overlaps(words(c.name), tagWords)) return 2;
     return 3;
   };
-  return merged.sort((a, b) => score(a) - score(b));
+  return merged.filter((c) => isVenue(c, tag)).sort((a, b) => score(a) - score(b));
 }
 
 /**
@@ -258,6 +258,8 @@ export async function resolveAccount(input: {
   ownerUsername?: string | null;
   /** The post is tagged with a town, not a place: search the account there. */
   town?: string | null;
+  /** The post is tagged with a street: search around it, drop what's far. */
+  near?: { lat: number; lng: number } | null;
 }): Promise<PlaceCandidate[]> {
   const queries = new Set<string>();
   const full = input.ownerFullName?.trim();
@@ -270,7 +272,7 @@ export async function resolveAccount(input: {
   if (queries.size === 0) return [];
 
   const results = await Promise.all(
-    [...queries].map((q) => searchPlaces(q).catch(() => [] as PlaceCandidate[])),
+    [...queries].map((q) => searchPlaces(q, input.near).catch(() => [] as PlaceCandidate[])),
   );
   const seen = new Set<string>();
   const merged: PlaceCandidate[] = [];
@@ -283,8 +285,15 @@ export async function resolveAccount(input: {
     }
   }
   // Only places that share a real word with the account: "jecca" must not suggest "JEC Arquitectura".
+  // A handle glues the words together ("richterholtermann"): a long name word inside it counts too.
   const nameWords = [...words(full ?? ""), ...words(input.ownerUsername ?? ""), ...words(split ?? "")];
-  return merged.filter((c) => overlaps(words(c.name), nameWords));
+  const glued = (input.ownerUsername ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+  return merged.filter(
+    (c) =>
+      isVenue(c) &&
+      isNear(c, input.near) &&
+      (overlaps(words(c.name), nameWords) || words(c.name).some((w) => w.length >= 4 && glued.includes(w))),
+  );
 }
 
 const REGION_NAMES = (() => {
@@ -349,6 +358,140 @@ export function captionPlaceQuery(caption: string | null | undefined): string | 
   const place = m[1].replace(/[.,!]+$/, "").trim();
   if (place.length < 3 || /^(the|my|our|this)$/i.test(place)) return null;
   return m[2] ? `${place} ${m[2].replace(/[.,!]+$/, "")}` : place;
+}
+
+/**
+ * A location tag that names a street, not a place: "Vattugatan", "Hornsgatan, Södermalm",
+ * "Carrer de Girona 145". It says where to look, never what: searched as the venue, it
+ * offered the street itself (Mert, 2026-10-14). Returns the street; null for a venue tag.
+ * Same rule in PlaceSearch.swift.
+ */
+export function streetOfTag(tag: string | null | undefined): string | null {
+  const first = (tag ?? "").split(",")[0].trim();
+  if (!first) return null;
+  const ws = first.toLowerCase().split(/\s+/);
+  const last = ws[ws.length - 1].replace(/\.$/, "");
+  if (ws.some((w) => STREET_ENDINGS.some((e) => w.length > e.length + 2 && w.endsWith(e)))) return first;
+  if (ws.length > 1 && STREET_WORDS.includes(last)) return first;
+  if (ws.length > 1 && STREET_PREFIXES.includes(ws[0])) return first;
+  return null;
+}
+// Glued onto the name: Hornsgatan, Kungsvägen, Nørregade, Torstraße.
+const STREET_ENDINGS = ["gatan", "vägen", "gränd", "gade", "straße", "strasse", "straat", "gasse", "caddesi", "sokak", "sokağı"];
+// A word of its own at the end: "Oxford Street", "Main St".
+const STREET_WORDS = ["street", "st", "road", "rd", "avenue", "ave", "boulevard", "blvd", "lane", "caddesi", "sokak", "sokağı", "cd", "sk"];
+// …or at the start: "Carrer de Girona", "Calle Mayor". Not "via" or "rue": too many venues are called that.
+const STREET_PREFIXES = ["carrer", "calle", "avenida", "avinguda", "rua", "passeig", "paseo"];
+
+/**
+ * The line a caption pins the place on: "📍 Prodigi" and, on the next line, its address.
+ * Food accounts write it this way more than any other, and it beats the account that
+ * posted (often a blog, not the venue). → "Prodigi Carrer de Girona, 145, Barcelona".
+ * Same rule in PlaceSearch.swift.
+ */
+export function pinnedPlaceQuery(caption: string | null | undefined): string | null {
+  const lines = (caption ?? "").split("\n").map((l) => l.trim());
+  const lead = /^(?:📍|📌|(?:location|address|adress|adresse|dirección)\s*:)️?/iu;
+  const i = lines.findIndex((l) => lead.test(l));
+  if (i < 0) return null;
+  const clean = (l: string) => l.replace(lead, "").replace(/[@#]/g, " ").replace(/\s+/g, " ").trim();
+  let q = clean(lines[i]);
+  const below = lines[i + 1] ?? "";
+  const next = clean(below);
+  // The address on the line below: has a number or a comma, and isn't hashtags.
+  if (next && !below.startsWith("#") && !lead.test(below) && (/\d/.test(next) || next.includes(",") || q.length < 3)) {
+    q = `${q} ${next}`.trim();
+  }
+  return q.length >= 3 ? q.slice(0, 120) : null;
+}
+
+/**
+ * A collab headline: "BROTH BOY x VRÅ", "Noma × Ark". Usually one venue hosting the
+ * other, so both are searched. Only the caption's first line counts.
+ * Same rule in PlaceSearch.swift.
+ */
+export function collabNames(caption: string | null | undefined): string[] {
+  const first = (caption ?? "").split("\n")[0].replace(/[^\p{L}\p{N}\s×&'’.-]/gu, " ");
+  const parts = first.split(/\s+[x×]\s+/i);
+  if (parts.length !== 2) return [];
+  // The capitalised names touching the x, three words at most: "Pop-up: BROTH BOY x VRÅ ramen night".
+  const name = (ws: string[]) => {
+    const run: string[] = [];
+    for (const w of ws) {
+      if (!/^\p{Lu}/u.test(w) || run.length === 3) break;
+      run.push(w);
+    }
+    return run.join(" ");
+  };
+  const left = name(parts[0].trim().split(/\s+/).reverse()).split(" ").reverse().join(" ");
+  const right = name(parts[1].trim().split(/\s+/));
+  return [left, right].filter((p) => p.length >= 3);
+}
+
+// What a search returns that isn't somewhere to go: streets, areas, addresses.
+const NOT_VENUE = /^(route|street_address|street_number|premise|subpremise|locality|sublocality.*|neighborhood|administrative_area.*|country|postal_code|plus_code|political|geocode|intersection)$/;
+// Real places, but almost never what a post means: kept only when the name was asked for.
+const TRANSIT = /^(transit_station|train_station|subway_station|bus_station|bus_stop|light_rail_station|parking|parking_lot)$/;
+
+/** Somewhere to go, not a street or a station ("vR" offered Stockholm Central). `asked`: the words searched. */
+export function isVenue(c: PlaceCandidate, asked?: string): boolean {
+  const t = c.primaryType ?? "";
+  if (NOT_VENUE.test(t)) return false;
+  // A town or a street comes back untyped: named like its town ("Vrå"), or like a street ("Vattugatan").
+  if (!t && ((c.city && c.name.toLowerCase() === c.city.toLowerCase()) || streetOfTag(c.name))) return false;
+  if (TRANSIT.test(t)) return !!asked && overlaps(words(c.name), words(asked));
+  return true;
+}
+
+/** Within 30 km of a street tag's pin, or anywhere without one ("Bata, Ragusa" for a Stockholm post). */
+export function isNear(c: { lat: number; lng: number }, near: { lat: number; lng: number } | null | undefined) {
+  return !near || metersBetween(near, { latitude: c.lat, longitude: c.lng }) <= 30_000;
+}
+
+/** Where a street tag is: the first result's pin. */
+export async function locate(query: string): Promise<{ lat: number; lng: number } | null> {
+  const [first] = await searchPlaces(query).catch(() => [] as PlaceCandidate[]);
+  return first ? { lat: first.lat, lng: first.lng } : null;
+}
+
+/**
+ * Untagged, or tagged with a street or a town: the venue has to be read off the post.
+ * Clues in order of trust: the caption's 📍 line, "at X in Y", a collab headline and its
+ * co-authors, then the posting account (often a blog, never the venue for sure). All
+ * searched near the street when there is one; streets, areas and far-off namesakes dropped.
+ * `pinned`: the 📍 line answered — trusted like a tag. Same order in AddPlaceView.swift.
+ */
+export async function resolveUntagged(input: {
+  caption: string | null;
+  ownerFullName: string | null;
+  ownerUsername: string | null;
+  coauthors: string[];
+  town: string | null;
+  near: { lat: number; lng: number } | null;
+}): Promise<{ candidates: PlaceCandidate[]; pinned: boolean }> {
+  const search = async (q: string | null) =>
+    q ? (await searchPlaces(q, input.near).catch(() => [] as PlaceCandidate[])).filter((c) => isVenue(c, q) && isNear(c, input.near)) : [];
+  const pin = pinnedPlaceQuery(input.caption);
+  const [fromPin, fromCaption, fromCollab, fromAccounts] = await Promise.all([
+    search(pin),
+    search(captionPlaceQuery(input.caption)),
+    // A collab name is a guess at a venue: the result has to carry one of its words.
+    Promise.all(collabNames(input.caption).map(async (n) => (await search(n)).filter((c) => overlaps(words(c.name), words(n))))),
+    Promise.all(
+      [
+        { ownerFullName: input.ownerFullName, ownerUsername: input.ownerUsername },
+        ...input.coauthors.filter((u) => u !== input.ownerUsername).map((u) => ({ ownerFullName: null, ownerUsername: u })),
+      ].map((a) => resolveAccount({ ...a, town: input.town, near: input.near }).then((r) => r.slice(0, 3))),
+    ),
+  ]);
+  if (fromPin.length) return { candidates: fromPin.slice(0, 3), pinned: true };
+  // Co-authors before the poster: on a collab the venue is rarely the one who posted.
+  const accounts = [...fromAccounts.slice(1).flat(), ...fromAccounts[0]];
+  const seen = new Set<string>();
+  const merged = [...fromCaption.slice(0, 3), ...fromCollab.flatMap((r) => r.slice(0, 2)), ...accounts].filter(
+    (c) => !seen.has(c.placeId) && seen.add(c.placeId),
+  );
+  return { candidates: merged.slice(0, 4), pinned: false };
 }
 
 const CATEGORY_WORDS = [

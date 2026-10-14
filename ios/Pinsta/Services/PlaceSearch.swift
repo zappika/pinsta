@@ -15,6 +15,8 @@ struct PlaceCandidate: Identifiable, Hashable {
     let category: PlaceCategory
     /// The venue's own website, when Apple has one.
     var website: String? = nil
+    /// A station or a car park: a real place, almost never what a post means.
+    var isTransit = false
 }
 
 enum PlaceSearch {
@@ -81,14 +83,15 @@ extension PlaceSearch {
             if overlaps(words(c.name), tagWords) { return 2 }
             return 3
         }
-        return merged.sorted { score($0) < score($1) }
+        return merged.filter { isVenue($0, asked: tag) }.sorted { score($0) < score($1) }
     }
 
     /// No location tag: the account that posted is the lead. A venue's own
     /// account is named like the venue — a blogger's is not, so these are
     /// suggestions to tap, never to auto-save.
     /// `town`: the post is tagged with a town, not a place — search the account there.
-    static func resolveAccount(ownerFullName: String?, ownerUsername: String?, town: String? = nil) async -> [PlaceCandidate] {
+    /// `near`: the post is tagged with a street — search around it, drop what's far.
+    static func resolveAccount(ownerFullName: String?, ownerUsername: String?, town: String? = nil, near: CLLocationCoordinate2D? = nil) async -> [PlaceCandidate] {
         var queries: [String] = []
         if let full = ownerFullName?.trimmingCharacters(in: .whitespacesAndNewlines), full.count > 2 { queries.append(full) }
         if let handle = ownerUsername?.replacingOccurrences(of: "[._-]+", with: " ", options: .regularExpression)
@@ -97,10 +100,129 @@ extension PlaceSearch {
         if let split { queries.append(split) }
         if let town { queries += queries.filter { $0 != split }.map { "\($0) \(town)" } }
         guard !queries.isEmpty else { return [] }
-        let merged = await runAll(queries)
+        let merged = await runAll(queries, near: near)
         // Only places sharing a real word with the account: "jecca" must not suggest "JEC Arquitectura".
+        // A handle glues the words together ("richterholtermann"): a long name word inside it counts too.
         let nameWords = words(ownerFullName ?? "") + words(ownerUsername ?? "") + words(split ?? "")
-        return merged.filter { overlaps(words($0.name), nameWords) }
+        let glued = (ownerUsername ?? "").lowercased().filter { $0.isLetter || $0.isNumber }
+        return merged.filter { c in
+            isVenue(c) && isNear(c, near)
+                && (overlaps(words(c.name), nameWords) || words(c.name).contains { $0.count >= 4 && glued.contains($0) })
+        }
+    }
+
+    /// Untagged, or tagged with a street or a town: the venue is read off the post. Clues in
+    /// order of trust: the caption's 📍 line, "at X in Y", a collab headline and its co-authors,
+    /// then the posting account. All searched near the street when there is one; streets, towns
+    /// and far-off namesakes dropped. `pinned`: the 📍 line answered — trusted like a tag.
+    /// Same order as `resolveUntagged` in lib/google-places.ts.
+    static func resolveUntagged(
+        caption: String?, ownerFullName: String?, ownerUsername: String?, coauthors: [String],
+        town: String?, near: CLLocationCoordinate2D?
+    ) async -> (candidates: [PlaceCandidate], pinned: Bool) {
+        func find(_ q: String?) async -> [PlaceCandidate] {
+            guard let q else { return [] }
+            return ((try? await search(q, limit: 6, near: near)) ?? []).filter { isVenue($0, asked: q) && isNear($0, near) }
+        }
+        let fromPin = await find(pinnedPlaceQuery(caption))
+        if !fromPin.isEmpty { return (Array(fromPin.prefix(3)), true) }
+        let fromCaption = await find(captionPlaceQuery(caption))
+        var fromCollab: [PlaceCandidate] = []
+        for name in collabNames(caption) {
+            // A collab name is a guess at a venue: the result has to carry one of its words.
+            fromCollab += (await find(name)).filter { overlaps(words($0.name), words(name)) }.prefix(2)
+        }
+        // Co-authors before the poster: on a collab the venue is rarely the one who posted.
+        var fromAccounts: [PlaceCandidate] = []
+        for handle in coauthors where handle != ownerUsername {
+            fromAccounts += await resolveAccount(ownerFullName: nil, ownerUsername: handle, town: town, near: near).prefix(3)
+        }
+        fromAccounts += await resolveAccount(ownerFullName: ownerFullName, ownerUsername: ownerUsername, town: town, near: near).prefix(3)
+        var seen = Set<String>()
+        let merged = (Array(fromCaption.prefix(3)) + fromCollab + fromAccounts).filter { seen.insert($0.id).inserted }
+        return (Array(merged.prefix(4)), false)
+    }
+
+    /// Somewhere to go: not a station or a car park unless its name was asked for ("vR" offered
+    /// Stockholm Central), and not a town named like itself ("Vrå"). Same rule as `isVenue` on the web.
+    static func isVenue(_ c: PlaceCandidate, asked: String? = nil) -> Bool {
+        if c.isTransit { return asked.map { overlaps(words(c.name), words($0)) } ?? false }
+        // A town or a street: named like its town ("Vrå"), or like a street ("Vattugatan").
+        if c.category == .other, c.name.lowercased() == c.city?.lowercased() || streetOfTag(c.name) != nil { return false }
+        return true
+    }
+
+    /// Within 30 km of a street tag's pin, or anywhere without one ("Bata, Ragusa" for a Stockholm post).
+    static func isNear(_ c: PlaceCandidate, _ near: CLLocationCoordinate2D?) -> Bool {
+        guard let near else { return true }
+        return CLLocation(latitude: c.latitude, longitude: c.longitude)
+            .distance(from: CLLocation(latitude: near.latitude, longitude: near.longitude)) <= 30_000
+    }
+
+    /// Where a street tag is: MapKit's address search.
+    static func locate(_ query: String) async -> CLLocationCoordinate2D? {
+        let request = MKLocalSearch.Request()
+        request.naturalLanguageQuery = query
+        request.resultTypes = .address
+        return try? await MKLocalSearch(request: request).start().mapItems.first?.placemark.coordinate
+    }
+
+    /// A location tag that names a street, not a place: "Vattugatan", "Hornsgatan, Södermalm",
+    /// "Carrer de Girona 145". It says where to look, never what (Mert, 2026-10-14).
+    /// Same rule as `streetOfTag` in lib/google-places.ts.
+    static func streetOfTag(_ tag: String?) -> String? {
+        guard let first = tag?.split(separator: ",").first?.trimmingCharacters(in: .whitespaces), !first.isEmpty else { return nil }
+        let ws = first.lowercased().split(separator: " ").map(String.init)
+        let last = ws.last.map { $0.hasSuffix(".") ? String($0.dropLast()) : $0 } ?? ""
+        if ws.contains(where: { w in streetEndings.contains { w.count > $0.count + 2 && w.hasSuffix($0) } }) { return first }
+        if ws.count > 1, streetWords.contains(last) { return first }
+        if ws.count > 1, streetPrefixes.contains(ws[0]) { return first }
+        return nil
+    }
+    private static let streetEndings = ["gatan", "vägen", "gränd", "gade", "straße", "strasse", "straat", "gasse", "caddesi", "sokak", "sokağı"]
+    private static let streetWords = ["street", "st", "road", "rd", "avenue", "ave", "boulevard", "blvd", "lane", "caddesi", "sokak", "sokağı", "cd", "sk"]
+    private static let streetPrefixes = ["carrer", "calle", "avenida", "avinguda", "rua", "passeig", "paseo"]
+
+    /// The caption's "📍 Prodigi" line, plus the address on the line below it.
+    /// Same rule as `pinnedPlaceQuery` in lib/google-places.ts.
+    static func pinnedPlaceQuery(_ caption: String?) -> String? {
+        let lines = (caption ?? "").components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
+        let lead = try! NSRegularExpression(pattern: #"^(?:📍|📌|(?:location|address|adress|adresse|dirección)\s*:)\x{FE0F}?"#, options: .caseInsensitive)
+        func leads(_ l: String) -> Bool { lead.firstMatch(in: l, range: NSRange(l.startIndex..., in: l)) != nil }
+        func clean(_ l: String) -> String {
+            lead.stringByReplacingMatches(in: l, range: NSRange(l.startIndex..., in: l), withTemplate: "")
+                .replacingOccurrences(of: "[@#]", with: " ", options: .regularExpression)
+                .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+                .trimmingCharacters(in: .whitespaces)
+        }
+        guard let i = lines.firstIndex(where: leads) else { return nil }
+        var q = clean(lines[i])
+        let below = i + 1 < lines.count ? lines[i + 1] : ""
+        let next = clean(below)
+        // The address on the line below: has a number or a comma, and isn't hashtags.
+        if !next.isEmpty, !below.hasPrefix("#"), !leads(below),
+           next.rangeOfCharacter(from: .decimalDigits) != nil || next.contains(",") || q.count < 3 {
+            q = "\(q) \(next)".trimmingCharacters(in: .whitespaces)
+        }
+        return q.count >= 3 ? String(q.prefix(120)) : nil
+    }
+
+    /// A collab headline: "BROTH BOY x VRÅ" → both names, the capitalised words touching the x.
+    /// Same rule as `collabNames` in lib/google-places.ts.
+    static func collabNames(_ caption: String?) -> [String] {
+        let first = (caption ?? "").components(separatedBy: "\n").first ?? ""
+        let cleaned = first.replacingOccurrences(of: #"[^\p{L}\p{N}\s×&'’.-]"#, with: " ", options: .regularExpression)
+        let parts = cleaned.components(separatedBy: try! NSRegularExpression(pattern: #"\s+[x×]\s+"#, options: .caseInsensitive))
+        guard parts.count == 2 else { return [] }
+        func name(_ ws: [String]) -> [String] {
+            var run: [String] = []
+            for w in ws { guard w.first?.isUppercase == true, run.count < 3 else { break }; run.append(w) }
+            return run
+        }
+        let split: (String) -> [String] = { $0.split(whereSeparator: \.isWhitespace).map(String.init) }
+        let left = name(split(parts[0]).reversed()).reversed().joined(separator: " ")
+        let right = name(split(parts[1])).joined(separator: " ")
+        return [left, right].filter { $0.count >= 3 }
     }
 
     private static let regionNames: Set<String> = {
@@ -179,11 +301,11 @@ extension PlaceSearch {
     }
 
     /// All queries in parallel, merged in order, de-duplicated by id.
-    private static func runAll(_ queries: [String]) async -> [PlaceCandidate] {
+    private static func runAll(_ queries: [String], near: CLLocationCoordinate2D? = nil) async -> [PlaceCandidate] {
         let unique = Array(NSOrderedSet(array: queries)) as? [String] ?? queries
         let results: [[PlaceCandidate]] = await withTaskGroup(of: (Int, [PlaceCandidate]).self) { group in
             for (i, q) in unique.enumerated() {
-                group.addTask { (i, (try? await search(q, limit: 6)) ?? []) }
+                group.addTask { (i, (try? await search(q, limit: 6, near: near)) ?? []) }
             }
             var out = Array(repeating: [PlaceCandidate](), count: unique.count)
             for await (i, list) in group { out[i] = list }
@@ -229,7 +351,20 @@ extension PlaceCandidate {
             // country chips and the web say "Japan".
             country: placemark.isoCountryCode.flatMap { Locale(identifier: "en").localizedString(forRegionCode: $0) } ?? placemark.country,
             category: PlaceCategory.from(item.pointOfInterestCategory, name: name),
-            website: item.url?.absoluteString
+            website: item.url?.absoluteString,
+            isTransit: [.publicTransport, .parking, .gasStation, .evCharger].contains(item.pointOfInterestCategory)
         )
+    }
+}
+
+private extension String {
+    func components(separatedBy re: NSRegularExpression) -> [String] {
+        var out: [String] = [], start = startIndex
+        for m in re.matches(in: self, range: NSRange(startIndex..., in: self)) {
+            guard let r = Range(m.range, in: self) else { continue }
+            out.append(String(self[start..<r.lowerBound])); start = r.upperBound
+        }
+        out.append(String(self[start...]))
+        return out
     }
 }

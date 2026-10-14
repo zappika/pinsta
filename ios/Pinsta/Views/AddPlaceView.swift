@@ -66,8 +66,22 @@ struct AddPlaceView: View {
     }
 
     private var validURL: String? { editing?.instagramURL ?? SourceURL.parse(urlText)?.url }
+    /// Not a link: a place name, or an @handle read as one ("@richter.holtermann" → "richter holtermann").
+    /// Mert typed names into the first field and only got an error (2026-10-14). Same as the web.
+    private var looksLikeLink: Bool {
+        urlText.trimmed.range(of: #"://|^www\.|\.(com|se|gl|app)\b|/"#, options: [.regularExpression, .caseInsensitive]) != nil
+    }
+    private var nameQuery: String {
+        guard validURL == nil, editing == nil, !looksLikeLink else { return "" }
+        return urlText.trimmed.replacingOccurrences(of: "^@", with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"(?<=\S)[._]+(?=\S)"#, with: " ", options: .regularExpression)
+    }
+    private var byName: Bool { nameQuery.count >= 3 }
+    /// What the search runs on: the name in the first field, or the search under the post.
+    /// Three letters at least: "vR" offered Stockholm Central.
+    private var typed: String { byName ? nameQuery : query.trimmed }
     private var post: InstagramPost? { if case .done(let p) = reading { return p } else { return nil } }
-    private var showSuggestedFirst: Bool { !candidates.isEmpty && source != nil && query.trimmed.count < 2 }
+    private var showSuggestedFirst: Bool { !candidates.isEmpty && source != nil && typed.count < 3 }
     private var manualMode: Bool {
         if case .failed = reading { return true }
         if case .done = reading, source == nil { return true }
@@ -79,6 +93,7 @@ struct AddPlaceView: View {
     /// The sheet's question lives in its small label (Sarp, 2026-10-09): no headings.
     private var label: String {
         if editing != nil { return "Change place" }
+        if byName { return "Which place is it?" }
         if validURL == nil { return "Save a place" }
         if reading == .loading || finding { return "Finding the place…" }
         if saving != nil { return "Saving…" }
@@ -155,7 +170,7 @@ struct AddPlaceView: View {
             focus = .url
         }
         .task(id: validURL) { if editing == nil { await readPost() } }
-        .task(id: query) { await manualSearch() }
+        .task(id: typed) { await manualSearch() }
     }
 
     /// What changes the sheet's size: one value, so each change animates once.
@@ -185,16 +200,15 @@ struct AddPlaceView: View {
     private var urlField: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                TextField("Instagram, TikTok or Maps link", text: $urlText)
+                TextField("Paste a link, or type a place", text: $urlText)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .keyboardType(.URL)
                     .focused($focus, equals: .url)
                     .padding(.horizontal, 14).padding(.vertical, 10)
                     .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(!urlText.isEmpty && validURL == nil ? Color.red.opacity(0.5) : Color.clear)
+                            .stroke(!urlText.isEmpty && validURL == nil && looksLikeLink ? Color.red.opacity(0.5) : Color.clear)
                     )
                 if urlText.isEmpty && allowsPasteboard {
                     // The system paste control reads the pasteboard without the permission prompt.
@@ -209,7 +223,7 @@ struct AddPlaceView: View {
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.separator)))
                 }
             }
-            if !urlText.isEmpty && validURL == nil {
+            if !urlText.isEmpty && validURL == nil && looksLikeLink {
                 Text("Needs to be an Instagram post, a TikTok video, or a Google Maps place.").font(.caption).foregroundStyle(.red)
             }
         }
@@ -263,9 +277,9 @@ struct AddPlaceView: View {
     private var footnotes: some View {
         if searching && candidates.isEmpty {
             Text("Searching…").font(.subheadline).foregroundStyle(.tertiary).frame(maxWidth: .infinity)
-        } else if !searching && query.trimmed.count >= 2 && candidates.isEmpty && error == nil {
+        } else if !searching && typed.count >= 3 && candidates.isEmpty && error == nil {
             Text("No matches. Try adding the city.").font(.subheadline).foregroundStyle(.tertiary).frame(maxWidth: .infinity)
-        } else if editing == nil, manualMode, !finding, case .done = reading, query.trimmed.count < 2 {
+        } else if editing == nil, manualMode, !finding, case .done = reading, typed.count < 3 {
             Text("No location on this post. Type the place's name to save it.")
                 .font(.subheadline).foregroundStyle(.secondary)
         }
@@ -329,7 +343,7 @@ struct AddPlaceView: View {
                 let pin = post.near.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lng) }
                 found = await PlaceSearch.resolveLink(name: name, near: pin)
                 from = .link
-            } else if let tag = post.locationName, PlaceSearch.areaOfTag(tag) == nil {
+            } else if let tag = post.locationName, PlaceSearch.areaOfTag(tag) == nil, PlaceSearch.streetOfTag(tag) == nil {
                 found = Array(await PlaceSearch.resolveTag(
                     tag, ownerFullName: post.ownerFullName, caption: post.caption,
                     hashtags: post.hashtags ?? [], cityHints: Array(cityHints),
@@ -337,24 +351,21 @@ struct AddPlaceView: View {
                 ).prefix(5))
                 from = .tag
             } else {
-                // The caption naming a place beats the account; both are suggestions only.
-                var fromCaption: [PlaceCandidate] = []
-                if let q = PlaceSearch.captionPlaceQuery(post.caption) {
-                    fromCaption = Array(((try? await PlaceSearch.search(q, limit: 3)) ?? []))
-                }
-                // Three account matches at most, as on the web.
-                // A tag naming a town ("Ostuni, Puglia, Italy") says where, not what: the account, there.
-                let fromAccount = await PlaceSearch.resolveAccount(
-                    ownerFullName: post.ownerFullName, ownerUsername: post.ownerUsername,
-                    town: PlaceSearch.areaOfTag(post.locationName)
-                ).prefix(3)
-                var seen = Set<String>()
-                found = Array((fromCaption + fromAccount).filter { seen.insert($0.id).inserted }.prefix(4))
-                from = .account
+                // No tag, or one naming a town ("Ostuni, Puglia, Italy") or a street ("Vattugatan"):
+                // it says where, not what. The venue is read off the post and searched there.
+                let near: CLLocationCoordinate2D? = PlaceSearch.streetOfTag(post.locationName) != nil
+                    ? await PlaceSearch.locate(post.locationName!) : nil
+                let r = await PlaceSearch.resolveUntagged(
+                    caption: post.caption, ownerFullName: post.ownerFullName, ownerUsername: post.ownerUsername,
+                    coauthors: post.coauthors ?? [], town: PlaceSearch.areaOfTag(post.locationName), near: near
+                )
+                found = r.candidates
+                // The caption's 📍 line names the place as surely as a tag does.
+                from = r.pinned ? .tag : .account
             }
             // The search field is open while this runs: if the user started typing,
             // their own results win, and nothing saves itself behind their back.
-            guard !Task.isCancelled, query.trimmed.count < 2 else { return }
+            guard !Task.isCancelled, query.trimmed.count < 3 else { return }
             candidates = found
             source = found.isEmpty ? nil : from
             // Only a location tag or a Maps link is trusted enough to save without a tap.
@@ -371,14 +382,17 @@ struct AddPlaceView: View {
     }
 
     private func manualSearch() async {
-        let q = query.trimmed
-        guard q.count >= 2 else { return }
+        let q = typed
+        guard q.count >= 3 else {
+            if byName || validURL == nil { candidates = [] }
+            return
+        }
         try? await Task.sleep(for: .milliseconds(350))
         guard !Task.isCancelled else { return }
         searching = true
         defer { searching = false }
         do {
-            let results = try await PlaceSearch.search(q, limit: 6)
+            let results = try await PlaceSearch.search(q, limit: 6).filter { PlaceSearch.isVenue($0, asked: q) }
             guard !Task.isCancelled else { return }
             candidates = results
         } catch {
@@ -388,7 +402,8 @@ struct AddPlaceView: View {
     }
 
     private func save(_ c: PlaceCandidate) {
-        guard let validURL, saving == nil else { return }
+        // Saved by name, no post: a Maps link to the place stands in, as for list imports.
+        guard let validURL = validURL ?? (byName ? Self.mapsLink(c) : nil), saving == nil else { return }
         saving = c.id
         Task {
             if let editing {
@@ -459,6 +474,13 @@ struct AddPlaceView: View {
             await show(Saved(place: place, already: false, changed: false, milestone: line, imageURL: post?.imageURL))
             saving = nil
         }
+    }
+
+    /// A place saved by name has no post: a Maps search link to it (SourceURL reads it as a Maps place).
+    static func mapsLink(_ c: PlaceCandidate) -> String {
+        var link = URLComponents(string: "https://www.google.com/maps/search/")!
+        link.queryItems = [.init(name: "api", value: "1"), .init(name: "query", value: "\(c.name) \(c.latitude),\(c.longitude)")]
+        return link.url?.absoluteString ?? "https://www.google.com/maps"
     }
 
     /// The success card, with its photo decoded first (Sarp, 2026-10-10: it opened on the

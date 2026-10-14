@@ -18,11 +18,13 @@ struct InstagramPost: Decodable {
     var near: Near? = nil
     /// TikTok: the location tag's city, searched with the tag.
     var city: String? = nil
+    /// A collab post's other authors: one of them is often the venue. Nil from older servers.
+    var coauthors: [String]? = nil
 
     struct Near: Decodable, Equatable { let lat: Double; let lng: Double }
 
     enum CodingKeys: String, CodingKey {
-        case url, caption, locationName, ownerUsername, ownerFullName, hashtags, kind, near, city
+        case url, caption, locationName, ownerUsername, ownerFullName, hashtags, kind, near, city, coauthors
         case imageURL = "imageUrl"
     }
 }

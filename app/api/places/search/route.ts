@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { searchPlaces } from "@/lib/google-places";
+import { isVenue, searchPlaces } from "@/lib/google-places";
 import { requireOwner } from "@/lib/owner";
 
 export async function POST(req: Request) {
@@ -11,7 +11,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "query is required" }, { status: 400 });
   }
   try {
-    const candidates = await searchPlaces(q);
+    // Somewhere to go: no streets, and stations only when asked for by name.
+    const candidates = (await searchPlaces(q)).filter((c) => isVenue(c, q));
     return NextResponse.json({ candidates });
   } catch (e) {
     console.error(e);

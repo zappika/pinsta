@@ -22,6 +22,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-06 (build 12).
 | Price ($–$$$$) | Google, on save | Asks `/api/price`, which asks Google |
 | Usage sheet and `/usage` | Yes | No: the costs are Sarp's to watch |
 | Share from Instagram | Paste a link | Share sheet → Vicolo, or paste |
+| Save by typing a name / @handle (first field) | Yes (Google) | Yes (MapKit) |
 
 ## The same on both
 

@@ -3,7 +3,7 @@ import { fetchInstagramPost } from "@/lib/instagram-post";
 import { fetchTikTokPost } from "@/lib/tiktok";
 import { readGoogleLink } from "@/lib/google-link";
 import { parseSourceUrl, type SourceKind } from "@/lib/sources";
-import { areaOfTag, captionPlaceQuery, getPlace, resolveAccount, resolveTag, searchPlaces, type PlaceCandidate } from "@/lib/google-places";
+import { areaOfTag, getPlace, locate, resolveTag, resolveUntagged, searchPlaces, streetOfTag, type PlaceCandidate } from "@/lib/google-places";
 import { storeImage } from "@/lib/blob";
 import { isOwner } from "@/lib/owner";
 
@@ -21,6 +21,8 @@ export type ExtractResponse = {
     ownerUsername: string | null;
     ownerFullName: string | null;
     hashtags: string[];
+    /** A collab post's other authors; the iOS app searches them like the poster. */
+    coauthors: string[];
     /** Google Maps links carry the pin; the iOS app searches MapKit around it. */
     near: { lat: number; lng: number } | null;
     /** TikTok's location tag names its city; the iOS app adds "tag city" to its searches, as resolveTag does here. */
@@ -35,7 +37,8 @@ export type ExtractResponse = {
   source: "tag" | "account" | "link" | null;
 };
 
-type Read = Omit<ExtractResponse["post"], "url" | "kind" | "imageUrl" | "city"> & {
+type Read = Omit<ExtractResponse["post"], "url" | "kind" | "imageUrl" | "city" | "coauthors"> & {
+  coauthors?: string[];
   url: string;
   rawImage: string | null;
   city?: string | null;
@@ -45,7 +48,7 @@ type Read = Omit<ExtractResponse["post"], "url" | "kind" | "imageUrl" | "city"> 
 async function read(kind: SourceKind, url: string): Promise<Read> {
   if (kind === "instagram") {
     const p = await fetchInstagramPost(url);
-    return { url, caption: p.caption, locationName: p.locationName, rawImage: p.imageUrl, ownerUsername: p.ownerUsername, ownerFullName: p.ownerFullName, hashtags: p.hashtags, near: null };
+    return { url, caption: p.caption, locationName: p.locationName, rawImage: p.imageUrl, ownerUsername: p.ownerUsername, ownerFullName: p.ownerFullName, hashtags: p.hashtags, coauthors: p.coauthors, near: null };
   }
   if (kind === "tiktok") {
     const p = await fetchTikTokPost(url);
@@ -87,16 +90,19 @@ export async function POST(req: Request) {
       ? body.cityHints.filter((c): c is string => typeof c === "string").slice(0, 50)
       : [];
 
-    // A tag naming a town ("Ostuni, Puglia, Italy") says where, not what: search the account there.
+    // A tag naming a town ("Ostuni, Puglia, Italy") or a street ("Vattugatan") says where, not what:
+    // the venue is read off the post and searched there.
     const town = areaOfTag(post.locationName);
+    const street = town ? null : streetOfTag(post.locationName);
     const source: ExtractResponse["source"] = native
       ? null
       : parsed.kind === "google"
         ? "link"
-        : post.locationName && !town
+        : post.locationName && !town && !street
           ? "tag"
           : "account";
 
+    let pinned = false;
     const find = async (): Promise<PlaceCandidate[]> => {
       if (source === "link") {
         // An id Google won't resolve (stale, or a legacy CID) still has the name and pin to search by.
@@ -122,12 +128,17 @@ export async function POST(req: Request) {
         ).slice(0, 5);
       }
       if (source === "account") {
-        // The caption naming a place beats the account; both are suggestions only.
-        const q = captionPlaceQuery(post.caption);
-        const fromCaption = q ? (await searchPlaces(q).catch(() => [])).slice(0, 3) : [];
-        const fromAccount = (await resolveAccount({ ownerFullName: post.ownerFullName, ownerUsername: post.ownerUsername, town })).slice(0, 3);
-        const seen = new Set<string>();
-        return [...fromCaption, ...fromAccount].filter((c) => !seen.has(c.placeId) && seen.add(c.placeId)).slice(0, 4);
+        const near = street ? await locate(post.locationName!) : null;
+        const r = await resolveUntagged({
+          caption: post.caption,
+          ownerFullName: post.ownerFullName,
+          ownerUsername: post.ownerUsername,
+          coauthors: post.coauthors ?? [],
+          town,
+          near,
+        });
+        pinned = r.pinned;
+        return r.candidates;
       }
       return [];
     };
@@ -150,11 +161,13 @@ export async function POST(req: Request) {
         ownerUsername: post.ownerUsername,
         ownerFullName: post.ownerFullName,
         hashtags: post.hashtags,
+        coauthors: post.coauthors ?? [],
         near: post.near,
         city: post.city ?? null,
       },
       candidates: source === "link" && candidates.length > 1 && isClear(candidates, post.near) ? candidates.slice(0, 1) : candidates,
-      source: candidates.length ? source : null,
+      // The caption's 📍 line names the place as surely as a tag does.
+      source: candidates.length ? (pinned ? "tag" : source) : null,
     };
     return NextResponse.json(out);
   } catch (e) {

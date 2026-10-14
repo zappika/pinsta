@@ -46,8 +46,17 @@ Pinsta. Instagram itself can't be installed in the Simulator.
 - **Tag → place** (`lib/google-places.ts: resolveTag/resolveAccount`, ported to
   `ios/Pinsta/Services/PlaceSearch.swift`): several cheap queries merged and
   ranked — tag, account display name, tag + category word from the caption,
-  tag + a hashtag naming a known city. No tag → the posting account's name is
-  searched (a city glued to the handle is split off: `barabbacph` → "barabba Copenhagen", `handleWithCity`) and offered as *suggestions* (never auto-saved).
+  tag + a hashtag naming a known city. A tag naming a town (`areaOfTag`) or a street
+  (`streetOfTag`: Vattugatan, Hornsgatan, Carrer de…) says *where*, not *what*: like no tag at all,
+  the venue is read off the post (`resolveUntagged`): the caption's 📍 line (`pinnedPlaceQuery`,
+  trusted like a tag, one match saves itself), "at X in Y", a collab headline "A x B" (`collabNames`)
+  and the post's co-authors (Apify `coauthorProducers`), then the posting account (a city glued to the
+  handle is split off: `barabbacph` → "barabba Copenhagen"; a name word inside a glued handle counts).
+  A street tag is located first and everything is searched near it, 30 km at most. Results that
+  aren't somewhere to go (streets, towns, stations unless named: `isVenue`) are dropped everywhere.
+  Test cases from Mert (2026-10-14): Prodigi (📍), Richter Holtermann (street tag), Bata (street tag), Broth Boy x Vrå (collab).
+- **First field of the save sheet** takes a link *or* a place name / @handle (search from 3 letters).
+  A place saved by name has no post: a Google Maps search link to it stands in (as list imports do).
 - **Grouping** (`lib/grouping.ts` ↔ `ios/Pinsta/Services/Grouping.swift`): the
   "Where" menu label per place. Town with 2+ places = own row; 1-place town folds
   into its region only if the region then bundles 2+. Same comments both sides —
