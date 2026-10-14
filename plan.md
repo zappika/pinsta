@@ -3,6 +3,7 @@
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
 ## 2026-10-14: finding the place, from Mert's and testers' feedback (web + iOS)
+- **1.0 (22) uploaded 2026-10-14** with everything below: place finding, profile saves, the Share to… tutorial page, stuck help, copied-link offer, Google fallback.
 - A street tag ("Vattugatan", "Hornsgatan, Södermalm") no longer searched as the venue: it says where, and the post is read for what. Caption 📍 line (one match saves itself), collab headlines and co-authors, then the account; streets, towns and stations (unless named) dropped; far-off namesakes dropped near a street tag.
 - First field takes a place name or @handle too; typed search starts at 3 letters.
 - Checked live against Google: Prodigi → Restaurant Prodigi (pinned), Richter Holtermann → Gallery Richter / Holtermann, Bata → BATA restaurant, Broth Boy x Vrå → Restaurang VRÅ (Göteborg; the real post may mean Stockholm). Web sheet: "@richter.holtermann" → the gallery. iOS: built, "Prodigi" by name saved on the iPhone 17 simulator. **Not checked:** the real posts end to end (no links), co-author field from Apify on a real collab post. Not in a TestFlight build yet.
