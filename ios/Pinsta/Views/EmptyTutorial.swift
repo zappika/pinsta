@@ -52,18 +52,18 @@ struct EmptyTutorial: View {
                     .background(Tutorial.action, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .buttonStyle(.plain)
-            .accessibilityHint("Opens Instagram, where you can share a post to Vicolo.")
+            .accessibilityHint("Opens a post of a place in Instagram, to share to Vicolo.")
             .padding(.horizontal, 20)
             .padding(.top, 8)
             .padding(.bottom, 12)
         }
     }
 
-    /// The Instagram app when installed, the website otherwise.
+    /// A post of a place, so a first try has something to save even when the
+    /// feed is gymnasts and dogs. Tagged (Ästad Vingård), so it saves itself.
+    /// A universal link: Instagram opens it when installed, Safari otherwise.
     private func openInstagram() {
-        openURL(URL(string: "instagram://app")!) { opened in
-            if !opened { openURL(URL(string: "https://www.instagram.com")!) }
-        }
+        openURL(URL(string: "https://www.instagram.com/p/DdJIacKIplU/")!)
     }
 }
 
