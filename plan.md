@@ -2,18 +2,28 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
+## Open after 2026-10-14 (feedback round: Mert + testers)
+Everything below the line is built and in **1.0 (23)**; this is what is not.
+- **Testers on old builds:** all five were on 21 (installed the morning of 10-14). TestFlight only updates by itself when a tester turns on Automatic Updates. Nudge them: "TestFlight → Vicolo → Update, and turn on Automatic Updates". Idea, not built: an in-app "new version ready" banner (server holds the latest build number, opens TestFlight).
+- **Nothing from 22/23 tried on a real phone yet.** First checks: share a post via Instagram → Share to…, paste a copied link, Vink's carousel (`C_OOWiDS7Gh`), the La Lucha Libre reel (`Dc-iywHIy7b`).
+- **iOS 26 untested** (4 of 5 testers are on 26.x; only the iOS 27 simulator is installed, Sarp declined the 9 GB download). Ask the iPhone 13 tester (most sessions) to try 23. **Dark mode** of the new screens (Share to… page, stuck note, paste offer, pick-many sheet) unchecked.
+- **Tutorial photo:** a tester offered a real one for page 1 — waiting for the file (original, with permission); it's a swap of `OnboardingRestaurant/restaurant.jpg`.
+- **Noted, left (Sarp):** pre-fill the search with the account's name when nothing is found.
+- **For testers to verify (Sarp):** Apple Maps results on their own posts — the area least tested.
+- **Not solvable from the post:** a venue named nowhere (Cindy Khalifa's reel: only @lamenagerieparis, an event collective). Places only *spoken* in a reel. Set aside: places on no map at all.
+- **List posts, gaps:** a slide name Apple Maps doesn't have is dropped (Tranen) — no Google fallback for slide names yet; web has no list posts (needs server-side text reading).
+- **To design (Sander):** a moving tutorial — see "To design".
+
 ## 2026-10-14: finding the place, from Mert's and testers' feedback (web + iOS)
 - **1.0 (23) uploaded 2026-10-14**: 22 plus list posts (several places from a carousel), "Address of the …:" lines, caption @mentions.
 - **1.0 (22) uploaded 2026-10-14** with everything below: place finding, profile saves, the Share to… tutorial page, stuck help, copied-link offer, Google fallback.
 - A street tag ("Vattugatan", "Hornsgatan, Södermalm") no longer searched as the venue: it says where, and the post is read for what. Caption 📍 line (one match saves itself), collab headlines and co-authors, then the account; streets, towns and stations (unless named) dropped; far-off namesakes dropped near a street tag.
 - First field takes a place name or @handle too; typed search starts at 3 letters.
-- Checked live against Google: Prodigi → Restaurant Prodigi (pinned), Richter Holtermann → Gallery Richter / Holtermann, Bata → BATA restaurant, Broth Boy x Vrå → Restaurang VRÅ (Göteborg; the real post may mean Stockholm). Web sheet: "@richter.holtermann" → the gallery. iOS: built, "Prodigi" by name saved on the iPhone 17 simulator. **Not checked:** the real posts end to end (no links), co-author field from Apify on a real collab post. Not in a TestFlight build yet.
-- **Getting to Vicolo (iOS tutorial):** new page 2 shows Instagram's own sheet with "Share to…" ringed; "Go to Instagram" only on the last page, "Next" before it (Sarp). Save sheet placeholder now "Type a place, or paste a link" (both apps). Checked all four pages on the simulator, light only. **Waiting:** the tester's photo (a straight swap of `OnboardingRestaurant`). Not in TestFlight yet.
+- Checked live against Google: Prodigi → Restaurant Prodigi (pinned), Richter Holtermann → Gallery Richter / Holtermann, Bata → BATA restaurant, Broth Boy x Vrå → Restaurang VRÅ (Göteborg, confirmed by Sarp). Web sheet: "@richter.holtermann" → the gallery. iOS: "Prodigi" by name saved on the iPhone 17 simulator. Later the same day checked with the real links (below); Prodigi has none.
+- **Getting to Vicolo (iOS tutorial):** new page 2 shows Instagram's own sheet with "Share to…" ringed; "Go to Instagram" only on the last page, "Next" before it (Sarp). Save sheet placeholder now "Type a place, or paste a link" (both apps). Checked all four pages on the simulator, light only.
 - **Save from an Instagram profile** (link or @handle), web + iOS: read through Apify, matched by name and kind, saves itself. Checked with Mert's real links on web (all 8 right) and iOS (Vrå and Richter profiles save; Bata isn't on Apple Maps → "Couldn't find this place on the map"). Also from those links: a tag that finds nothing now falls through (Broth Boy x Vrå → VRÅ), accents fold, handle splits.
-- **Noted, left (Sarp):** when nothing is found, pre-fill the search with the account's name — not built.
-- **First run, iOS:** back from "Go to Instagram" with nothing saved → Share to… page + "Didn't see Vicolo?" note; a copied link → "Copied a link?" + Paste; Google when Apple Maps misses (automatic only when Apple finds nothing, else "None of these", Sarp). Checked on the simulator: the stuck note after a trip to Safari, paste → Ästad saved, BATA via "None of these". Light only. Needs the deploy for `/api/search`, and TestFlight.
-- **List posts (iOS):** a carousel naming places on its slides → "This post has N places", pick, save all; each gets its slide as photo. Checked with Vink's Oslo carousel: 5 of 6 found (Tranen isn't on Apple Maps), unticked one, saved 4. Reels' spoken places and web: not covered. Needs the deploy (`slides` in /api/extract) and a TestFlight build.
-- **For the testers to verify (Sarp):** the iOS (Apple Maps) side on real posts beyond the eight links above; Prodigi has no link.
+- **First run, iOS:** back from "Go to Instagram" with nothing saved → Share to… page + "Didn't see Vicolo?" note; a copied link → "Copied a link?" + Paste; Google when Apple Maps misses (automatic only when Apple finds nothing, else "None of these", Sarp). Checked on the simulator: the stuck note after a trip to Safari, paste → Ästad saved, BATA via "None of these". Light only.
+- **List posts (iOS):** a carousel naming places on its slides → "This post has N places", pick, save all; each gets its slide as photo. Checked with Vink's Oslo carousel: 5 of 6 found (Tranen isn't on Apple Maps), unticked one, saved 4.
 
 ## 2026-10-11: list import asks Want to go or Been there (Sarp)
 - A Google list import goes in as one or the other for the whole list; otherwise sixty places land unsorted in Want to go. Icon-only pick (bookmark / check) beside the Import button, nothing picked at first, the button says "Want to go or been there?" until then and plain "Import 23 places" after (Sarp: "as Been there" complicated it). **1.0 (20) uploaded 2026-10-11** with the plain label. Web (`POST /api/places` takes `visited`) + iOS (`ListImport.visited`). Checked: web review with a stubbed list at phone size; iOS with BCN Nearby on the simulator (no import run). **1.0 (19) uploaded.**
@@ -109,6 +119,7 @@ Everything below is on `main` and deployed. iOS changes are in code and checked 
 - Verified: `tsc`, `next build`, iOS simulator build; migration over an existing list with the new fields; duplicate save makes no paid call (usage unchanged); gone post → 404 permanent; bad input → 400/404. Not verified here: the web map redraw fix (the browser pane was hidden, so MapLibre never painted), the share extension end to end.
 
 ## Waiting on Sarp
+0. **From the 2026-10-14 round:** nudge testers to update (and turn on Automatic Updates); the tester's tutorial photo; ask the iPhone 13 (iOS 26) tester to try 23. See "Open after 2026-10-14".
 1. **Friends beta: submitted for Beta App Review 2026-10-09** (external group, build 1.0 (12), privacy URL https://www.vicolo.space/privacy). After approval: turn on Public Link in the group, share it (friends need the TestFlight app). Earlier note — **Friends beta via TestFlight public link** (Sarp, 2026-10-08: builds tested on the phone, no issues). A public link needs no email list: fill beta info, privacy URL, external group, submit for Beta App Review once, then share the link.
 2. **vicolo.space domains** (bought on Vercel, 2026-10-08). Done 2026-10-08 (domains added, `proxy.ts` routes them). TestFlight privacy URL: `https://vicolo.space/privacy`.
 3. **Testers list → light CRM** (Sarp, 2026-10-08): first 13 close friends named (kept out of this public repo). Sarp invites them personally — **nothing automatic, no emails or invites from code.** CRM in backoffice later, not started.

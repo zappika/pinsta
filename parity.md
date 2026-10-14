@@ -1,14 +1,15 @@
 # Vicolo — web ↔ iOS
 
 What each app has, side by side. Kept current with every change that adds or
-closes a difference (CLAUDE.md). Last updated 2026-10-06 (build 12).
+closes a difference (CLAUDE.md). Last updated 2026-10-14 (build 23).
 
 ## To close
 
 | What | Web | iOS |
 |---|---|---|
 | Google Maps list import | `/import`: grouped review, Move / Move all, asks Want to go or Been there for the whole list (icons), keeps the list's name and owner; Google matches on the server | Same screen (buddy menu → Import from Google): the list read by `/api/list`, matched with MapKit on the phone (a second, looser pass for towns and big sites), Import any time (after Want to go / Been there is picked), carries on in the background, 250 at most; photos by name + pin from `/api/photo`. Keeps the list's name and owner, not shown yet |
-| Share tutorial (three pages) | No (Sarp: not needed on web) | Empty list, and menu → How to save |
+| Share tutorial (four pages: Share → Share to… → Vicolo → saved) | No (Sarp: not needed on web) | Empty list, and menu → How to save; back-from-Instagram note and copied-link offer on the empty list |
+| List posts: several places on a carousel's slides, pick many | No: needs text reading on the server | Yes (Vision on the phone); a slide name Apple Maps lacks is dropped |
 
 ## Different on purpose
 
@@ -24,9 +25,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-06 (build 12).
 | Share from Instagram | Paste a link | Share sheet → Vicolo, or paste |
 | Save by typing a name / @handle (first field) | Yes (Google) | Yes (MapKit) |
 | Save from an Instagram profile link / @handle | Yes | Yes; Apple Maps lacks some venues Google has (BATA) |
-| List posts: several places on a carousel's slides, pick many | No | Yes (on-device text reading) |
 | Google when the map misses | Google is the search | Apple first; Google when Apple finds nothing, or on "None of these" |
-| Empty-list help: back from Instagram empty, copied link offer | — (no tutorial on web) | Yes |
 
 ## The same on both
 
