@@ -13,6 +13,11 @@ final class Screen {
     var here: CLLocation?
     /// The empty list's tutorial page, kept while the save sheet opens and closes.
     var tutorialPage = 0
+    /// The tutorial sent them to Instagram; coming back with the list still empty means they got stuck.
+    var wentToInstagram = false
+    var leftForInstagram = false
+    /// Back from Instagram with nothing saved: the tutorial shows the step they likely missed.
+    var stuck = false
     /// Testing: `-addURL <link>` opens the save sheet with that link, the way a share arrives.
     var launchURL = UserDefaults.standard.string(forKey: "addURL")
 }
@@ -35,6 +40,16 @@ struct PlacesListView: View {
             .onChange(of: scenePhase) { old, phase in
                 // Only a real return from the background (share extension, other apps).
                 // Dialogs and menus pass through .inactive and must not reset the screen.
+                // Back from Instagram (it went through .background, whatever the last step was):
+                // if a share landed, the list rebuilds and the tutorial goes; if not, it opens on
+                // the Share to… page with a word about it.
+                if phase == .background, screen.wentToInstagram { screen.leftForInstagram = true }
+                if phase == .active, screen.leftForInstagram {
+                    screen.wentToInstagram = false
+                    screen.leftForInstagram = false
+                    screen.stuck = true
+                    screen.tutorialPage = 1
+                }
                 if phase == .active && old == .background { refreshIfShared() }
             }
             .onChange(of: screen.adding) { _, _ in refreshIfShared() }
@@ -286,7 +301,16 @@ private struct PlacesContent: View {
     @ViewBuilder
     private func content(_ v: PlacesView) -> some View {
         if shown.isEmpty {
-            EmptyTutorial(page: Bindable(screen).tutorialPage)
+            EmptyTutorial(
+                page: Bindable(screen).tutorialPage,
+                stuck: Bindable(screen).stuck,
+                onInstagram: { screen.wentToInstagram = true },
+                onPaste: { link in
+                    screen.stuck = false
+                    screen.launchURL = link
+                    adding = true
+                }
+            )
                 .ignoresSafeArea(.keyboard)
         } else if v == .map {
             PlacesMapView(places: visible, selected: $peek, focus: framed?.places, here: here)

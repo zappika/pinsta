@@ -9,6 +9,7 @@ _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code 
 - **Getting to Vicolo (iOS tutorial):** new page 2 shows Instagram's own sheet with "Share to…" ringed; "Go to Instagram" only on the last page, "Next" before it (Sarp). Save sheet placeholder now "Type a place, or paste a link" (both apps). Checked all four pages on the simulator, light only. **Waiting:** the tester's photo (a straight swap of `OnboardingRestaurant`). Not in TestFlight yet.
 - **Save from an Instagram profile** (link or @handle), web + iOS: read through Apify, matched by name and kind, saves itself. Checked with Mert's real links on web (all 8 right) and iOS (Vrå and Richter profiles save; Bata isn't on Apple Maps → "Couldn't find this place on the map"). Also from those links: a tag that finds nothing now falls through (Broth Boy x Vrå → VRÅ), accents fold, handle splits.
 - **Noted, left (Sarp):** when nothing is found, pre-fill the search with the account's name — not built.
+- **First run, iOS:** back from "Go to Instagram" with nothing saved → Share to… page + "Didn't see Vicolo?" note; a copied link → "Copied a link?" + Paste; Google when Apple Maps misses (automatic only when Apple finds nothing, else "None of these", Sarp). Checked on the simulator: the stuck note after a trip to Safari, paste → Ästad saved, BATA via "None of these". Light only. Needs the deploy for `/api/search`, and TestFlight.
 - **For the testers to verify (Sarp):** the iOS (Apple Maps) side on real posts beyond the eight links above; Prodigi has no link.
 
 ## 2026-10-11: list import asks Want to go or Been there (Sarp)
@@ -40,6 +41,7 @@ _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code 
 - **Built 2026-10-09, checked on the simulator with Sarp's "BCN Nearby" (27):** first pass found 18; a second, looser pass adds towns and big sites; reading again marks them "Already in your list"; photos arrive. Towns come in as Other. In **1.0 (14), uploaded 2026-10-09**.
 
 ## To design (Sarp)
+- **A moving tutorial (for Sander):** a short screen recording of the real path (Instagram paper plane → Share to… → Vicolo → saved) in place of the four static pictures. Sarp doesn't hate it (2026-10-14). Static pages stay until then.
 - List import success state (many places at once, not the one-place card).
 - What to offer for list places that couldn't be found (web has the same gap).
 - "From Emilie's list" on the iOS place card.

@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import CoreLocation
 
 /// The one cloud dependency: reading the Instagram post. The Apify token can't
 /// live in the app, so the Vercel function proxies it and copies the image
@@ -215,5 +216,38 @@ enum InstagramURL {
         let kind = parts[kindIndex] == "reels" ? "reel" : parts[kindIndex]
         let code = parts[kindIndex + 1]
         return "https://www.instagram.com/\(kind)/\(code)/"
+    }
+}
+
+/// Google, when Apple Maps doesn't know the place (BATA, 2026-10-14): `POST /api/search`
+/// with the same clues. Capped per day on the server; any failure is just "nothing".
+enum GoogleFallback {
+    private struct Answer: Decodable { let candidates: [Found] }
+    private struct Found: Decodable {
+        let placeId: String; let name: String; let formattedAddress: String?
+        let lat: Double; let lng: Double
+        let category: String; let country: String?; let city: String?; let region: String?
+    }
+
+    static func search(_ queries: [String], near: CLLocationCoordinate2D? = nil) async -> [PlaceCandidate] {
+        let queries = Array(NSOrderedSet(array: queries.map { $0.trimmingCharacters(in: .whitespaces) }.filter { $0.count >= 3 })) as? [String] ?? []
+        guard !queries.isEmpty else { return [] }
+        var request = URLRequest(url: PostReader.baseURL.appending(path: "api/search"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var body: [String: Any] = ["queries": Array(queries.prefix(3))]
+        if let near { body["near"] = ["lat": near.latitude, "lng": near.longitude] }
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.timeoutInterval = 15
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              (response as? HTTPURLResponse)?.statusCode == 200,
+              let answer = try? JSONDecoder().decode(Answer.self, from: data) else { return [] }
+        return answer.candidates.map {
+            PlaceCandidate(
+                id: "google:\($0.placeId)", name: $0.name, latitude: $0.lat, longitude: $0.lng,
+                address: $0.formattedAddress, city: $0.city, region: $0.region, country: $0.country,
+                category: PlaceCategory(rawValue: $0.category) ?? .other
+            )
+        }
     }
 }

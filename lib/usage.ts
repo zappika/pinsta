@@ -20,6 +20,8 @@ export const SERVICES = {
   "google.detailsPro": { label: "Google Place Details Pro", per1000: 17, free: 5000 },
   "google.detailsEnterprise": { label: "Google Place Details Enterprise", per1000: 20, free: 1000 },
   "google.photos": { label: "Google Place Photos", per1000: 7, free: 1000 },
+  // Not a bill of its own: each also counts as a Text Search Pro. Counted to cap them (lib/usage FALLBACK_DAILY).
+  fallback: { label: "iOS searches Apple Maps missed", per1000: null, free: null },
 } as const;
 
 export type Service = keyof typeof SERVICES;
@@ -27,6 +29,19 @@ export type Service = keyof typeof SERVICES;
 /** Today in UTC, as the `date` column wants it. */
 function today() {
   return new Date().toISOString().slice(0, 10);
+}
+
+/** Today's count for one service (0 when the count can't be read). */
+export async function callsToday(service: Service): Promise<number> {
+  try {
+    const rows = await getDb()
+      .select({ calls: usage.calls })
+      .from(usage)
+      .where(sql`${usage.day} = ${today()} and ${usage.service} = ${service}`);
+    return rows[0]?.calls ?? 0;
+  } catch {
+    return 0;
+  }
 }
 
 export async function countCall(service: Service): Promise<void> {

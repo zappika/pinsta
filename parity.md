@@ -24,6 +24,8 @@ closes a difference (CLAUDE.md). Last updated 2026-10-06 (build 12).
 | Share from Instagram | Paste a link | Share sheet → Vicolo, or paste |
 | Save by typing a name / @handle (first field) | Yes (Google) | Yes (MapKit) |
 | Save from an Instagram profile link / @handle | Yes | Yes; Apple Maps lacks some venues Google has (BATA) |
+| Google when the map misses | Google is the search | Apple first; Google when Apple finds nothing, or on "None of these" |
+| Empty-list help: back from Instagram empty, copied link offer | — (no tutorial on web) | Yes |
 
 ## The same on both
 

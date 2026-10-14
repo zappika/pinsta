@@ -128,6 +128,9 @@ extension PlaceSearch {
         .enumerated().sorted { (rank($0.element), $0.offset) < (rank($1.element), $1.offset) }.map(\.element)
     }
 
+    /// Two names share a real word, accents aside.
+    static func sharesWord(_ a: String, _ b: String) -> Bool { overlaps(words(a), words(b)) }
+
     private static func letters(_ s: String) -> String {
         fold(s).filter { $0.isLetter || $0.isNumber }
     }

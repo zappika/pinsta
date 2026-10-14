@@ -39,6 +39,10 @@ struct AddPlaceView: View {
     @State private var readStarted = Date()
     /// The post's picture, fetched while the place is being found: the success card opens with it.
     @State private var postImage: Data?
+    /// What to ask Google with when the person says "None of these" (Sarp, 2026-10-14: trust Apple
+    /// first, pay for Google only when asked). Nil once asked, or when there is nothing to ask.
+    @State private var wider: (queries: [String], near: CLLocationCoordinate2D?)?
+    @State private var widening = false
     @FocusState private var focus: Field?
 
     private enum Field { case url, query }
@@ -189,6 +193,7 @@ struct AddPlaceView: View {
                 Text(error).font(.subheadline).foregroundStyle(.red)
             }
             if !showSuggestedFirst { candidateList }
+            if wider != nil, !candidates.isEmpty, saving == nil, !searching { noneOfThese }
             footnotes
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -306,6 +311,7 @@ struct AddPlaceView: View {
         finding = false
         source = nil
         candidates = []
+        wider = nil
         query = ""
         error = nil
         // Debounce: while a URL is being typed, every prefix is a "valid" post
@@ -341,6 +347,7 @@ struct AddPlaceView: View {
             var found: [PlaceCandidate] = []
             var from: Source = .account
             let tagged = post.locationName.flatMap { PlaceSearch.areaOfTag($0) == nil && PlaceSearch.streetOfTag($0) == nil ? $0 : nil }
+            var streetPin: CLLocationCoordinate2D?
             if post.kind == "google", let name = post.locationName {
                 let pin = post.near.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lng) }
                 found = await PlaceSearch.resolveLink(name: name, near: pin)
@@ -357,11 +364,10 @@ struct AddPlaceView: View {
             if post.kind != "google", found.isEmpty {
                 // No tag, or one naming a town ("Ostuni, Puglia, Italy") or a street ("Vattugatan"):
                 // it says where, not what. The venue is read off the post and searched there.
-                let near: CLLocationCoordinate2D? = PlaceSearch.streetOfTag(post.locationName) != nil
-                    ? await PlaceSearch.locate(post.locationName!) : nil
+                if PlaceSearch.streetOfTag(post.locationName) != nil { streetPin = await PlaceSearch.locate(post.locationName!) }
                 let r = await PlaceSearch.resolveUntagged(
                     caption: post.caption, ownerFullName: post.ownerFullName, ownerUsername: post.ownerUsername,
-                    coauthors: post.coauthors ?? [], town: PlaceSearch.areaOfTag(post.locationName), near: near,
+                    coauthors: post.coauthors ?? [], town: PlaceSearch.areaOfTag(post.locationName), near: streetPin,
                     hint: tagged
                 )
                 found = r.candidates
@@ -369,9 +375,30 @@ struct AddPlaceView: View {
                 from = r.pinned ? .tag : .account
             }
             // A profile is the venue: its matches, narrowed to the account's name and kind, are trusted like a tag.
-            if post.kind == "profile" {
-                found = PlaceSearch.profileMatches(found, fullName: post.ownerFullName, username: post.ownerUsername, category: post.category)
-                from = .tag
+            let narrow: ([PlaceCandidate]) -> [PlaceCandidate] = {
+                post.kind == "profile"
+                    ? PlaceSearch.profileMatches($0, fullName: post.ownerFullName, username: post.ownerUsername, category: post.category) : $0
+            }
+            found = narrow(found)
+            if post.kind == "profile" { from = .tag }
+            // Apple Maps lags on new openings (BATA): ask Google with the same clues when it found
+            // nothing, or when all it has are guesses from the account (suggestions anyway) — Google's go
+            // first, Apple's near-duplicates of them drop. Capped per day on the server.
+            if post.kind != "google" {
+                // The handle's city keeps it local ("batasthlm" → "bata Stockholm", searched around Stockholm).
+                let withCity = PlaceSearch.handleWithCity(post.ownerUsername)
+                let name = withCity ?? post.ownerFullName ?? PlaceSearch.handleWithKind(post.ownerUsername)
+                var near = streetPin
+                if near == nil, let city = withCity?.split(separator: " ").last { near = await PlaceSearch.locate(String(city)) }
+                let clues = [tagged, PlaceSearch.pinnedPlaceQuery(post.caption), name].compactMap { $0 }
+                if found.isEmpty {
+                    // Apple found nothing at all: ask Google straight away.
+                    found = narrow(await GoogleFallback.search(clues, near: near))
+                    if post.kind == "profile" { from = .tag }
+                } else if from == .account {
+                    // Apple's guesses from the account: "None of these" asks Google with the same clues.
+                    wider = (clues, near)
+                }
             }
             // The search field is open while this runs: if the user started typing,
             // their own results win, and nothing saves itself behind their back.
@@ -401,14 +428,43 @@ struct AddPlaceView: View {
         guard !Task.isCancelled else { return }
         searching = true
         defer { searching = false }
-        do {
-            let results = try await PlaceSearch.search(q, limit: 6).filter { PlaceSearch.isVenue($0, asked: q) }
+        // MapKit throws when it finds nothing; then Google may know it (a new opening Apple hasn't got).
+        var results = ((try? await PlaceSearch.search(q, limit: 6)) ?? []).filter { PlaceSearch.isVenue($0, asked: q) }
+        guard !Task.isCancelled else { return }
+        wider = nil
+        if results.isEmpty {
+            results = await GoogleFallback.search([q])
+        } else {
+            wider = ([q], nil)
             guard !Task.isCancelled else { return }
-            candidates = results
-        } catch {
-            guard !Task.isCancelled else { return }
-            self.error = "Search failed"
         }
+        candidates = results
+    }
+
+    /// "None of these": the same clues, asked of Google (a new opening Apple hasn't got).
+    private var noneOfThese: some View {
+        Button {
+            guard let w = wider else { return }
+            Task {
+                widening = true
+                defer { widening = false }
+                let google = await GoogleFallback.search(w.queries, near: w.near)
+                wider = nil
+                guard !google.isEmpty else { error = "Nothing else found. Try adding the city."; return }
+                source = .account
+                candidates = google
+            }
+        } label: {
+            HStack(spacing: 6) {
+                if widening { ProgressView().controlSize(.small) }
+                Text(widening ? "Looking further…" : "None of these")
+            }
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, minHeight: 36)
+        }
+        .buttonStyle(.plain)
+        .disabled(widening)
     }
 
     private func save(_ c: PlaceCandidate) {

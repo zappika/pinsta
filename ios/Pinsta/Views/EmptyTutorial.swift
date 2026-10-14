@@ -6,7 +6,17 @@ import SwiftUI
 /// empty list always gets the guidance. Trattoria Lina is artwork, never a place.
 struct EmptyTutorial: View {
     @Binding var page: Int
+    /// Back from Instagram with nothing saved (see `Screen.stuck`).
+    var stuck: Binding<Bool> = .constant(false)
+    var onInstagram: () -> Void = {}
+    /// A copied link to save, from the system paste control.
+    var onPaste: ((String) -> Void)? = nil
     @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
+    /// The pasteboard holds something that looks like a link (asked without the paste prompt).
+    @State private var copiedLink = false
+    /// The pasteboard change the person waved away, so the offer doesn't come back for it.
+    @AppStorage("dismissedPaste") private var dismissedPaste = -1
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -54,11 +64,22 @@ struct EmptyTutorial: View {
             PageDots(page: $page, count: 4, animated: !reduceMotion)
                 .padding(.top, 4)
 
+            // A copied link beats any explanation: people who can't find Vicolo in the share
+            // sheet often tap Copy link instead. Else, back from Instagram empty-handed: the step
+            // they likely missed. One note at a time.
+            if copiedLink, let onPaste {
+                PasteOffer(onPaste: onPaste) { dismissedPaste = UIPasteboard.general.changeCount; copiedLink = false }
+                    .padding(.horizontal, 20).padding(.top, 4)
+            } else if stuck.wrappedValue {
+                StuckHelp { stuck.wrappedValue = false }
+                    .padding(.horizontal, 20).padding(.top, 4)
+            }
+
             // Instagram only once the whole path has been seen (Sarp, 2026-10-14): before
             // that the same button steps on, so nothing jumps and there's always a way forward.
-            let last = page == 3
+            let last = page == 3 || stuck.wrappedValue
             Button(action: last ? openInstagram : { go(page + 1) }) {
-                Text(last ? "Go to Instagram" : "Next")
+                Text(stuck.wrappedValue ? "Try again in Instagram" : last ? "Go to Instagram" : "Next")
                     .font(.headline)
                     .foregroundStyle(Tutorial.actionText)
                     .frame(maxWidth: .infinity, minHeight: 52)
@@ -70,6 +91,19 @@ struct EmptyTutorial: View {
             .padding(.top, 8)
             .padding(.bottom, 12)
         }
+        .task(id: scenePhase) { await checkPasteboard() }
+        .animation(reduceMotion ? nil : .snappy, value: copiedLink)
+        .animation(reduceMotion ? nil : .snappy, value: stuck.wrappedValue)
+    }
+
+    /// Whether the pasteboard looks like it holds a link, asked without reading it (no
+    /// paste prompt); the system Paste control then reads it on a tap.
+    private func checkPasteboard() async {
+        guard scenePhase == .active, onPaste != nil else { return }
+        let board = UIPasteboard.general
+        guard board.hasStrings || board.hasURLs, board.changeCount != dismissedPaste else { copiedLink = false; return }
+        let found = (try? await board.detectedPatterns(for: [\.probableWebURL])) ?? []
+        copiedLink = !found.isEmpty
     }
 
     private func go(_ i: Int) {
@@ -80,6 +114,7 @@ struct EmptyTutorial: View {
     /// feed is gymnasts and dogs. Tagged (Ästad Vingård), so it saves itself.
     /// A universal link: Instagram opens it when installed, Safari otherwise.
     private func openInstagram() {
+        onInstagram()
         openURL(URL(string: "https://www.instagram.com/p/DdJIacKIplU/")!)
     }
 }
@@ -464,6 +499,64 @@ private struct TapRing: View {
             }
         }
         .frame(width: size, height: size)
+    }
+}
+
+// MARK: - Notes above the button
+
+/// "Copied a link?" with the system Paste control (reads the pasteboard without a prompt).
+private struct PasteOffer: View {
+    let onPaste: (String) -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Copied a link?").font(.subheadline.weight(.semibold))
+                Text("Save the post straight from it.").font(.footnote).foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+            PasteButton(payloadType: String.self) { strings in
+                if let s = strings.first { onPaste(s) }
+            }
+            .labelStyle(.titleOnly)
+            .buttonBorderShape(.capsule)
+            .tint(Tutorial.action)
+            Button(action: onDismiss) {
+                Image(systemName: "xmark").font(.caption.weight(.bold)).foregroundStyle(.secondary)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Not now")
+        }
+        .padding(.leading, 14).padding(.trailing, 6).padding(.vertical, 10)
+        .background(Tutorial.blush, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
+/// Back from Instagram with nothing saved: the step people miss (Mert, 2026-10-14).
+private struct StuckHelp: View {
+    let onDismiss: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Didn't see Vicolo?").font(.subheadline.weight(.semibold))
+                Text("In Instagram's sheet, tap Share to… first. Still not there? Swipe the apps to the end and tap More.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+            Button(action: onDismiss) {
+                Image(systemName: "xmark").font(.caption.weight(.bold)).foregroundStyle(.secondary)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close")
+        }
+        .padding(.leading, 14).padding(.trailing, 6).padding(.vertical, 10)
+        .background(Tutorial.blush, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 }
 
