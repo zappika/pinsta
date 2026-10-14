@@ -211,7 +211,7 @@ private struct PlacesContent: View {
         .sheet(isPresented: Bindable(settings).showingImport) { ImportView() }
         .onAppear { if UserDefaults.standard.string(forKey: "importURL") != nil { settings.showingImport = true } }
         .fullScreenCover(isPresented: Bindable(settings).showingTutorial) {
-            TutorialCover(onPaste: { settings.showingTutorial = false; adding = true })
+            TutorialCover()
                 .preferredColorScheme(settings.appearance.scheme)
         }
         .confirmationDialog("Open directions in", isPresented: Bindable(settings).choosingOpen, titleVisibility: .visible) {
@@ -286,7 +286,7 @@ private struct PlacesContent: View {
     @ViewBuilder
     private func content(_ v: PlacesView) -> some View {
         if shown.isEmpty {
-            EmptyTutorial(page: Bindable(screen).tutorialPage, onPaste: { adding = true })
+            EmptyTutorial(page: Bindable(screen).tutorialPage)
                 .ignoresSafeArea(.keyboard)
         } else if v == .map {
             PlacesMapView(places: visible, selected: $peek, focus: framed?.places, here: here)

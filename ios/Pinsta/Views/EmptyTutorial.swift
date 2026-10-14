@@ -6,7 +6,7 @@ import SwiftUI
 /// empty list always gets the guidance. Trattoria Lina is artwork, never a place.
 struct EmptyTutorial: View {
     @Binding var page: Int
-    let onPaste: () -> Void
+    @Environment(\.openURL) private var openURL
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -24,8 +24,8 @@ struct EmptyTutorial: View {
                 TutorialPage(
                     title: "Send it to Vicolo",
                     subtitle: "Keep it for your next outing.",
-                    caption: "2. Choose Vicolo",
-                    spoken: "Step 2 of 3. In the share sheet, choose Vicolo.",
+                    caption: "2. Make Vicolo a favorite, then tap it",
+                    spoken: "Step 2 of 3. In the share sheet, add Vicolo to Favorites, then tap it.",
                     art: { ShareSheetArt() },
                     footer: { FavoritesHelp() }
                 )
@@ -44,18 +44,25 @@ struct EmptyTutorial: View {
             PageDots(page: $page, count: 3, animated: !reduceMotion)
                 .padding(.top, 4)
 
-            Button(action: onPaste) {
-                Text("Paste a link")
+            Button(action: openInstagram) {
+                Text("Go to Instagram")
                     .font(.headline)
                     .foregroundStyle(Tutorial.actionText)
                     .frame(maxWidth: .infinity, minHeight: 52)
                     .background(Tutorial.action, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .buttonStyle(.plain)
-            .accessibilityHint("Opens the save sheet, where you can paste a post or map link.")
+            .accessibilityHint("Opens Instagram, where you can share a post to Vicolo.")
             .padding(.horizontal, 20)
             .padding(.top, 8)
             .padding(.bottom, 12)
+        }
+    }
+
+    /// The Instagram app when installed, the website otherwise.
+    private func openInstagram() {
+        openURL(URL(string: "instagram://app")!) { opened in
+            if !opened { openURL(URL(string: "https://www.instagram.com")!) }
         }
     }
 }
@@ -65,12 +72,11 @@ struct EmptyTutorial: View {
 /// The same three pages from the buddy menu, over a list that isn't empty:
 /// for showing a friend how to save, and for testing the first run on a full phone.
 struct TutorialCover: View {
-    let onPaste: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var page = 0
 
     var body: some View {
-        EmptyTutorial(page: $page, onPaste: onPaste)
+        EmptyTutorial(page: $page)
             // Clear of the × (the empty list has its header there instead).
             .padding(.top, 48)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -386,7 +392,7 @@ private struct TapRing: View {
 private struct FavoritesHelp: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Don’t see Vicolo?").font(.headline)
+            Text("Add Vicolo to Favorites").font(.headline)
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 4) { chips(arrow: "arrow.right", favorites: "Add to\nFavorites") }
                 VStack(alignment: .leading, spacing: 6) { chips(arrow: "arrow.down", favorites: "Add to Favorites") }
@@ -400,7 +406,7 @@ private struct FavoritesHelp: View {
         .frame(maxWidth: 380, alignment: .leading)
         .background(Tutorial.blush, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Don’t see Vicolo? First time only: in the share sheet, scroll the row of apps to the end and tap More. Then tap Edit, and add Vicolo to Favorites.")
+        .accessibilityLabel("Add Vicolo to Favorites. First time only: in the share sheet, scroll the row of apps to the end and tap More. Then tap Edit, and add Vicolo to Favorites so it stays at the front.")
     }
 
     @ViewBuilder
@@ -476,12 +482,12 @@ private struct PageDots: View {
 }
 
 #Preview("Light") {
-    EmptyTutorial(page: .constant(1), onPaste: {})
+    EmptyTutorial(page: .constant(1))
         .background(Tutorial.background)
 }
 
 #Preview("Dark") {
-    EmptyTutorial(page: .constant(1), onPaste: {})
+    EmptyTutorial(page: .constant(1))
         .background(Tutorial.background)
         .preferredColorScheme(.dark)
 }
