@@ -224,7 +224,7 @@ struct AddPlaceView: View {
                 }
             }
             if !urlText.isEmpty && validURL == nil && looksLikeLink {
-                Text("Needs to be an Instagram post, a TikTok video, or a Google Maps place.").font(.caption).foregroundStyle(.red)
+                Text("Needs to be an Instagram post or profile, a TikTok video, or a Google Maps place.").font(.caption).foregroundStyle(.red)
             }
         }
     }
@@ -237,7 +237,7 @@ struct AddPlaceView: View {
                 HStack(spacing: 12) {
                     RoundedRectangle(cornerRadius: 10).fill(Color(.tertiarySystemFill)).frame(width: 48, height: 48)
                         .phaseAnimator([0.45, 1]) { $0.opacity($1) } animation: { _ in .easeInOut(duration: 0.8) }
-                    Text(["instagram": "Instagram post", "tiktok": "TikTok video", "google": "Google Maps link"][SourceURL.parse(validURL ?? "")?.kind.rawValue ?? ""] ?? "Link")
+                    Text(["instagram": "Instagram post", "tiktok": "TikTok video", "google": "Google Maps link", "profile": "Instagram profile"][SourceURL.parse(validURL ?? "")?.kind.rawValue ?? ""] ?? "Link")
                         .font(.subheadline).foregroundStyle(.secondary)
                 }
                 LoadingBar(read: false, started: readStarted)
@@ -280,7 +280,8 @@ struct AddPlaceView: View {
         } else if !searching && typed.count >= 3 && candidates.isEmpty && error == nil {
             Text("No matches. Try adding the city.").font(.subheadline).foregroundStyle(.tertiary).frame(maxWidth: .infinity)
         } else if editing == nil, manualMode, !finding, case .done = reading, typed.count < 3 {
-            Text("No location on this post. Type the place's name to save it.")
+            // A profile or a tag names a place; it just isn't on the map (BATA isn't on Apple Maps yet).
+            Text(post?.kind == "profile" || post?.locationName != nil ? "Couldn't find this place on the map. Type its name to save it." : "No location on this post. Type the place's name to save it.")
                 .font(.subheadline).foregroundStyle(.secondary)
         }
     }
@@ -337,31 +338,40 @@ struct AddPlaceView: View {
             Task { postImage = await ImageLoader.data(from: post.imageURL) }
             defer { withAnimation(.snappy) { finding = false } }
             let cityHints = Set((try? context.fetch(FetchDescriptor<Place>()))?.compactMap(\.city) ?? [])
-            var found: [PlaceCandidate]
-            var from: Source
+            var found: [PlaceCandidate] = []
+            var from: Source = .account
+            let tagged = post.locationName.flatMap { PlaceSearch.areaOfTag($0) == nil && PlaceSearch.streetOfTag($0) == nil ? $0 : nil }
             if post.kind == "google", let name = post.locationName {
                 let pin = post.near.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lng) }
                 found = await PlaceSearch.resolveLink(name: name, near: pin)
                 from = .link
-            } else if let tag = post.locationName, PlaceSearch.areaOfTag(tag) == nil, PlaceSearch.streetOfTag(tag) == nil {
+            } else if let tag = tagged {
                 found = Array(await PlaceSearch.resolveTag(
-                    tag, ownerFullName: post.ownerFullName, caption: post.caption,
+                    tag, ownerFullName: post.ownerFullName, ownerUsername: post.ownerUsername, caption: post.caption,
                     hashtags: post.hashtags ?? [], cityHints: Array(cityHints),
                     extraQueries: post.city.map { ["\(tag) \($0)"] } ?? []
                 ).prefix(5))
                 from = .tag
-            } else {
+            }
+            // A tag that found nothing ("VRÅ" on Broth Boy x Vrå, Mert 2026-10-14) is read as no tag.
+            if post.kind != "google", found.isEmpty {
                 // No tag, or one naming a town ("Ostuni, Puglia, Italy") or a street ("Vattugatan"):
                 // it says where, not what. The venue is read off the post and searched there.
                 let near: CLLocationCoordinate2D? = PlaceSearch.streetOfTag(post.locationName) != nil
                     ? await PlaceSearch.locate(post.locationName!) : nil
                 let r = await PlaceSearch.resolveUntagged(
                     caption: post.caption, ownerFullName: post.ownerFullName, ownerUsername: post.ownerUsername,
-                    coauthors: post.coauthors ?? [], town: PlaceSearch.areaOfTag(post.locationName), near: near
+                    coauthors: post.coauthors ?? [], town: PlaceSearch.areaOfTag(post.locationName), near: near,
+                    hint: tagged
                 )
                 found = r.candidates
                 // The caption's 📍 line names the place as surely as a tag does.
                 from = r.pinned ? .tag : .account
+            }
+            // A profile is the venue: its matches, narrowed to the account's name and kind, are trusted like a tag.
+            if post.kind == "profile" {
+                found = PlaceSearch.profileMatches(found, fullName: post.ownerFullName, username: post.ownerUsername, category: post.category)
+                from = .tag
             }
             // The search field is open while this runs: if the user started typing,
             // their own results win, and nothing saves itself behind their back.

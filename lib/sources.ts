@@ -1,20 +1,22 @@
 /**
- * The links Vicolo accepts: an Instagram post, a TikTok video, or a Google
- * Maps place. Client and server share this parser. Short links
+ * The links Vicolo accepts: an Instagram post or profile (or "@handle"), a TikTok
+ * video, or a Google Maps place. Client and server share this parser. Short links
  * (vm.tiktok.com, maps.app.goo.gl) are accepted as-is; the server follows them
  * to the real URL, and that canonical URL is what gets saved.
  */
-import { normalizeInstagramUrl } from "./instagram";
+import { normalizeInstagramProfile, normalizeInstagramUrl } from "./instagram";
 
-export type SourceKind = "instagram" | "tiktok" | "google";
+export type SourceKind = "instagram" | "tiktok" | "google" | "profile";
 export type Source = { kind: SourceKind; url: string };
 
-export const SOURCE_LABEL: Record<SourceKind, string> = { instagram: "Instagram", tiktok: "TikTok", google: "Google Maps" };
+export const SOURCE_LABEL: Record<SourceKind, string> = { instagram: "Instagram", tiktok: "TikTok", google: "Google Maps", profile: "Instagram profile" };
 
 export function parseSourceUrl(input: string): Source | null {
   const raw = input.trim().replace(/[.,!?;:]+$/, "");
   const ig = normalizeInstagramUrl(raw);
   if (ig) return { kind: "instagram", url: ig };
+  const profile = normalizeInstagramProfile(raw);
+  if (profile) return { kind: "profile", url: profile };
   let u: URL;
   try {
     u = new URL(raw);

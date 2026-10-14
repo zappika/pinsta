@@ -305,14 +305,14 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
               </div>
               )}
               {!editing && urlTouched && !validUrl && looksLikeLink && (
-                <p className="mt-1.5 text-xs text-red-600">Needs to be an Instagram post, a TikTok video, or a Google Maps place.</p>
+                <p className="mt-1.5 text-xs text-red-600">Needs to be an Instagram post or profile, a TikTok video, or a Google Maps place.</p>
               )}
 
               {extract.status === "loading" && (
                 <div className="mt-3">
                   <div className="flex items-center gap-3">
                     <div className="h-12 w-12 shrink-0 animate-pulse rounded-lg bg-stone-100" />
-                    <p className="text-sm text-stone-500">{({ instagram: "Instagram post", tiktok: "TikTok video", google: "Google Maps link" } as Record<SourceKind, string>)[parseSourceUrl(validUrl ?? "")?.kind ?? "instagram"]}</p>
+                    <p className="text-sm text-stone-500">{({ instagram: "Instagram post", tiktok: "TikTok video", google: "Google Maps link", profile: "Instagram profile" } as Record<SourceKind, string>)[parseSourceUrl(validUrl ?? "")?.kind ?? "instagram"]}</p>
                   </div>
                   <LoadingBar />
                 </div>
@@ -324,7 +324,9 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
                 <p className="mt-3 text-sm text-stone-500">Couldn&apos;t read that post. Type the place&apos;s name to save it.</p>
               )}
               {!editing && manualMode && extract.status === "done" && !searchActive && (
-                <p className="mt-3 text-sm text-stone-500">No location on this post. Type the place&apos;s name to save it.</p>
+                <p className="mt-3 text-sm text-stone-500">
+                  {post?.kind === "profile" || post?.locationName ? "Couldn't find this place on the map. Type its name to save it." : "No location on this post. Type the place's name to save it."}
+                </p>
               )}
 
               {saving && showTaggedFirst && candidates.length === 1 && (

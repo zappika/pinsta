@@ -49,6 +49,7 @@ extension PlaceSearch {
     static func resolveTag(
         _ tag: String,
         ownerFullName: String?,
+        ownerUsername: String? = nil,
         caption: String?,
         hashtags: [String],
         cityHints: [String],
@@ -62,7 +63,8 @@ extension PlaceSearch {
            full.lowercased() != tag.lowercased(), overlaps(words(full), tagWords) {
             queries.append(full)
         }
-        let text = "\(caption ?? "") \(hashtags.joined(separator: " ")) \(ownerFullName ?? "")".lowercased()
+        // The handle too: "restaurangvra" says restaurant when nothing else does.
+        let text = "\(caption ?? "") \(hashtags.joined(separator: " ")) \(ownerFullName ?? "") \(ownerUsername ?? "")".lowercased()
         if let kind = categoryWords.first(where: { text.contains($0) }), !tag.lowercased().contains(kind) {
             queries.append("\(tag) \(kind)")
         }
@@ -83,7 +85,8 @@ extension PlaceSearch {
             if overlaps(words(c.name), tagWords) { return 2 }
             return 3
         }
-        return merged.filter { isVenue($0, asked: tag) }.sorted { score($0) < score($1) }
+        // A result in a town named like the tag matched the town, not the venue ("VRÅ" → Vrå, Denmark).
+        return merged.filter { isVenue($0, asked: tag) && fold($0.city ?? "") != fold(tag) }.sorted { score($0) < score($1) }
     }
 
     /// No location tag: the account that posted is the lead. A venue's own
@@ -98,17 +101,54 @@ extension PlaceSearch {
             .trimmingCharacters(in: .whitespaces), handle.count > 2 { queries.append(handle) }
         let split = handleWithCity(ownerUsername)
         if let split { queries.append(split) }
+        if let kindSplit = handleWithKind(ownerUsername) { queries.append(kindSplit) }
         if let town { queries += queries.filter { $0 != split }.map { "\($0) \(town)" } }
         guard !queries.isEmpty else { return [] }
+        // A city glued to the handle pins the search there ("batasthlm": Bata the shoe shop in Spain is not it).
+        let handleCity = split.flatMap { $0.split(separator: " ").last.map(String.init) }
+        var near = near
+        if near == nil, let handleCity { near = await locate(handleCity) }
         let merged = await runAll(queries, near: near)
         // Only places sharing a real word with the account: "jecca" must not suggest "JEC Arquitectura".
         // A handle glues the words together ("richterholtermann"): a long name word inside it counts too.
-        let nameWords = words(ownerFullName ?? "") + words(ownerUsername ?? "") + words(split ?? "")
+        // The handle's city is where, not who: "Stockholm University" doesn't match @batasthlm.
+        let cityWords = words(handleCity ?? "")
+        let nameWords = (words(ownerFullName ?? "") + words(ownerUsername ?? "") + words(split ?? "") + words(handleWithKind(ownerUsername) ?? ""))
+            .filter { !cityWords.contains($0) && !categoryWords.contains($0) }
         let glued = (ownerUsername ?? "").lowercased().filter { $0.isLetter || $0.isNumber }
+        // The city glued to the handle ("batasthlm" → Stockholm) and a name exactly the account's rank first.
+        let exact = Set([ownerFullName, ownerUsername].compactMap { $0 }.map(letters))
+        func rank(_ c: PlaceCandidate) -> Int {
+            (handleCity != nil && c.city?.lowercased() == handleCity?.lowercased() ? 0 : 2) + (exact.contains(letters(c.name)) ? 0 : 1)
+        }
         return merged.filter { c in
             isVenue(c) && isNear(c, near)
                 && (overlaps(words(c.name), nameWords) || words(c.name).contains { $0.count >= 4 && glued.contains($0) })
         }
+        .enumerated().sorted { (rank($0.element), $0.offset) < (rank($1.element), $1.offset) }.map(\.element)
+    }
+
+    private static func letters(_ s: String) -> String {
+        fold(s).filter { $0.isLetter || $0.isNumber }
+    }
+
+    /// For comparing names: case, accents and maths letters away. "VRÅ" = "vra" (@restaurangvra), 𝐁𝐀𝐓𝐀 = bata.
+    private static func fold(_ s: String) -> String {
+        s.precomposedStringWithCompatibilityMapping.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
+    }
+
+    /// A profile is one venue: candidates named like the account, and of its kind when MapKit's
+    /// category agrees ("Restaurant" ↔ Restaurant). Same rule as `profileMatches` on the web.
+    static func profileMatches(_ cs: [PlaceCandidate], fullName: String?, username: String?, category: String?) -> [PlaceCandidate] {
+        let names = words(fullName ?? "") + words(username ?? "")
+        let glued = letters(username ?? "")
+        let named = cs.filter { c in overlaps(words(c.name), names) || words(c.name).contains { $0.count >= 3 && glued.contains($0) } }
+        let kind = (category ?? "").lowercased()
+        let sameKind = named.filter { $0.category != .other && kind.contains($0.category.rawValue.lowercased()) }
+        // The account names a kind we know and nothing is of it: Apple doesn't have the venue yet
+        // (BATA, 2026-10-14). Better nothing than the Bata shoe shop.
+        let knownKind = PlaceCategory.allCases.contains { $0 != .other && kind.contains($0.rawValue.lowercased()) }
+        return knownKind ? sameKind : named
     }
 
     /// Untagged, or tagged with a street or a town: the venue is read off the post. Clues in
@@ -118,7 +158,7 @@ extension PlaceSearch {
     /// Same order as `resolveUntagged` in lib/google-places.ts.
     static func resolveUntagged(
         caption: String?, ownerFullName: String?, ownerUsername: String?, coauthors: [String],
-        town: String?, near: CLLocationCoordinate2D?
+        town: String?, near: CLLocationCoordinate2D?, hint: String? = nil
     ) async -> (candidates: [PlaceCandidate], pinned: Bool) {
         func find(_ q: String?) async -> [PlaceCandidate] {
             guard let q else { return [] }
@@ -140,12 +180,21 @@ extension PlaceSearch {
         fromAccounts += await resolveAccount(ownerFullName: ownerFullName, ownerUsername: ownerUsername, town: town, near: near).prefix(3)
         var seen = Set<String>()
         let merged = (Array(fromCaption.prefix(3)) + fromCollab + fromAccounts).filter { seen.insert($0.id).inserted }
-        return (Array(merged.prefix(4)), false)
+        // On a collab, the venue carries the tag's or a collab name's words (VRÅ, not the Clarion Hotel it's in).
+        let hints = words(hint ?? "") + collabNames(caption).flatMap(words)
+        let ranked = merged.enumerated().sorted { a, b in
+            let ha = !hints.isEmpty && overlaps(words(a.element.name), hints) ? 0 : 1
+            let hb = !hints.isEmpty && overlaps(words(b.element.name), hints) ? 0 : 1
+            return (ha, a.offset) < (hb, b.offset)
+        }.map(\.element)
+        return (Array(ranked.prefix(4)), false)
     }
 
     /// Somewhere to go: not a station or a car park unless its name was asked for ("vR" offered
     /// Stockholm Central), and not a town named like itself ("Vrå"). Same rule as `isVenue` on the web.
     static func isVenue(_ c: PlaceCandidate, asked: String? = nil) -> Bool {
+        // Searched "VRÅ", got Vrå the Danish town, its station and its school: a result in a town named like the search.
+        if let asked, let city = c.city, fold(city) == fold(asked.trimmingCharacters(in: .whitespaces)) { return false }
         if c.isTransit { return asked.map { overlaps(words(c.name), words($0)) } ?? false }
         // A town or a street: named like its town ("Vrå"), or like a street ("Vattugatan").
         if c.category == .other, c.name.lowercased() == c.city?.lowercased() || streetOfTag(c.name) != nil { return false }
@@ -159,12 +208,16 @@ extension PlaceSearch {
             .distance(from: CLLocation(latitude: near.latitude, longitude: near.longitude)) <= 30_000
     }
 
-    /// Where a street tag is: MapKit's address search.
+    /// Where a street tag is: MapKit's address search, then the street alone
+    /// (Apple doesn't know "Hornsgatan, Södermalm", only "Hornsgatan").
     static func locate(_ query: String) async -> CLLocationCoordinate2D? {
-        let request = MKLocalSearch.Request()
-        request.naturalLanguageQuery = query
-        request.resultTypes = .address
-        return try? await MKLocalSearch(request: request).start().mapItems.first?.placemark.coordinate
+        for q in [query, streetOfTag(query)].compactMap({ $0 }) {
+            let request = MKLocalSearch.Request()
+            request.naturalLanguageQuery = q
+            request.resultTypes = .address
+            if let pin = try? await MKLocalSearch(request: request).start().mapItems.first?.placemark.coordinate { return pin }
+        }
+        return nil
     }
 
     /// A location tag that names a street, not a place: "Vattugatan", "Hornsgatan, Södermalm",
@@ -253,6 +306,16 @@ extension PlaceSearch {
         ("lisboa", "Lisbon"), ("madrid", "Madrid"), ("milano", "Milano"), ("roma", "Rome"), ("tokyo", "Tokyo"), ("hki", "Helsinki"),
     ]
 
+    /// "restaurangvra" → "restaurang vra": a category word glued on. Same rule as `handleWithKind` on the web.
+    static func handleWithKind(_ username: String?) -> String? {
+        let h = (username ?? "").lowercased().filter { !"._-".contains($0) }
+        for w in categoryWords.filter({ $0.allSatisfy { ("a"..."z").contains($0) } }).sorted(by: { $0.count > $1.count }) {
+            if h.count >= w.count + 3, h.hasPrefix(w) { return "\(w) \(h.dropFirst(w.count))" }
+            if h.count >= w.count + 3, h.hasSuffix(w) { return "\(h.dropLast(w.count)) \(w)" }
+        }
+        return nil
+    }
+
     /// "barabbacph" → "barabba Copenhagen"; nil when the handle carries no city.
     static func handleWithCity(_ username: String?) -> String? {
         let parts = (username ?? "").lowercased().split { "._-".contains($0) }.map(String.init)
@@ -329,7 +392,7 @@ extension PlaceSearch {
     ]
 
     private static func words(_ s: String) -> [String] {
-        s.lowercased().split { !$0.isLetter && !$0.isNumber }.map(String.init).filter { $0.count > 2 }
+        fold(s).split { !$0.isLetter && !$0.isNumber }.map(String.init).filter { $0.count > 2 }
     }
     private static func overlaps(_ a: [String], _ b: [String]) -> Bool { a.contains { b.contains($0) } }
 }

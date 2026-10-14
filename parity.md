@@ -23,6 +23,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-06 (build 12).
 | Usage sheet and `/usage` | Yes | No: the costs are Sarp's to watch |
 | Share from Instagram | Paste a link | Share sheet → Vicolo, or paste |
 | Save by typing a name / @handle (first field) | Yes (Google) | Yes (MapKit) |
+| Save from an Instagram profile link / @handle | Yes | Yes; Apple Maps lacks some venues Google has (BATA) |
 
 ## The same on both
 

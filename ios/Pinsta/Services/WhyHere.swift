@@ -17,7 +17,9 @@ enum WhyHere {
         case .tiktok:
             return by.map { "Saved from \($0) on TikTok" } ?? "Saved from a TikTok"
         case .google:
-            return p.instagramURL.contains("/maps/search/?api=1") ? "From a Google Maps list" : "Saved from a Google Maps link"
+            // A list import carries its list; a maps/search link without one was saved by typing its name.
+            if p.instagramURL.contains("/maps/search/?api=1") { return p.fromListTitle != nil ? "From a Google Maps list" : "Saved by name" }
+            return "Saved from a Google Maps link"
         default:
             return by.map { "Saved from \($0) on Instagram" } ?? "Saved from an Instagram post"
         }

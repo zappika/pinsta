@@ -199,6 +199,7 @@ function metersBetween(a: { lat: number; lng: number }, b: { latitude: number; l
 export async function resolveTag(input: {
   tag: string;
   ownerFullName?: string | null;
+  ownerUsername?: string | null;
   caption?: string | null;
   hashtags?: string[];
   cityHints?: string[];
@@ -214,7 +215,8 @@ export async function resolveTag(input: {
     queries.add(full);
   }
 
-  const text = `${input.caption ?? ""} ${(input.hashtags ?? []).join(" ")} ${full ?? ""}`.toLowerCase();
+  // The handle too: "restaurangvra" says restaurant when nothing else does.
+  const text = `${input.caption ?? ""} ${(input.hashtags ?? []).join(" ")} ${full ?? ""} ${input.ownerUsername ?? ""}`.toLowerCase();
   const kind = CATEGORY_WORDS.find((w) => text.includes(w));
   if (kind && !tag.toLowerCase().includes(kind)) queries.add(`${tag} ${kind}`);
 
@@ -245,7 +247,10 @@ export async function resolveTag(input: {
     if (overlaps(words(c.name), tagWords)) return 2;
     return 3;
   };
-  return merged.filter((c) => isVenue(c, tag)).sort((a, b) => score(a) - score(b));
+  // A result in a town named like the tag matched the town, not the venue ("VRÅ" → Vrå, Denmark).
+  return merged
+    .filter((c) => isVenue(c, tag) && fold(c.city ?? "") !== fold(tag))
+    .sort((a, b) => score(a) - score(b));
 }
 
 /**
@@ -268,11 +273,16 @@ export async function resolveAccount(input: {
   if (handle && handle.length > 2) queries.add(handle);
   const split = handleWithCity(input.ownerUsername);
   if (split) queries.add(split);
+  const kindSplit = handleWithKind(input.ownerUsername);
+  if (kindSplit) queries.add(kindSplit);
   if (input.town) for (const q of [...queries]) if (q !== split) queries.add(`${q} ${input.town}`);
   if (queries.size === 0) return [];
+  // A city glued to the handle pins the search there ("batasthlm": Bata the shoe shop in Spain is not it).
+  const handleCity = split?.split(" ").pop() ?? null;
+  const near = input.near ?? (handleCity ? await locate(handleCity) : null);
 
   const results = await Promise.all(
-    [...queries].map((q) => searchPlaces(q, input.near).catch(() => [] as PlaceCandidate[])),
+    [...queries].map((q) => searchPlaces(q, near).catch(() => [] as PlaceCandidate[])),
   );
   const seen = new Set<string>();
   const merged: PlaceCandidate[] = [];
@@ -286,14 +296,51 @@ export async function resolveAccount(input: {
   }
   // Only places that share a real word with the account: "jecca" must not suggest "JEC Arquitectura".
   // A handle glues the words together ("richterholtermann"): a long name word inside it counts too.
-  const nameWords = [...words(full ?? ""), ...words(input.ownerUsername ?? ""), ...words(split ?? "")];
-  const glued = (input.ownerUsername ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
-  return merged.filter(
-    (c) =>
-      isVenue(c) &&
-      isNear(c, input.near) &&
-      (overlaps(words(c.name), nameWords) || words(c.name).some((w) => w.length >= 4 && glued.includes(w))),
+  // The handle's city is where, not who: "Stockholm University" doesn't match @batasthlm.
+  const cityWords = words(handleCity ?? "");
+  // "restaurangvra" names "vra"; the "restaurang" part names nothing.
+  const nameWords = [...words(full ?? ""), ...words(input.ownerUsername ?? ""), ...words(split ?? ""), ...words(kindSplit ?? "")].filter(
+    (w) => !cityWords.includes(w) && !CATEGORY_WORDS.includes(w),
   );
+  const glued = (input.ownerUsername ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+  // The city glued to the handle ("batasthlm" → Stockholm) and a name exactly the account's rank first:
+  // the untagged Bata post put a Barcelona uniform shop ahead of BATA (2026-10-14).
+  const exact = new Set([full, input.ownerUsername].filter(Boolean).map((n) => letters(n!)));
+  const rank = (c: PlaceCandidate) =>
+    (handleCity && c.city?.toLowerCase() === handleCity.toLowerCase() ? 0 : 2) + (exact.has(letters(c.name)) ? 0 : 1);
+  return merged
+    .filter(
+      (c) =>
+        isVenue(c) &&
+        isNear(c, near) &&
+        (overlaps(words(c.name), nameWords) || words(c.name).some((w) => w.length >= 4 && glued.includes(w))),
+    )
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => rank(a.c) - rank(b.c) || a.i - b.i)
+    .map(({ c }) => c);
+}
+
+function letters(s: string) {
+  return fold(s).replace(/[^\p{L}\p{N}]+/gu, "");
+}
+
+/** For comparing names: case, accents and maths letters away. "VRÅ" = "vra" (@restaurangvra), 𝐁𝐀𝐓𝐀 = bata. */
+function fold(s: string) {
+  return s.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
+}
+
+/**
+ * A profile is one venue: keep the candidates named like the account, and of its kind
+ * when the account says ("Restaurant", "Art Gallery" ↔ restaurant, art_gallery). Drops
+ * the Bata shoe shop for BATA the tavern, Vraa Slotshotel for VRÅ. Same rule in AddPlaceView.swift.
+ */
+export function profileMatches(cs: PlaceCandidate[], p: { fullName: string | null; username: string | null; category: string | null }) {
+  const names = [...words(p.fullName ?? ""), ...words(p.username ?? "")];
+  const glued = letters(p.username ?? "");
+  const named = cs.filter((c) => overlaps(words(c.name), names) || words(c.name).some((w) => w.length >= 3 && glued.includes(w)));
+  const kind = words(p.category ?? "");
+  const sameKind = named.filter((c) => kind.length > 0 && kind.every((w) => (c.primaryType ?? "").includes(w)));
+  return sameKind.length ? sameKind : named;
 }
 
 const REGION_NAMES = (() => {
@@ -327,6 +374,16 @@ const HANDLE_CITIES: Record<string, string> = {
   cdmx: "Mexico City", paris: "Paris", berlin: "Berlin", istanbul: "Istanbul", lisbon: "Lisbon",
   lisboa: "Lisbon", madrid: "Madrid", milano: "Milano", roma: "Rome", tokyo: "Tokyo", hki: "Helsinki",
 };
+
+/** "restaurangvra" → "restaurang vra", "barbrutal" → "bar brutal": a category word glued on. Same rule in PlaceSearch.swift. */
+export function handleWithKind(username: string | null | undefined): string | null {
+  const h = (username ?? "").toLowerCase().replace(/[._-]+/g, "");
+  for (const w of [...CATEGORY_WORDS].filter((w) => /^[a-z]+$/.test(w)).sort((a, b) => b.length - a.length)) {
+    if (h.length >= w.length + 3 && h.startsWith(w)) return `${w} ${h.slice(w.length)}`;
+    if (h.length >= w.length + 3 && h.endsWith(w)) return `${h.slice(0, -w.length)} ${w}`;
+  }
+  return null;
+}
 
 /** "barabbacph" → "barabba Copenhagen"; null when the handle carries no city. */
 export function handleWithCity(username: string | null | undefined): string | null {
@@ -439,6 +496,8 @@ export function isVenue(c: PlaceCandidate, asked?: string): boolean {
   if (NOT_VENUE.test(t)) return false;
   // A town or a street comes back untyped: named like its town ("Vrå"), or like a street ("Vattugatan").
   if (!t && ((c.city && c.name.toLowerCase() === c.city.toLowerCase()) || streetOfTag(c.name))) return false;
+  // Searched "VRÅ", got Vrå the Danish town, its station and its school: a result in a town named like the search.
+  if (asked && c.city && fold(c.city) === fold(asked.trim())) return false;
   if (TRANSIT.test(t)) return !!asked && overlaps(words(c.name), words(asked));
   return true;
 }
@@ -450,8 +509,12 @@ export function isNear(c: { lat: number; lng: number }, near: { lat: number; lng
 
 /** Where a street tag is: the first result's pin. */
 export async function locate(query: string): Promise<{ lat: number; lng: number } | null> {
-  const [first] = await searchPlaces(query).catch(() => [] as PlaceCandidate[]);
-  return first ? { lat: first.lat, lng: first.lng } : null;
+  for (const q of [query, streetOfTag(query)]) {
+    if (!q) continue;
+    const [first] = await searchPlaces(q).catch(() => [] as PlaceCandidate[]);
+    if (first) return { lat: first.lat, lng: first.lng };
+  }
+  return null;
 }
 
 /**
@@ -468,6 +531,8 @@ export async function resolveUntagged(input: {
   coauthors: string[];
   town: string | null;
   near: { lat: number; lng: number } | null;
+  /** A tag that found nothing by itself ("VRÅ"): what carries its words ranks first. */
+  hint?: string | null;
 }): Promise<{ candidates: PlaceCandidate[]; pinned: boolean }> {
   const search = async (q: string | null) =>
     q ? (await searchPlaces(q, input.near).catch(() => [] as PlaceCandidate[])).filter((c) => isVenue(c, q) && isNear(c, input.near)) : [];
@@ -491,7 +556,11 @@ export async function resolveUntagged(input: {
   const merged = [...fromCaption.slice(0, 3), ...fromCollab.flatMap((r) => r.slice(0, 2)), ...accounts].filter(
     (c) => !seen.has(c.placeId) && seen.add(c.placeId),
   );
-  return { candidates: merged.slice(0, 4), pinned: false };
+  // On a collab, the venue carries the tag's or a collab name's words (VRÅ, not the Clarion Hotel it's in).
+  const hints = [...words(input.hint ?? ""), ...collabNames(input.caption).flatMap(words)];
+  const hit = (c: PlaceCandidate) => (hints.length && overlaps(words(c.name), hints) ? 0 : 1);
+  const ranked = merged.map((c, i) => ({ c, i })).sort((a, b) => hit(a.c) - hit(b.c) || a.i - b.i).map(({ c }) => c);
+  return { candidates: ranked.slice(0, 4), pinned: false };
 }
 
 const CATEGORY_WORDS = [
@@ -507,7 +576,7 @@ const CATEGORY_WORDS = [
 ];
 
 function words(s: string) {
-  return s.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 2);
+  return fold(s).split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 2);
 }
 function overlaps(a: string[], b: string[]) {
   return a.some((w) => b.includes(w));

@@ -20,17 +20,25 @@ struct InstagramPost: Decodable {
     var city: String? = nil
     /// A collab post's other authors: one of them is often the venue. Nil from older servers.
     var coauthors: [String]? = nil
+    /// An Instagram profile's own category ("Restaurant", "Art Gallery"). Nil for posts.
+    var category: String? = nil
 
     struct Near: Decodable, Equatable { let lat: Double; let lng: Double }
 
     enum CodingKeys: String, CodingKey {
-        case url, caption, locationName, ownerUsername, ownerFullName, hashtags, kind, near, city, coauthors
+        case url, caption, locationName, ownerUsername, ownerFullName, hashtags, kind, near, city, coauthors, category
         case imageURL = "imageUrl"
     }
 }
 
 enum PostReader {
-    static let baseURL = URL(string: "https://pinsta-two.vercel.app")!
+    /// Launch with `-apiBase http://localhost:3010` to test server changes before they deploy (Debug builds only).
+    static let baseURL: URL = {
+        #if DEBUG
+        if let local = UserDefaults.standard.string(forKey: "apiBase"), let url = URL(string: local) { return url }
+        #endif
+        return URL(string: "https://pinsta-two.vercel.app")!
+    }()
 
     struct APIError: LocalizedError {
         let message: String
@@ -144,12 +152,13 @@ enum PriceLookup {
 /// (vm.tiktok.com, maps.app.goo.gl) pass as-is; the server resolves them and
 /// returns the canonical URL, which is what gets saved.
 enum SourceURL {
-    enum Kind: String { case instagram, tiktok, google }
+    enum Kind: String { case instagram, tiktok, google, profile }
 
     static func parse(_ input: String) -> (kind: Kind, url: String)? {
         let raw = input.trimmingCharacters(in: .whitespacesAndNewlines)
             .trimmingCharacters(in: CharacterSet(charactersIn: ".,!?;:"))
         if let ig = InstagramURL.normalize(raw) { return (.instagram, ig) }
+        if let profile = InstagramURL.profile(raw) { return (.profile, profile) }
         guard let url = URL(string: raw), let rawHost = url.host()?.lowercased() else {
             // Apps may share "caption https://short.link/..." as plain text.
             // Find a supported URL anywhere in it before showing an empty field.
@@ -179,6 +188,21 @@ enum SourceURL {
 }
 
 enum InstagramURL {
+    private static let notHandles: Set<String> = ["p", "reel", "reels", "tv", "explore", "accounts", "stories", "direct", "about", "legal", "developer", "web"]
+
+    /// A profile link (instagram.com/restaurangvra/?hl=en) or a bare "@restaurangvra" →
+    /// https://www.instagram.com/restaurangvra/. Same rule as `normalizeInstagramProfile` on the web.
+    static func profile(_ input: String) -> String? {
+        let s = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let m = s.wholeMatch(of: /@([\w.]{3,30})/) { return "https://www.instagram.com/\(m.1.lowercased())/" }
+        guard let url = URL(string: s), let host = url.host()?.lowercased()
+            .replacingOccurrences(of: "^(www|m)\\.", with: "", options: .regularExpression), host == "instagram.com" else { return nil }
+        let parts = url.pathComponents.filter { $0 != "/" }
+        guard parts.count == 1, let handle = parts.first?.lowercased(), !notHandles.contains(handle),
+              handle.wholeMatch(of: /[\w.]{2,30}/) != nil else { return nil }
+        return "https://www.instagram.com/\(handle)/"
+    }
+
     /// Accept post / reel / tv links, strip tracking params, return a canonical URL.
     static func normalize(_ input: String) -> String? {
         guard let url = URL(string: input.trimmingCharacters(in: .whitespacesAndNewlines)),

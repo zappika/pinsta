@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { fetchInstagramPost } from "@/lib/instagram-post";
 import { fetchTikTokPost } from "@/lib/tiktok";
+import { fetchInstagramProfile } from "@/lib/instagram-profile";
 import { readGoogleLink } from "@/lib/google-link";
 import { parseSourceUrl, type SourceKind } from "@/lib/sources";
-import { areaOfTag, getPlace, locate, resolveTag, resolveUntagged, searchPlaces, streetOfTag, type PlaceCandidate } from "@/lib/google-places";
+import { areaOfTag, getPlace, locate, profileMatches, resolveTag, resolveUntagged, searchPlaces, streetOfTag, type PlaceCandidate } from "@/lib/google-places";
 import { storeImage } from "@/lib/blob";
 import { isOwner } from "@/lib/owner";
 
@@ -25,6 +26,8 @@ export type ExtractResponse = {
     coauthors: string[];
     /** Google Maps links carry the pin; the iOS app searches MapKit around it. */
     near: { lat: number; lng: number } | null;
+    /** An Instagram profile's own category ("Restaurant"): the iOS app keeps matches of that kind. */
+    category: string | null;
     /** TikTok's location tag names its city; the iOS app adds "tag city" to its searches, as resolveTag does here. */
     city: string | null;
   };
@@ -37,18 +40,25 @@ export type ExtractResponse = {
   source: "tag" | "account" | "link" | null;
 };
 
-type Read = Omit<ExtractResponse["post"], "url" | "kind" | "imageUrl" | "city" | "coauthors"> & {
+type Read = Omit<ExtractResponse["post"], "url" | "kind" | "imageUrl" | "city" | "coauthors" | "category"> & {
   coauthors?: string[];
   url: string;
   rawImage: string | null;
   city?: string | null;
   placeId?: string | null;
+  /** A profile's own category ("Restaurant"): its match has to be one. */
+  category?: string | null;
 };
 
 async function read(kind: SourceKind, url: string): Promise<Read> {
   if (kind === "instagram") {
     const p = await fetchInstagramPost(url);
     return { url, caption: p.caption, locationName: p.locationName, rawImage: p.imageUrl, ownerUsername: p.ownerUsername, ownerFullName: p.ownerFullName, hashtags: p.hashtags, coauthors: p.coauthors, near: null };
+  }
+  if (kind === "profile") {
+    // A profile reads like a post: its own name, its posts' tag or bio address as the tag, its bio as the caption.
+    const p = await fetchInstagramProfile(url);
+    return { url, caption: p.biography, locationName: p.locationName, rawImage: p.imageUrl, ownerUsername: p.username, ownerFullName: p.fullName, hashtags: [], near: null, category: p.category };
   }
   if (kind === "tiktok") {
     const p = await fetchTikTokPost(url);
@@ -80,7 +90,7 @@ export async function POST(req: Request) {
   const native = body.native === true || body.native === "true" || !isOwner(req);
   const parsed = parseSourceUrl(typeof body.instagramUrl === "string" ? body.instagramUrl : "");
   if (!parsed) {
-    return NextResponse.json({ error: "Not an Instagram, TikTok or Google Maps link" }, { status: 400 });
+    return NextResponse.json({ error: "Not an Instagram, TikTok or Google Maps link, or an @handle" }, { status: 400 });
   }
 
   try {
@@ -103,6 +113,7 @@ export async function POST(req: Request) {
           : "account";
 
     let pinned = false;
+    let fellBack = false;
     const find = async (): Promise<PlaceCandidate[]> => {
       if (source === "link") {
         // An id Google won't resolve (stale, or a legacy CID) still has the name and pin to search by.
@@ -116,18 +127,22 @@ export async function POST(req: Request) {
         return post.locationName ? (await searchPlaces(post.locationName, post.near)).slice(0, 3) : [];
       }
       if (source === "tag") {
-        return (
+        const tagged = (
           await resolveTag({
             tag: post.locationName!,
             ownerFullName: post.ownerFullName,
+            ownerUsername: post.ownerUsername,
             caption: post.caption,
             hashtags: post.hashtags,
             cityHints,
             extraQueries: post.city ? [`${post.locationName} ${post.city}`] : [],
           })
         ).slice(0, 5);
+        if (tagged.length) return tagged;
+        // The tag found nothing ("VRÅ" on Broth Boy x Vrå, Mert 2026-10-14): read the post as if untagged.
+        fellBack = true;
       }
-      if (source === "account") {
+      if (source === "account" || fellBack) {
         const near = street ? await locate(post.locationName!) : null;
         const r = await resolveUntagged({
           caption: post.caption,
@@ -136,6 +151,7 @@ export async function POST(req: Request) {
           coauthors: post.coauthors ?? [],
           town,
           near,
+          hint: fellBack ? post.locationName : null,
         });
         pinned = r.pinned;
         return r.candidates;
@@ -149,7 +165,12 @@ export async function POST(req: Request) {
       find(),
     ]);
     // A Google link names one place: the candidate nearest its pin comes first.
-    const candidates = source === "link" && post.near && found.length > 1 ? nearestFirst(found, post.near) : found;
+    const candidates =
+      source === "link" && post.near && found.length > 1
+        ? nearestFirst(found, post.near)
+        : parsed.kind === "profile"
+          ? profileMatches(found, { fullName: post.ownerFullName, username: post.ownerUsername, category: post.category ?? null })
+          : found;
 
     const out: ExtractResponse = {
       post: {
@@ -162,12 +183,14 @@ export async function POST(req: Request) {
         ownerFullName: post.ownerFullName,
         hashtags: post.hashtags,
         coauthors: post.coauthors ?? [],
+        category: post.category ?? null,
         near: post.near,
         city: post.city ?? null,
       },
       candidates: source === "link" && candidates.length > 1 && isClear(candidates, post.near) ? candidates.slice(0, 1) : candidates,
       // The caption's 📍 line names the place as surely as a tag does.
-      source: candidates.length ? (pinned ? "tag" : source) : null,
+      // A profile is the venue: its match is trusted like a tag.
+      source: candidates.length ? (pinned || parsed.kind === "profile" ? "tag" : fellBack ? "account" : source) : null,
     };
     return NextResponse.json(out);
   } catch (e) {

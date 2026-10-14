@@ -55,7 +55,17 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   A street tag is located first and everything is searched near it, 30 km at most. Results that
   aren't somewhere to go (streets, towns, stations unless named: `isVenue`) are dropped everywhere.
   Test cases from Mert (2026-10-14): Prodigi (📍), Richter Holtermann (street tag), Bata (street tag), Broth Boy x Vrå (collab).
-- **First field of the save sheet** takes a link *or* a place name / @handle (search from 3 letters).
+  A tag that finds nothing on its own ("VRÅ" → only Vrå, Denmark) falls through to the same reading, ranked by
+  the tag's words. Tagged accounts count as co-authors (@clarionpost on Broth Boy x Vrå). Name comparisons fold
+  case and accents ("VRÅ" = @restaurangvra's "vra"); a category word glued to a handle is split off
+  (`handleWithKind`), a city glued to it pins the search there and isn't a name word.
+- **Instagram profiles** (`instagram.com/<handle>` or `@handle`, kind `profile` in `lib/sources.ts` ↔ `SourceURL`):
+  `lib/instagram-profile.ts` reads one through Apify (`resultsType: "details"`) shaped like a post — display name
+  before any " | ", the place its own latest posts are tagged with most (2+), else a street address in the bio
+  (`addressIn`), the bio as caption, the latest post's picture. No address field comes back (none of Mert's three
+  had one). A profile is the venue: matches are narrowed to its name and kind (`profileMatches`) and trusted like a tag.
+  Apple Maps lacks some venues Google has (BATA, 2026-10-14): iOS then says "Couldn't find this place on the map".
+- **First field of the save sheet** takes a link *or* a place name / @handle (search from 3 letters; `@handle` reads the profile).
   A place saved by name has no post: a Google Maps search link to it stands in (as list imports do).
 - **Grouping** (`lib/grouping.ts` ↔ `ios/Pinsta/Services/Grouping.swift`): the
   "Where" menu label per place. Town with 2+ places = own row; 1-place town folds
@@ -186,6 +196,9 @@ xcodebuild -exportArchive -archivePath build/Vicolo.xcarchive -exportOptionsPlis
 - SwiftData migration test: build the previous commit in a `git worktree`, install it, save a place, then install the new build over it (`simctl install` keeps the data).
 - `xcrun simctl location <id> set 41.39,2.17` + `xcrun simctl privacy <id> grant location se.sarper.vicolo` for the opening town and the blue dot.
 - `-splashHold` keeps the splash still up (see "Splash assets").
+- `-apiBase http://localhost:3010` (Debug builds) points the app at the local server, to test `/api/extract` changes before they deploy.
+- Search logic without the app: compile `Services/PlaceSearch.swift` + `Models/PlaceCategory.swift` with a small `main.swift` (`swiftc -o h …`) and call `PlaceSearch` directly — seconds per try, real MapKit.
+- Real test links (Mert, 2026-10-14): profiles @restaurangvra, @batasthlm, @richterholtermann; posts DYm01TZjIR1 (Broth Boy x Vrå collab, tagged VRÅ, Göteborg), DdWICD-Nr5n / DdRYgcdNveq / DcjKhyCja-S (Richter, untagged), Dd1fYO4gh7h (Bata, untagged), DdrDoWKC-gS (Bata, street tag).
 - Launch with `-slowNotices` to keep toasts up 30 s while checking them, and `-addURL <link>` to open the save sheet with a link the way a share does (Safari's Share menu ignores injected taps on the iOS 27 simulator).
 - Test auto-save with a tagged post that still exists (Ästad Vingård `DdJIacKIplU`) or a Maps link; Bar Brutal's post was deleted.
 

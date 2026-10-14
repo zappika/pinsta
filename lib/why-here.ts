@@ -31,7 +31,11 @@ function origin(p: Row): string {
   switch (sourceKind(p.instagramUrl)) {
     case "tiktok":
       return by ? `Saved from ${by} on TikTok` : "Saved from a TikTok";
+    case "profile":
+      return by ? `Saved from ${by} on Instagram` : "Saved from an Instagram profile";
     case "google":
+      // Saved by typing its name: a maps/search link carrying the place id (AddPlace mapsLink).
+      if (p.instagramUrl.includes("query_place_id=")) return "Saved by name";
       // ImportPage saves imports as maps/search/?api=1 links; a shared Maps link never looks like that.
       return p.instagramUrl.includes("/maps/search/?api=1") ? "From a Google Maps list" : "Saved from a Google Maps link";
     default:
