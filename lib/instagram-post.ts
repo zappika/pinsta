@@ -31,6 +31,7 @@ type RawItem = {
   hashtags?: string[];
   coauthorProducers?: { username?: string }[];
   taggedUsers?: { username?: string }[];
+  mentions?: string[];
   error?: string;
   errorDescription?: string;
 };
@@ -80,7 +81,13 @@ export async function fetchInstagramPost(postUrl: string): Promise<InstagramPost
     ownerUsername: it.ownerUsername ?? null,
     ownerFullName: it.ownerFullName ?? null,
     hashtags: it.hashtags ?? [],
-    // Tagged accounts too: Broth Boy x Vrå tags @clarionpost, the hotel Vrå is in.
-    coauthors: [...new Set([...(it.coauthorProducers ?? []), ...(it.taggedUsers ?? [])].map((c) => c.username).filter((u): u is string => !!u))].slice(0, 6),
+    // Tagged accounts too (Broth Boy x Vrå tags @clarionpost, the hotel Vrå is in), and the
+    // caption's @mentions ("thanks to @lamenagerieparis", the venue — Cindy Khalifa, 2026-10-14).
+    coauthors: [
+      ...new Set([
+        ...[...(it.coauthorProducers ?? []), ...(it.taggedUsers ?? [])].map((c) => c.username),
+        ...(it.mentions ?? []),
+      ].filter((u): u is string => !!u)),
+    ].slice(0, 6),
   };
 }

@@ -50,7 +50,7 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   (`streetOfTag`: Vattugatan, Hornsgatan, Carrer de…) says *where*, not *what*: like no tag at all,
   the venue is read off the post (`resolveUntagged`): the caption's 📍 line (`pinnedPlaceQuery`,
   trusted like a tag, one match saves itself), "at X in Y", a collab headline "A x B" (`collabNames`)
-  and the post's co-authors (Apify `coauthorProducers`), then the posting account (a city glued to the
+  and the post's co-authors (Apify `coauthorProducers`, tagged users and caption @mentions), then the posting account (a city glued to the
   handle is split off: `barabbacph` → "barabba Copenhagen"; a name word inside a glued handle counts).
   A street tag is located first and everything is searched near it, 30 km at most. Results that
   aren't somewhere to go (streets, towns, stations unless named: `isVenue`) are dropped everywhere.
@@ -201,6 +201,7 @@ xcodebuild -exportArchive -archivePath build/Vicolo.xcarchive -exportOptionsPlis
 - `-splashHold` keeps the splash still up (see "Splash assets").
 - `-apiBase http://localhost:3010` (Debug builds) points the app at the local server, to test `/api/extract` changes before they deploy.
 - Search logic without the app: compile `Services/PlaceSearch.swift` + `Models/PlaceCategory.swift` with a small `main.swift` (`swiftc -o h …`) and call `PlaceSearch` directly — seconds per try, real MapKit.
+- More real links (2026-10-14): reel Dc-iywHIy7b ("Address of the bar: La Lucha Libre", tagged Paris → saves itself), reel DdzAEv1NUKp (only @lamenagerieparis, an event collective, not a venue → the zoo is offered; unsolvable from the post), carousel C_OOWiDS7Gh (six Oslo places only as text on slides 2–3, nothing in caption or tag: the multi-place case).
 - Real test links (Mert, 2026-10-14): profiles @restaurangvra, @batasthlm, @richterholtermann; posts DYm01TZjIR1 (Broth Boy x Vrå collab, tagged VRÅ, Göteborg), DdWICD-Nr5n / DdRYgcdNveq / DcjKhyCja-S (Richter, untagged), Dd1fYO4gh7h (Bata, untagged), DdrDoWKC-gS (Bata, street tag).
 - Launch with `-slowNotices` to keep toasts up 30 s while checking them, and `-addURL <link>` to open the save sheet with a link the way a share does (Safari's Share menu ignores injected taps on the iOS 27 simulator).
 - Test auto-save with a tagged post that still exists (Ästad Vingård `DdJIacKIplU`) or a Maps link; Bar Brutal's post was deleted.

@@ -243,7 +243,7 @@ extension PlaceSearch {
     /// Same rule as `pinnedPlaceQuery` in lib/google-places.ts.
     static func pinnedPlaceQuery(_ caption: String?) -> String? {
         let lines = (caption ?? "").components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
-        let lead = try! NSRegularExpression(pattern: #"^(?:📍|📌|(?:location|address|adress|adresse|dirección)\s*:)\x{FE0F}?"#, options: .caseInsensitive)
+        let lead = try! NSRegularExpression(pattern: #"^(?:📍|📌|(?:location|address|adress|adresse|dirección)(?:\s+of\s+the\s+\p{L}+)?\s*:)\x{FE0F}?"#, options: .caseInsensitive)
         func leads(_ l: String) -> Bool { lead.firstMatch(in: l, range: NSRange(l.startIndex..., in: l)) != nil }
         func clean(_ l: String) -> String {
             lead.stringByReplacingMatches(in: l, range: NSRange(l.startIndex..., in: l), withTemplate: "")
@@ -302,6 +302,7 @@ extension PlaceSearch {
     // Cities restaurants glue onto their handle: "barabbacph", "joe_nyc", "cafe.sthlm".
     // Only codes that don't end ordinary words ("ber" would split "amber"). Same list in lib/google-places.ts.
     private static let handleCities: [(String, String)] = [
+        ("oslo", "Oslo"),
         ("cph", "Copenhagen"), ("copenhagen", "Copenhagen"), ("kbh", "Copenhagen"),
         ("nyc", "New York"), ("ldn", "London"), ("london", "London"), ("bcn", "Barcelona"), ("barcelona", "Barcelona"),
         ("sthlm", "Stockholm"), ("stockholm", "Stockholm"), ("gbg", "Gothenburg"), ("malmo", "Malmö"),

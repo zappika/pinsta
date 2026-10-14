@@ -368,6 +368,7 @@ export function areaOfTag(tag: string | null | undefined): string | null {
 // Cities restaurants glue onto their handle: "barabbacph", "joe_nyc", "cafe.sthlm".
 // Only codes that don't end ordinary words ("ber" would split "amber"). Same list in PlaceSearch.swift.
 const HANDLE_CITIES: Record<string, string> = {
+  oslo: "Oslo",
   cph: "Copenhagen", copenhagen: "Copenhagen", kbh: "Copenhagen",
   nyc: "New York", ldn: "London", london: "London", bcn: "Barcelona", barcelona: "Barcelona",
   sthlm: "Stockholm", stockholm: "Stockholm", gbg: "Gothenburg", malmo: "Malmö",
@@ -448,7 +449,8 @@ const STREET_PREFIXES = ["carrer", "calle", "avenida", "avinguda", "rua", "passe
  */
 export function pinnedPlaceQuery(caption: string | null | undefined): string | null {
   const lines = (caption ?? "").split("\n").map((l) => l.trim());
-  const lead = /^(?:📍|📌|(?:location|address|adress|adresse|dirección)\s*:)️?/iu;
+  // "Address:", and "Address of the bar:" (Side Quest Department, 2026-10-14).
+  const lead = /^(?:📍|📌|(?:location|address|adress|adresse|dirección)(?:\s+of\s+the\s+\p{L}+)?\s*:)\uFE0F?/iu;
   const i = lines.findIndex((l) => lead.test(l));
   if (i < 0) return null;
   const clean = (l: string) => l.replace(lead, "").replace(/[@#]/g, " ").replace(/\s+/g, " ").trim();
