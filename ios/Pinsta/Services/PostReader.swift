@@ -23,11 +23,13 @@ struct InstagramPost: Decodable {
     var coauthors: [String]? = nil
     /// An Instagram profile's own category ("Restaurant", "Art Gallery"). Nil for posts.
     var category: String? = nil
+    /// A carousel's pictures: `SlideText` reads place names off them. Nil from older servers.
+    var slides: [String]? = nil
 
     struct Near: Decodable, Equatable { let lat: Double; let lng: Double }
 
     enum CodingKeys: String, CodingKey {
-        case url, caption, locationName, ownerUsername, ownerFullName, hashtags, kind, near, city, coauthors, category
+        case url, caption, locationName, ownerUsername, ownerFullName, hashtags, kind, near, city, coauthors, category, slides
         case imageURL = "imageUrl"
     }
 }

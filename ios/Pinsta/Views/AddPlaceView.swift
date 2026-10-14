@@ -43,6 +43,9 @@ struct AddPlaceView: View {
     /// first, pay for Google only when asked). Nil once asked, or when there is nothing to ask.
     @State private var wider: (queries: [String], near: CLLocationCoordinate2D?)?
     @State private var widening = false
+    /// A carousel naming several places on its slides (`SlideText`): pick which to save.
+    @State private var many: [SlideText.Found] = []
+    @State private var picked: Set<String> = []
     @FocusState private var focus: Field?
 
     private enum Field { case url, query }
@@ -92,11 +95,12 @@ struct AddPlaceView: View {
         return false
     }
 
-    private var showQuery: Bool { validURL != nil && reading != .loading && reading != .idle && !finding && saving == nil }
+    private var showQuery: Bool { validURL != nil && reading != .loading && reading != .idle && !finding && saving == nil && many.isEmpty }
 
     /// The sheet's question lives in its small label (Sarp, 2026-10-09): no headings.
     private var label: String {
         if editing != nil { return "Change place" }
+        if !many.isEmpty { return saving != nil ? "Saving…" : "This post has \(many.count) places" }
         if byName { return "Which place is it?" }
         if validURL == nil { return "Save a place" }
         if reading == .loading || finding { return "Finding the place…" }
@@ -138,6 +142,9 @@ struct AddPlaceView: View {
                 // one place for it, so typing never moves it (and its focus) elsewhere.
                 if showQuery {
                     queryField.padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 16)
+                } else if !many.isEmpty {
+                    // Pinned like the search field: six places scroll, the button stays.
+                    saveManyButton.padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 16)
                 }
               }
               .transition(.opacity)
@@ -188,6 +195,9 @@ struct AddPlaceView: View {
             // A shared link is already known: the field would only look like a task (Sarp, 2026-10-09).
             if editing == nil, initialURL == nil { urlField }
             postSection
+            if !many.isEmpty {
+                ManyList(many: many, picked: $picked, saving: saving != nil)
+            } else {
             if showSuggestedFirst && saving == nil { suggested }
             if let error {
                 Text(error).font(.subheadline).foregroundStyle(.red)
@@ -195,6 +205,7 @@ struct AddPlaceView: View {
             if !showSuggestedFirst { candidateList }
             if wider != nil, !candidates.isEmpty, saving == nil, !searching { noneOfThese }
             footnotes
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16).padding(.bottom, 16)
@@ -312,6 +323,7 @@ struct AddPlaceView: View {
         source = nil
         candidates = []
         wider = nil
+        many = []
         query = ""
         error = nil
         // Debounce: while a URL is being typed, every prefix is a "valid" post
@@ -344,6 +356,13 @@ struct AddPlaceView: View {
             Task { postImage = await ImageLoader.data(from: post.imageURL) }
             defer { withAnimation(.snappy) { finding = false } }
             let cityHints = Set((try? context.fetch(FetchDescriptor<Place>()))?.compactMap(\.city) ?? [])
+            // A carousel may name several places on its slides; read them while the usual search runs.
+            // Their city: a town tag, the handle's ("vinkoslo"), or TikTok's.
+            let slideCity = PlaceSearch.areaOfTag(post.locationName)
+                ?? PlaceSearch.handleWithCity(post.ownerUsername)?.split(separator: " ").last.map(String.init) ?? post.city
+            async let onSlides = SlideText.places(
+                slides: post.slides ?? [], city: slideCity, account: [post.ownerFullName, post.ownerUsername].compactMap { $0 }
+            )
             var found: [PlaceCandidate] = []
             var from: Source = .account
             let tagged = post.locationName.flatMap { PlaceSearch.areaOfTag($0) == nil && PlaceSearch.streetOfTag($0) == nil ? $0 : nil }
@@ -400,9 +419,18 @@ struct AddPlaceView: View {
                     wider = (clues, near)
                 }
             }
+            // Two or more places on the slides: the post is a list, and they pick which to keep.
+            let listed = await onSlides
             // The search field is open while this runs: if the user started typing,
             // their own results win, and nothing saves itself behind their back.
             guard !Task.isCancelled, query.trimmed.count < 3 else { return }
+            if listed.count >= 2 {
+                withAnimation(.snappy) {
+                    many = listed
+                    picked = Set(listed.map(\.candidate.id))
+                }
+                return
+            }
             candidates = found
             source = found.isEmpty ? nil : from
             // Only a location tag or a Maps link is trusted enough to save without a tap.
@@ -492,24 +520,27 @@ struct AddPlaceView: View {
                 saving = nil
                 return
             }
-            let url = post?.url ?? validURL
+            await show(await store(c, url: post?.url ?? validURL, image: postImage))
+            saving = nil
+        }
+    }
+
+    /// Saves one place for this post, or adds the post to the same place already in the list.
+    /// `image`: the picture to give it (the post's, or the slide its name was on).
+    private func store(_ c: PlaceCandidate, url: String, image known: Data?) async -> Saved {
             // One place, many posts: a second post of a place already in the list joins its card.
             let all = (try? context.fetch(FetchDescriptor<Place>())) ?? []
             if let same = all.first(where: { SamePlace.matches($0, name: c.name, latitude: c.latitude, longitude: c.longitude) }) {
                 if same.allPostURLs.contains(url) {
-                    await show(Saved(place: same, already: true, changed: false, imageURL: post?.imageURL))
-                    saving = nil
-                    return
+                    return Saved(place: same, already: true, changed: false, imageURL: post?.imageURL)
                 }
                 same.extraPostURLs.append(url)
                 persist()
-                await show(Saved(place: same, already: false, changed: false, mergedURL: url, imageURL: post?.imageURL))
-                saving = nil
-                return
+                return Saved(place: same, already: false, changed: false, mergedURL: url, imageURL: post?.imageURL)
             }
             let place = Place(
                 // The server's canonical link: short links (vm.tiktok.com, maps.app.goo.gl) resolved.
-                instagramURL: post?.url ?? validURL,
+                instagramURL: url,
                 name: c.name,
                 latitude: c.latitude,
                 longitude: c.longitude,
@@ -532,12 +563,39 @@ struct AddPlaceView: View {
             let id = place.id
             // The picture usually arrived while the place was being found; it is the card's photo too.
             let image: Data?
-            if let postImage { image = postImage } else { image = await ImageLoader.data(from: post?.imageURL) }
+            if let known { image = known } else { image = await ImageLoader.data(from: post?.imageURL) }
             if let image, let place = Place.find(id, in: context) {
                 place.imageData = image
                 persist()
             }
-            await show(Saved(place: place, already: false, changed: false, milestone: line, imageURL: post?.imageURL))
+            return Saved(place: place, already: false, changed: false, milestone: line, imageURL: post?.imageURL)
+    }
+
+    private var saveManyButton: some View {
+        Button(action: saveMany) {
+            Text(saving != nil ? "Saving…" : picked.count == 1 ? "Save 1 place" : "Save \(picked.count) places")
+                .font(.headline)
+                .foregroundStyle(Color(.systemBackground))
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .background(Color.primary, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .disabled(picked.isEmpty || saving != nil)
+        .opacity(picked.isEmpty ? 0.4 : 1)
+    }
+
+    /// The picked places of a list post, each with the slide its name was on; one card at the end.
+    private func saveMany() {
+        guard let url = post?.url ?? validURL, saving == nil else { return }
+        let chosen = many.filter { picked.contains($0.candidate.id) }
+        guard let first = chosen.first else { return }
+        saving = first.candidate.id
+        Task {
+            var results: [Saved] = []
+            for f in chosen { results.append(await store(f.candidate, url: url, image: f.image ?? postImage)) }
+            var card = results[0]
+            card.milestone = chosen.count == 1 ? card.milestone : "\(chosen.count) places saved"
+            await show(card)
             saving = nil
         }
     }
@@ -585,6 +643,43 @@ struct AddPlaceView: View {
 }
 
 // MARK: - Pieces
+
+/// A list post's places, all ticked: untick the ones to skip, then one Save.
+private struct ManyList: View {
+    let many: [SlideText.Found]
+    @Binding var picked: Set<String>
+    let saving: Bool
+
+    var body: some View {
+            VStack(spacing: 0) {
+                ForEach(many, id: \.candidate.id) { f in
+                    let c = f.candidate
+                    let on = picked.contains(c.id)
+                    Button {
+                        if on { picked.remove(c.id) } else { picked.insert(c.id) }
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: on ? "checkmark.circle.fill" : "circle")
+                                .font(.title3)
+                                .foregroundStyle(on ? Color.primary : Color(.tertiaryLabel))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(c.name).font(.body).lineLimit(1)
+                                Text([c.category.rawValue, c.city].compactMap { $0 }.joined(separator: " · "))
+                                    .font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.vertical, 8)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(saving)
+                    .accessibilityAddTraits(on ? .isSelected : [])
+                    if f.candidate.id != many.last?.candidate.id { Divider().padding(.leading, 36) }
+                }
+            }
+    }
+}
 
 /// One card for every save (Sarp, 2026-10-09): the post photo with the place's name and
 /// type · town over it, "Saved to Vicolo" with the elephant, and a milestone line above the

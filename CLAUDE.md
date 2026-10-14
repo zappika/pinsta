@@ -68,6 +68,14 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   (`POST /api/search`, open, ≤3 queries, capped at 200 a day across everyone, counted as `fallback` in Usage)
   is asked straight away only when Apple finds nothing; otherwise a "None of these" under Apple's suggestions asks it
   with the same clues (tag, 📍 line, account name with the handle's city). Typed searches the same way.
+- **List posts, iOS only** (`Services/SlideText.swift`): a carousel naming several places on its slides
+  (Vink's "eat alone in Oslo", six names, nothing in caption or tag). `/api/extract` returns `slides` (the
+  carousel's pictures); the app reads their text with Apple's Vision (on the phone, free), keeps short label-like
+  lines (not the poster's own name/logo), searches each near the post's city (town tag, handle city, TikTok
+  city) one after another — Apple throttles a burst — and keeps exact name matches within 30 km, biggest
+  40 km cluster. Two or more → "This post has N places", all ticked, a pinned "Save N places"; each place
+  gets the slide its name was on as its photo, one success card ("N places saved"). Runs alongside the usual
+  search. Web: not yet (needs server-side text reading).
 - **First field of the save sheet** takes a link *or* a place name / @handle (search from 3 letters; `@handle` reads the profile).
   A place saved by name has no post: a Google Maps search link to it stands in (as list imports do).
 - **Grouping** (`lib/grouping.ts` ↔ `ios/Pinsta/Services/Grouping.swift`): the

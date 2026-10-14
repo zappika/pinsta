@@ -26,6 +26,8 @@ export type ExtractResponse = {
     coauthors: string[];
     /** Google Maps links carry the pin; the iOS app searches MapKit around it. */
     near: { lat: number; lng: number } | null;
+    /** A carousel's pictures, for the iOS app to read place names off (Vink's six Oslo places, 2026-10-14). */
+    slides: string[];
     /** An Instagram profile's own category ("Restaurant"): the iOS app keeps matches of that kind. */
     category: string | null;
     /** TikTok's location tag names its city; the iOS app adds "tag city" to its searches, as resolveTag does here. */
@@ -40,8 +42,9 @@ export type ExtractResponse = {
   source: "tag" | "account" | "link" | null;
 };
 
-type Read = Omit<ExtractResponse["post"], "url" | "kind" | "imageUrl" | "city" | "coauthors" | "category"> & {
+type Read = Omit<ExtractResponse["post"], "url" | "kind" | "imageUrl" | "city" | "coauthors" | "category" | "slides"> & {
   coauthors?: string[];
+  slides?: string[];
   url: string;
   rawImage: string | null;
   city?: string | null;
@@ -53,7 +56,7 @@ type Read = Omit<ExtractResponse["post"], "url" | "kind" | "imageUrl" | "city" |
 async function read(kind: SourceKind, url: string): Promise<Read> {
   if (kind === "instagram") {
     const p = await fetchInstagramPost(url);
-    return { url, caption: p.caption, locationName: p.locationName, rawImage: p.imageUrl, ownerUsername: p.ownerUsername, ownerFullName: p.ownerFullName, hashtags: p.hashtags, coauthors: p.coauthors, near: null };
+    return { url, caption: p.caption, locationName: p.locationName, rawImage: p.imageUrl, ownerUsername: p.ownerUsername, ownerFullName: p.ownerFullName, hashtags: p.hashtags, coauthors: p.coauthors, slides: p.slides, near: null };
   }
   if (kind === "profile") {
     // A profile reads like a post: its own name, its posts' tag or bio address as the tag, its bio as the caption.
@@ -184,6 +187,7 @@ export async function POST(req: Request) {
         hashtags: post.hashtags,
         coauthors: post.coauthors ?? [],
         category: post.category ?? null,
+        slides: post.slides ?? [],
         near: post.near,
         city: post.city ?? null,
       },

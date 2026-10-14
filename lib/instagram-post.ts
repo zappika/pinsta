@@ -17,6 +17,8 @@ export type InstagramPost = {
   hashtags: string[];
   /** A collab post's other authors ("brothboy.ramen x vra"): one of them is often the venue. */
   coauthors: string[];
+  /** A carousel's pictures (Instagram CDN, short-lived): the iOS app reads the place names written on them. */
+  slides: string[];
 };
 
 type RawItem = {
@@ -32,6 +34,7 @@ type RawItem = {
   coauthorProducers?: { username?: string }[];
   taggedUsers?: { username?: string }[];
   mentions?: string[];
+  childPosts?: { type?: string; displayUrl?: string }[];
   error?: string;
   errorDescription?: string;
 };
@@ -89,5 +92,6 @@ export async function fetchInstagramPost(postUrl: string): Promise<InstagramPost
         ...(it.mentions ?? []),
       ].filter((u): u is string => !!u)),
     ].slice(0, 6),
+    slides: (it.childPosts ?? []).filter((c) => c.type !== "Video" && c.displayUrl).map((c) => c.displayUrl!).slice(0, 10),
   };
 }

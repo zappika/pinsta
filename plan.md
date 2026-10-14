@@ -11,6 +11,7 @@ _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code 
 - **Save from an Instagram profile** (link or @handle), web + iOS: read through Apify, matched by name and kind, saves itself. Checked with Mert's real links on web (all 8 right) and iOS (Vrå and Richter profiles save; Bata isn't on Apple Maps → "Couldn't find this place on the map"). Also from those links: a tag that finds nothing now falls through (Broth Boy x Vrå → VRÅ), accents fold, handle splits.
 - **Noted, left (Sarp):** when nothing is found, pre-fill the search with the account's name — not built.
 - **First run, iOS:** back from "Go to Instagram" with nothing saved → Share to… page + "Didn't see Vicolo?" note; a copied link → "Copied a link?" + Paste; Google when Apple Maps misses (automatic only when Apple finds nothing, else "None of these", Sarp). Checked on the simulator: the stuck note after a trip to Safari, paste → Ästad saved, BATA via "None of these". Light only. Needs the deploy for `/api/search`, and TestFlight.
+- **List posts (iOS):** a carousel naming places on its slides → "This post has N places", pick, save all; each gets its slide as photo. Checked with Vink's Oslo carousel: 5 of 6 found (Tranen isn't on Apple Maps), unticked one, saved 4. Reels' spoken places and web: not covered. Needs the deploy (`slides` in /api/extract) and a TestFlight build.
 - **For the testers to verify (Sarp):** the iOS (Apple Maps) side on real posts beyond the eight links above; Prodigi has no link.
 
 ## 2026-10-11: list import asks Want to go or Been there (Sarp)
