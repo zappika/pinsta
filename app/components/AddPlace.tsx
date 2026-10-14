@@ -290,7 +290,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
                   autoCapitalize="off"
                   autoCorrect="off"
                   spellCheck={false}
-                  placeholder="Paste a link, or type a place"
+                  placeholder="Type a place, or paste a link"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   className={`min-w-0 flex-1 rounded-xl border bg-stone-50 px-3.5 py-2.5 text-base outline-none placeholder:text-stone-400 ${

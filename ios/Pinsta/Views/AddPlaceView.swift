@@ -200,7 +200,7 @@ struct AddPlaceView: View {
     private var urlField: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                TextField("Paste a link, or type a place", text: $urlText)
+                TextField("Type a place, or paste a link", text: $urlText)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .focused($focus, equals: .url)

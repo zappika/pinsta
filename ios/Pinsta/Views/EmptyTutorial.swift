@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The empty list: three static pages that teach the share from Instagram
+/// The empty list: four static pages that teach the share from Instagram
 /// (approved design, `exports/vicolo-onboarding-handoff`, 2026-10-05). Shown while
 /// there is nothing to show and gone with the first save, so no "seen" flag: an
 /// empty list always gets the guidance. Trattoria Lina is artwork, never a place.
@@ -17,46 +17,63 @@ struct EmptyTutorial: View {
                     title: "Found a place?",
                     subtitle: "Save it from Instagram.",
                     caption: "1. Tap Share on a post",
-                    spoken: "Step 1 of 3. In Instagram, tap Share on a post of a place.",
+                    spoken: "Step 1 of 4. In Instagram, tap Share on a post of a place.",
                     art: { InstagramPostArt() }
                 )
                 .tag(0)
+                // Instagram's paper plane opens its own sheet, not the phone's: Vicolo is one
+                // more tap away, behind "Share to…". Testers stopped here (Mert, 2026-10-14).
                 TutorialPage(
-                    title: "Send it to Vicolo",
-                    subtitle: "Keep it for your next outing.",
-                    caption: "2. Make Vicolo a favorite, then tap it",
-                    spoken: "Step 2 of 3. In the share sheet, add Vicolo to Favorites, then tap it.",
-                    art: { ShareSheetArt() },
-                    footer: { FavoritesHelp() }
+                    title: "Then Share to…",
+                    subtitle: "At the end of Instagram's row.",
+                    caption: "2. Tap Share to…, swipe the row if you can't see it",
+                    spoken: "Step 2 of 4. Instagram opens its own sheet first. In the row at the bottom, tap Share to. Swipe the row if you can't see it.",
+                    art: { InstagramSheetArt() }
                 )
                 .tag(1)
                 TutorialPage(
-                    title: "Your next favorite, saved.",
-                    subtitle: "A little collection of places.",
-                    caption: "3. Find your saved places here",
-                    spoken: "Step 3 of 3. Find your saved places here.",
-                    art: { SavedCardArt() }
+                    title: "Send it to Vicolo",
+                    subtitle: "Keep it for your next outing.",
+                    caption: "3. Make Vicolo a favorite, then tap it",
+                    spoken: "Step 3 of 4. In the share sheet, add Vicolo to Favorites, then tap it.",
+                    art: { ShareSheetArt() },
+                    footer: { FavoritesHelp() }
                 )
                 .tag(2)
+                TutorialPage(
+                    title: "Your next favorite, saved.",
+                    subtitle: "A little collection of places.",
+                    caption: "4. Find your saved places here",
+                    spoken: "Step 4 of 4. Find your saved places here.",
+                    art: { SavedCardArt() }
+                )
+                .tag(3)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
 
-            PageDots(page: $page, count: 3, animated: !reduceMotion)
+            PageDots(page: $page, count: 4, animated: !reduceMotion)
                 .padding(.top, 4)
 
-            Button(action: openInstagram) {
-                Text("Go to Instagram")
+            // Instagram only once the whole path has been seen (Sarp, 2026-10-14): before
+            // that the same button steps on, so nothing jumps and there's always a way forward.
+            let last = page == 3
+            Button(action: last ? openInstagram : { go(page + 1) }) {
+                Text(last ? "Go to Instagram" : "Next")
                     .font(.headline)
                     .foregroundStyle(Tutorial.actionText)
                     .frame(maxWidth: .infinity, minHeight: 52)
                     .background(Tutorial.action, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .buttonStyle(.plain)
-            .accessibilityHint("Opens a post of a place in Instagram, to share to Vicolo.")
+            .accessibilityHint(last ? "Opens a post of a place in Instagram, to share to Vicolo." : "Shows the next step.")
             .padding(.horizontal, 20)
             .padding(.top, 8)
             .padding(.bottom, 12)
         }
+    }
+
+    private func go(_ i: Int) {
+        if reduceMotion { page = i } else { withAnimation(.snappy) { page = i } }
     }
 
     /// A post of a place, so a first try has something to save even when the
@@ -239,7 +256,72 @@ private struct InstagramPostArt: View {
     }
 }
 
-/// 2: the post's photo behind a share sheet with Vicolo in the app row.
+/// 2: Instagram's own share sheet (dark, as Instagram draws it): people to send to, then
+/// the row of actions with "Share to…" ringed. After Mert's mock, 2026-10-14.
+private struct InstagramSheetArt: View {
+    private static let sheet = Color(red: 0.13, green: 0.14, blue: 0.16)
+    private static let field = Color(red: 0.22, green: 0.23, blue: 0.26)
+    private static let people: [Color] = [
+        Color(red: 0.36, green: 0.62, blue: 0.95), Color(red: 0.85, green: 0.6, blue: 0.5), Color(red: 0.55, green: 0.75, blue: 0.6),
+        Color(red: 0.8, green: 0.45, blue: 0.55), Color(red: 0.95, green: 0.75, blue: 0.4), Color(red: 0.6, green: 0.55, blue: 0.85),
+    ]
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            RestaurantPhoto().overlay(Color.black.opacity(0.35))
+            VStack(spacing: 12) {
+                Capsule().fill(Color.white.opacity(0.3)).frame(width: 36, height: 5).padding(.top, 6)
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass")
+                    Text("Search")
+                    Spacer()
+                }
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.55))
+                .padding(.horizontal, 12)
+                .frame(height: 34)
+                .background(Self.field, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .padding(.horizontal, 14)
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 10) {
+                    ForEach(0..<6, id: \.self) { i in
+                        Circle().fill(Self.people[i]).frame(width: 40, height: 40)
+                    }
+                }
+                .padding(.horizontal, 24)
+                HStack(alignment: .top, spacing: 0) {
+                    action("Add to story", "plus.circle")
+                    action("Copy link", "link")
+                    action("WhatsApp", "phone.fill", fill: Color(red: 0.15, green: 0.75, blue: 0.4))
+                    action("Share to…", "square.and.arrow.up", ringed: true)
+                }
+                .padding(.horizontal, 4)
+                .padding(.bottom, 12)
+            }
+            .background(Self.sheet)
+            .clipShape(UnevenRoundedRectangle(topLeadingRadius: 22, topTrailingRadius: 22, style: .continuous))
+            .padding(.top, 40)
+        }
+        .aspectRatio(0.9, contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .shadow(color: .black.opacity(0.08), radius: 14, y: 4)
+        .environment(\.colorScheme, .dark)
+    }
+
+    private func action(_ label: String, _ symbol: String, fill: Color = Self.field, ringed: Bool = false) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: symbol)
+                .font(.system(size: 18, weight: .medium))
+                .foregroundStyle(.white)
+                .frame(width: 46, height: 46)
+                .background(fill, in: Circle())
+                .background { if ringed { TapRing(size: 62) } }
+            Text(label).font(.caption2).foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+/// 3: the post's photo behind the phone's share sheet with Vicolo in the app row.
 private struct ShareSheetArt: View {
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -324,7 +406,7 @@ private struct AirDropIcon: View {
     }
 }
 
-/// 3: the place saved as a card, the resin elephant on its corner.
+/// 4: the place saved as a card, the resin elephant on its corner.
 private struct SavedCardArt: View {
     var body: some View {
         VStack(spacing: 0) {
@@ -444,7 +526,7 @@ private struct Chip<Icon: View>: View {
 
 // MARK: - Dots
 
-/// Three dots, each tappable; VoiceOver hears one adjustable control ("Page 2 of 3",
+/// One dot a page, each tappable; VoiceOver hears one adjustable control ("Page 2 of 3",
 /// swipe up or down to change), like the system page control.
 private struct PageDots: View {
     @Binding var page: Int
