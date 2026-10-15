@@ -37,7 +37,7 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         # HTTPS only, no custom crypto: exempt, so TestFlight skips the compliance question.
         ITSAppUsesNonExemptEncryption: false
-        NSLocationWhenInUseUsageDescription: Vicolo opens on the places you saved within 50 km of you, and uses your location for Near me. It is never stored or sent anywhere.
+        NSLocationWhenInUseUsageDescription: Vicolo opens on the town you are in, with your saved places nearby first. Your location stays on your phone.
         # Splash (2026-10-05): the launch screen is the splash still, aspect fill
         # (Resources/LaunchScreen.storyboard), so SplashView can take over without a jump. Follows the system appearance, not the in-app one
         # (iOS decides before the app runs).

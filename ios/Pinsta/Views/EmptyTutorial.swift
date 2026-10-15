@@ -177,7 +177,7 @@ enum Tutorial {
 
 /// Title, picture, caption. The picture takes what height the words leave (between
 /// `minArt` and `maxArt`); past that — small phones, large text — the page scrolls.
-private struct TutorialPage<Art: View, Footer: View>: View {
+struct TutorialPage<Art: View, Footer: View>: View {
     let title: LocalizedStringKey
     let subtitle: LocalizedStringKey
     let caption: LocalizedStringKey

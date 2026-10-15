@@ -9,8 +9,8 @@ export function kmBetween(a: { lat: number; lng: number }, b: { lat: number; lng
   return 12742 * Math.asin(Math.sqrt(h));
 }
 
-/** The opening screen asks for location only from this many saved places on (Sarp, 2026-10-05). */
-export const ASK_AFTER = 3;
+/** The opening screen asks for location only from this many saved places on (Sarp, 2026-10-05; two since 2026-10-15). */
+export const ASK_AFTER = 2;
 
 /**
  * What the opening screen may do with location: "locate" when the browser already
