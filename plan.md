@@ -56,6 +56,7 @@ Everything below the line is built and in **1.0 (23)**; this is what is not.
 ## To design (Sarp)
 - **A moving tutorial (for Sander):** a short screen recording of the real path (Instagram paper plane → Share to… → Vicolo → saved) in place of the four static pictures. Sarp doesn't hate it (2026-10-14). Static pages stay until then.
 - List import success state (many places at once, not the one-place card).
+- **Design together with the Google list import (Sarp, 2026-10-15):** the "This post has N places" picker (slide or caption lists: Oslo carousel, Amsterdam reel DAblyc9ICgR) should look like the list import review. Design both in the same pass.
 - What to offer for list places that couldn't be found (web has the same gap).
 - "From Emilie's list" on the iOS place card.
 - "Wrong place?" after an automatic save, as part of reworking the steps before the success card.
