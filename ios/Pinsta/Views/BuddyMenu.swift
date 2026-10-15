@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// The round elephant button, top right: a short menu, like the web's. Settings,
-/// Been there and Import from Google open as their own sheets. Accounts belong to the Social package.
+/// Been there, Import from Google and What's new open as their own sheets; a red dot
+/// on the button means a build whose What's new hasn't been opened. Accounts belong to the Social package.
 struct BuddyMenu: View {
     private let settings = Settings.shared
 
@@ -31,6 +32,12 @@ struct BuddyMenu: View {
                     Text(ListImport.shared.importing ? "Importing… \(ListImport.shared.savedCount) done" : "Finding places…")
                 }
             }
+            Button {
+                settings.openChangelog()
+            } label: {
+                Label("What's new", systemImage: "sparkles")
+                if settings.changelogIsNew { Text("Build \(Settings.build)") }
+            }
         } label: {
             // Explicit colour: a Menu label otherwise takes the tint, which vanished in dark.
             // The flat Vicolo mark (a template image, so it takes the ink), never the resin one at this size.
@@ -41,6 +48,12 @@ struct BuddyMenu: View {
                 .foregroundStyle(Color(.label))
                 .frame(width: 44, height: 44)
                 .background(Color(.tertiarySystemFill), in: Circle())
+                // A build the tester hasn't read What's new for.
+                .overlay(alignment: .topTrailing) {
+                    if settings.changelogIsNew {
+                        Circle().fill(.red).frame(width: 10, height: 10).offset(x: -2, y: 2)
+                    }
+                }
                 .contentShape(Circle())
         }
         .accessibilityLabel("Menu")

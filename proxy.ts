@@ -1,16 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 // One Vercel project, three hosts (Sarp, 2026-10-08):
-//   vicolo.space            — marketing index + /privacy
+//   vicolo.space            — marketing index, /privacy, /changelog (testers read it)
 //   app.vicolo.space        — the product: the list (served from /app), /import
-//   backoffice.vicolo.space — owner tooling: /usage
+//   backoffice.vicolo.space — owner tooling: /usage, /parity
 // pinsta-two.vercel.app keeps serving the list at / for older links.
 // Any other host (localhost, previews) gets plain paths: / is the index, /app the list.
 // The apex vs www choice is Vercel's domain setting (today vicolo.space → www); never redirect between them here, or it loops.
 const ROOT = "https://www.vicolo.space";
 const APP = "https://app.vicolo.space";
 const BACKOFFICE = "https://backoffice.vicolo.space";
-const OWNER_TOOLS = ["/usage", "/library", "/success"];
+const OWNER_TOOLS = ["/usage", "/library", "/success", "/parity"];
 const APP_PAGES = ["/import"];
 
 export function proxy(req: NextRequest) {

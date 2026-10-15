@@ -1,7 +1,7 @@
 # Vicolo — web ↔ iOS
 
 What each app has, side by side. Kept current with every change that adds or
-closes a difference (CLAUDE.md). Last updated 2026-10-14 (build 23).
+closes a difference (CLAUDE.md). Last updated 2026-10-15 (build 24). Also at backoffice.vicolo.space/parity.
 
 ## To close
 
@@ -23,6 +23,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-14 (build 23).
 | Photo when a post has none | Google photo | None; the post is re-read later (`PhotoRetry`) |
 | Price ($–$$$$) | Google, on save | Asks `/api/price`, which asks Google |
 | Usage sheet and `/usage` | Yes | No: the costs are Sarp's to watch |
+| What's new (menu → `/changelog`) | Opens in a new tab, no dot (the changelog is about iOS builds) | In-app Safari sheet; red dot on the menu button until a new build's What's new is opened |
 | Share from Instagram | Paste a link | Share sheet → Vicolo, or paste |
 | Save by typing a name / @handle (first field) | Yes (Google) | Yes (MapKit) |
 | Save from an Instagram profile link / @handle | Yes | Yes; Apple Maps lacks some venues Google has (BATA) |

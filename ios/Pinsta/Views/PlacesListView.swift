@@ -230,6 +230,7 @@ private struct PlacesContent: View {
         .sheet(isPresented: Bindable(settings).showingSheet) { SettingsSheet() }
         .sheet(isPresented: Bindable(settings).showingBeenThere) { BeenThereSheet() }
         .sheet(isPresented: Bindable(settings).showingImport) { ImportView() }
+        .sheet(isPresented: Bindable(settings).showingChangelog) { ChangelogView().ignoresSafeArea() }
         .onAppear { if UserDefaults.standard.string(forKey: "importURL") != nil { settings.showingImport = true } }
         .fullScreenCover(isPresented: Bindable(settings).showingTutorial) {
             TutorialCover()
@@ -313,7 +314,8 @@ private struct PlacesContent: View {
     /// from a share. Never over a sheet; a moment's pause so it doesn't snap in.
     private func askIfDue() {
         let busy = { adding || editing != nil || screen.askingLocation || settings.showingSheet
-            || settings.showingBeenThere || settings.showingImport || settings.showingTutorial }
+            || settings.showingBeenThere || settings.showingImport || settings.showingTutorial
+            || settings.showingChangelog }
         guard started, !busy(), nearMe.onOpen(placeCount: places.count) == .ask else { return }
         Task {
             try? await Task.sleep(for: .seconds(0.6))

@@ -10,7 +10,7 @@ import ElephantMark from "./ElephantMark";
 /**
  * The round elephant menu button, top right: a short menu. Settings (appearance,
  * directions), Been there and Usage open as their own sheets; Import from Google is its own
- * page (/import); Lock forgets the owner key.
+ * page (/import); What's new opens the public /changelog in a new tab; Lock forgets the owner key.
  */
 export default function BuddyMenu({ places }: { places: Place[] }) {
   const [open, setOpen] = useState(false);
@@ -75,6 +75,14 @@ export default function BuddyMenu({ places }: { places: Place[] }) {
             onClick={() => {
               setOpen(false);
               location.href = "/import";
+            }}
+          />
+          <Item
+            icon={<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6.3 6.3l2.5 2.5M15.2 15.2l2.5 2.5M6.3 17.7l2.5-2.5M15.2 8.8l2.5-2.5" />}
+            label="What's new"
+            onClick={() => {
+              setOpen(false);
+              window.open("/changelog", "_blank");
             }}
           />
           <div className="my-1 h-px bg-stone-100" />

@@ -32,10 +32,27 @@ final class Settings {
     /// Buddy menu → Been there.
     var showingBeenThere = false
     var showingImport = false
+    /// Buddy menu → What's new: the public changelog, in Safari's sheet.
+    var showingChangelog = false
+
+    /// The installed build, from the bundle.
+    static let build = Int(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "") ?? 0
+    /// The build whose What's new was last opened. An installed build newer than it puts a dot
+    /// on the menu button until What's new is opened (fresh installs too: it's all new to them).
+    var seenChangelogBuild: Int {
+        didSet { UserDefaults.standard.set(seenChangelogBuild, forKey: "vicolo.seenChangelog") }
+    }
+    var changelogIsNew: Bool { seenChangelogBuild < Self.build }
+
+    func openChangelog() {
+        seenChangelogBuild = Self.build
+        showingChangelog = true
+    }
 
     private init() {
         mapsApp = UserDefaults.standard.string(forKey: "vicolo.maps").flatMap(MapsApp.init(rawValue:))
         appearance = UserDefaults.standard.string(forKey: "vicolo.theme").flatMap(Appearance.init(rawValue:)) ?? .system
+        seenChangelogBuild = UserDefaults.standard.integer(forKey: "vicolo.seenChangelog")
     }
 
     /// The card's Directions button: open straight away, or ask first.

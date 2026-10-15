@@ -2,6 +2,9 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
+## For build 25
+- **What's new** (2026-10-15): menu → What's new opens `vicolo.space/changelog` (from `changelog.md`, builds 13–24 written up for testers) in Safari's sheet; a red dot on the menu button until it's opened for a new build. Web menu has it too; `backoffice.vicolo.space/parity` shows `parity.md`. Shipping 25 = add its changelog section first.
+
 ## 1.0 (24) uploaded 2026-10-15 — try these on a phone
 Also in 24: the **Culture** category (cinemas, theatres, concert halls; stand-in icon) and the tutorial's real photo (Salzi, Vienna).
 - **Location primer** (2026-10-15): from the 2nd place (was 3), a page in the tutorial's look explains why before iOS asks: "Open on your town", two of your own pins and the blue dot on a drawn map, one Continue button that always leads to the system question (App Review 5.1.1 rejects a "Not now" here; "Don't Allow" is iOS's). Shows on open, after an in-app save once its success card has gone, or back from a share; never over a sheet. Allowing frames the map on your town at once. Web: threshold 2, no primer. Popup text no longer mentions Near me. On a phone: fresh install, save two places.
