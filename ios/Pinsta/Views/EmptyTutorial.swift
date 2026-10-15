@@ -3,7 +3,7 @@ import SwiftUI
 /// The empty list: four static pages that teach the share from Instagram
 /// (approved design, `exports/vicolo-onboarding-handoff`, 2026-10-05). Shown while
 /// there is nothing to show and gone with the first save, so no "seen" flag: an
-/// empty list always gets the guidance. Trattoria Lina is artwork, never a place.
+/// empty list always gets the guidance. Salzi is artwork, never a place.
 struct EmptyTutorial: View {
     @Binding var page: Int
     /// Back from Instagram with nothing saved (see `Screen.stuck`).
@@ -258,12 +258,12 @@ private struct InstagramPostArt: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
-                Text("A")
+                Text("S")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
                     .frame(width: 30, height: 30)
                     .background(Color(red: 0.72, green: 0.56, blue: 0.48), in: Circle())
-                Text("aroundthecorner").font(.subheadline.weight(.medium)).lineLimit(1)
+                Text("salzi.wien").font(.subheadline.weight(.medium)).lineLimit(1)
                 Spacer(minLength: 0)
                 Image(systemName: "ellipsis").font(.subheadline.weight(.semibold))
             }
@@ -448,10 +448,10 @@ private struct SavedCardArt: View {
             RestaurantPhoto()
             HStack(alignment: .center, spacing: 8) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Trattoria Lina").font(.title3.bold()).lineLimit(1).minimumScaleFactor(0.8)
+                    Text("Salzi").font(.title3.bold()).lineLimit(1).minimumScaleFactor(0.8)
                     HStack(spacing: 4) {
                         Image(systemName: "mappin.circle.fill").foregroundStyle(Tutorial.orange)
-                        Text("Italian · Copenhagen").foregroundStyle(.secondary).lineLimit(1)
+                        Text("Café · Vienna").foregroundStyle(.secondary).lineLimit(1)
                     }
                     .font(.subheadline)
                 }
