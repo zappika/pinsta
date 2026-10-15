@@ -15,6 +15,20 @@ const STYLE_DARK = "https://tiles.openfreemap.org/styles/dark";
 const CLUSTER_PX = 44;
 /** From street level on, never group — two entries at one address would never split. */
 const NO_CLUSTER_ZOOM = 16;
+/** A frame is never narrower than this: a town's places in two neighbourhoods still show
+ * a piece of the city around them (Sarp, 2026-10-15: "too tight"). ↔ `PlacesMapView.minFrameKm`. */
+const MIN_FRAME_KM = 4.5;
+const FRAME_PADDING = { top: 60, bottom: 180, left: 50, right: 50 };
+
+/** `bounds` grown around its centre to at least MIN_FRAME_KM across, both ways. */
+function atLeastMinFrame(lib: typeof maplibregl, bounds: maplibregl.LngLatBounds) {
+  const c = bounds.getCenter();
+  const dLat = MIN_FRAME_KM / 2 / 111.32;
+  const dLng = dLat / Math.cos((c.lat * Math.PI) / 180);
+  return new lib.LngLatBounds(bounds.getSouthWest(), bounds.getNorthEast())
+    .extend([c.lng - dLng, c.lat - dLat])
+    .extend([c.lng + dLng, c.lat + dLat]);
+}
 
 type Props = {
   places: Place[];
@@ -26,6 +40,10 @@ type Props = {
   focus?: Place[];
   /** Where you are, when location is allowed: a blue dot, like Google Maps (Sarp, 2026-10-09). */
   here?: { lat: number; lng: number } | null;
+  /** Bumped by the locate button: frame the blue dot (`here`) at town size. */
+  goHere?: number;
+  /** The person moved the map after a locate: the button goes back to its outline. */
+  onAway?: () => void;
 };
 
 /**
@@ -36,7 +54,7 @@ type Props = {
 /** A map that has not drawn by then is treated as offline. */
 const LOAD_TIMEOUT_MS = 12_000;
 
-export default function PlacesMap({ places, selected, onSelect, onFail, focus, here = null }: Props) {
+export default function PlacesMap({ places, selected, onSelect, onFail, focus, here = null, goHere = 0, onAway }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markers = useRef<Map<string, { marker: maplibregl.Marker; pin: HTMLDivElement }>>(new Map());
@@ -47,6 +65,8 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
   onSelectRef.current = onSelect;
   const onFailRef = useRef(onFail);
   onFailRef.current = onFail;
+  const onAwayRef = useRef(onAway);
+  onAwayRef.current = onAway;
 
   // maplibre touches `window` on import, so it only loads in the browser.
   useEffect(() => {
@@ -70,6 +90,12 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
         attributionControl: { compact: true },
       });
       m.on("click", () => onSelectRef.current(null));
+      // A drag or pinch by the person (not our own flyTo/fitBounds, which have no originalEvent).
+      const away = (e: { originalEvent?: unknown }) => {
+        if (e.originalEvent) onAwayRef.current?.();
+      };
+      m.on("dragstart", away);
+      m.on("zoomstart", away);
       // Names only once the pins have room; zoomed out they'd pile up.
       const labels = () => container.current?.classList.toggle("show-labels", m.getZoom() > 9);
       m.on("zoom", labels);
@@ -143,6 +169,14 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     if (libRef.current && map.current && ready.current) setPlaces(libRef.current, map.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [here]);
+  // The locate button: you at town size, whatever the selection (like Google Maps).
+  // Declared after the effect above, so a first fix's reframe is overridden by this.
+  useEffect(() => {
+    const lib = libRef.current, m = map.current;
+    if (!goHere || !here || !lib || !m || !ready.current) return;
+    const box = atLeastMinFrame(lib, new lib.LngLatBounds([here.lng, here.lat], [here.lng, here.lat]));
+    m.fitBounds(box, { padding: FRAME_PADDING, duration: 600 });
+  }, [goHere, here]);
 
   const placesRef = useRef(places);
   placesRef.current = places;
@@ -162,8 +196,8 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     // You're among these places: the frame takes you in too, so the dot shows.
     const at = hereRef.current;
     if (at && list.some((p) => kmBetween(at, p) <= NEAR_KM)) bounds.extend([at.lng, at.lat]);
-    // One place → a neighbourhood, not a dot at max zoom.
-    m.fitBounds(bounds, { padding: { top: 60, bottom: 180, left: 50, right: 50 }, maxZoom: 15, duration: 600 });
+    // Never tighter than a piece of the city (MIN_FRAME_KM), so one place isn't a dot at max zoom either.
+    m.fitBounds(atLeastMinFrame(lib, bounds), { padding: FRAME_PADDING, maxZoom: 15, duration: 600 });
     // Pins that overlap at this zoom are grouped; regroup whenever the map settles.
     m.off("moveend", redraw.current);
     redraw.current = () => draw(lib, m);

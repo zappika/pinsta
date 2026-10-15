@@ -159,6 +159,31 @@ export default function PinstaApp() {
   const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
   const wherePick = useRef(0);
 
+  // The locate button on the map (Sarp, 2026-10-15, like Google Maps): you at town size.
+  // Not allowed yet → this is the ask, at any list size (the person asked for it).
+  const [goHere, setGoHere] = useState(0);
+  const [onYou, setOnYou] = useState(false);
+  const [locating, setLocating] = useState(false);
+  async function locate() {
+    if (locating) return;
+    setLocating(true);
+    wherePick.current++; // a late opening fix mustn't move the map away from you
+    try {
+      const pos = await currentPosition();
+      setHere(pos);
+      setGoHere((n) => n + 1);
+      setOnYou(true);
+    } catch (e) {
+      setNotice(
+        (e as GeolocationPositionError)?.code === 1
+          ? "Location is off for Vicolo. Allow it in your browser's site settings to see where you are."
+          : "Couldn't find where you are. Try again in a moment.",
+      );
+    } finally {
+      setLocating(false);
+    }
+  }
+
   // Opening screen: the map of the town you're in (Sarp, 2026-10-09: no "Near me" row;
   // it just opens on Barcelona when you're in Barcelona). The town is the Where row of your
   // nearest place within NEAR_KM. Offline or a map that does not load → the list of
@@ -325,6 +350,8 @@ export default function PinstaApp() {
             places={visible}
             focus={framed?.places}
             here={here}
+            goHere={goHere}
+            onAway={() => setOnYou(false)}
             selected={peekId}
             onSelect={setPeek}
             onFail={() => {
@@ -421,6 +448,20 @@ export default function PinstaApp() {
             <div className={`transition-opacity duration-200 ${adding ? "pointer-events-none opacity-0" : "opacity-100"}`}>
               <ViewSwitch view={view} onChange={setView} />
             </div>
+          )}
+          {view === "map" && places && places.length > 0 && !adding && !peekId && (
+            <button
+              type="button"
+              aria-label="Show where I am"
+              aria-pressed={onYou}
+              onClick={locate}
+              className="pointer-events-auto absolute right-1.5 bottom-[calc(100%+0.75rem)] flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#1a73e8] shadow-lg shadow-stone-900/10 active:scale-95 transition-transform"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden className={locating ? "animate-pulse" : ""}
+                fill={onYou ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+                <path d="M20.5 3.5 3.5 10.6l7.1 2.8 2.8 7.1z" />
+              </svg>
+            </button>
           )}
           <button
             type="button"
