@@ -21,6 +21,7 @@ enum Milestone {
         switch c {
         case .cafe: return "café"
         case .nature: return "nature spot"
+        case .culture: return "culture spot"
         default: return c.rawValue.lowercased()
         }
     }

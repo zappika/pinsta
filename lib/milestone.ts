@@ -1,6 +1,6 @@
 import type { Place } from "@/lib/db/schema";
 
-const PLURAL: Record<string, string> = { Bakery: "bakery", Cafe: "café", Nature: "nature spot", Other: "place" };
+const PLURAL: Record<string, string> = { Bakery: "bakery", Cafe: "café", Nature: "nature spot", Culture: "culture spot", Other: "place" };
 
 /**
  * The line above the name on the success card, from the list as it was before this save

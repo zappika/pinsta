@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 import MapKit
 
-/// The eleven buckets the list filters by. Same set as the web app's
+/// The twelve buckets the list filters by. Same set as the web app's
 /// `lib/categories.ts` so imported rows map 1:1.
 enum PlaceCategory: String, CaseIterable, Identifiable {
     case restaurant = "Restaurant"
@@ -14,6 +14,7 @@ enum PlaceCategory: String, CaseIterable, Identifiable {
     case shop = "Shop"
     case attraction = "Attraction"
     case museum = "Museum"
+    case culture = "Culture"
     case nature = "Nature"
     case other = "Other"
 
@@ -31,6 +32,7 @@ enum PlaceCategory: String, CaseIterable, Identifiable {
         case .shop: return Color(hex: 0xF9DCE6)
         case .attraction: return Color(hex: 0xFDE0DC)
         case .museum: return Color(hex: 0xE2E4EA)
+        case .culture: return Color(hex: 0xF6DCEA)
         case .nature: return Color(hex: 0xD9EFDD)
         case .other: return Color(hex: 0xECECEC)
         }
@@ -45,7 +47,7 @@ enum PlaceCategory: String, CaseIterable, Identifiable {
 
     var plural: String {
         switch self {
-        case .nature, .other: return rawValue
+        case .nature, .culture, .other: return rawValue
         case .bakery: return "Bakeries"
         default: return rawValue + "s"
         }
@@ -69,7 +71,8 @@ enum PlaceCategory: String, CaseIterable, Identifiable {
             case .store, .foodMarket: return .shop
             case .museum: return .museum
             case .park, .nationalPark, .beach: return .nature
-            case .theater, .amusementPark, .aquarium, .zoo: return .attraction
+            case .theater, .movieTheater, .musicVenue: return .culture
+            case .amusementPark, .aquarium, .zoo: return .attraction
             default:
                 // Newer categories (castle, landmark, distillery…) arrive as raw strings.
                 let raw = poi.rawValue.lowercased()

@@ -218,4 +218,4 @@ xcodebuild -exportArchive -archivePath build/Vicolo.xcarchive -exportOptionsPlis
 - Web first, then port to iOS in one pass. Keep shared rules identical. Design iteration happens on the web only (Sarp, 2026-10-01); iOS gets the settled version.
 - Low-tech first: no LLM/paid API where a heuristic does the job (Sarp's call).
 - Commit per verified chunk; the message body says why. Push = deploy.
-- Categories: `lib/categories.ts` ↔ `PlaceCategory.swift`, incl. Vineyard.
+- Categories: `lib/categories.ts` ↔ `PlaceCategory.swift`, incl. Vineyard and Culture (cinemas, theatres, concert halls; icon is a stand-in vinyl record until Sarp picks one). `scripts/recategorize.mts` re-buckets stored rows for free.

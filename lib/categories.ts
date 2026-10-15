@@ -14,6 +14,7 @@ export const CATEGORIES = [
   "Shop",
   "Attraction",
   "Museum",
+  "Culture",
   "Nature",
   "Other",
 ] as const;
@@ -64,6 +65,16 @@ const EXACT: Record<string, Category> = {
   museum: "Museum",
   art_gallery: "Museum",
   cultural_center: "Museum",
+  movie_theater: "Culture",
+  performing_arts_theater: "Culture",
+  concert_hall: "Culture",
+  opera_house: "Culture",
+  amphitheatre: "Culture",
+  philharmonic_hall: "Culture",
+  auditorium: "Culture",
+  live_music_venue: "Culture",
+  comedy_club: "Culture",
+  dance_hall: "Culture",
   park: "Nature",
   national_park: "Nature",
   state_park: "Nature",
@@ -85,6 +96,7 @@ export function categorize(primaryType: string | null | undefined): Category {
   if (t.endsWith("_store") || t.endsWith("_shop")) return "Shop";
   if (t.endsWith("_hotel")) return "Hotel";
   if (t.endsWith("_museum")) return "Museum";
+  if (t.endsWith("_theater") || t.endsWith("_theatre")) return "Culture";
   if (t.endsWith("_park")) return "Nature";
   return "Other";
 }
@@ -100,6 +112,7 @@ const CATEGORY_TINT: Record<Category, string> = {
   Shop: "#f9dce6",
   Attraction: "#fde0dc",
   Museum: "#e2e4ea",
+  Culture: "#f6dcea",
   Nature: "#d9efdd",
   Other: "#ececec",
 };
