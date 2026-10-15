@@ -17,8 +17,11 @@ enum SlideText {
     /// The places named on the slides, in slide order. Empty when fewer than two: one
     /// place is the ordinary flow's job.
     /// `account`: the poster's name and handle — their logo on a slide ("Vink") is not a place.
-    static func places(slides: [String], city: String?, account: [String] = []) async -> [Found] {
-        guard slides.count >= 2 else { return [] }
+    /// `caption`: a numbered list in it ("1. paon bali (@paon_bali_amsterdam)", Amsterdam Indonesian
+    /// reel, 2026-10-15) names places the same way; those get the post's own photo.
+    static func places(slides: [String], caption: String? = nil, city: String?, account: [String] = []) async -> [Found] {
+        let listed = captionList(caption)
+        guard slides.count >= 2 || listed.count >= 2 else { return [] }
         // Downloaded and read together; a slide that fails is just skipped.
         let read: [(Int, Data, [String])] = await withTaskGroup(of: (Int, Data, [String])?.self) { group in
             for (i, link) in slides.prefix(10).enumerated() {
@@ -31,8 +34,8 @@ enum SlideText {
             for await r in group { if let r { out.append(r) } }
             return out.sorted { $0.0 < $1.0 }
         }
-        var names: [(String, Data)] = []
-        for (_, data, lines) in read {
+        var names: [(String, Data?)] = listed.map { ($0, nil) }
+        for (_, data, lines) in read where slides.count >= 2 {
             let mine = account.map { fold($0).filter { $0.isLetter || $0.isNumber } }.filter { !$0.isEmpty }
             for l in lines where !names.contains(where: { fold($0.0) == fold(l) }) {
                 let letters = fold(l).filter { $0.isLetter || $0.isNumber }
@@ -56,6 +59,23 @@ enum SlideText {
         // The biggest group within 40 km of each other: six Oslo places, not a namesake in Steninge.
         let kept = biggestCluster(found)
         return kept.count >= 2 ? kept : []
+    }
+
+    /// The items of a list in the caption: two or more lines starting "1." / "2)" / "-" / "•",
+    /// each cut at an "(@handle)", " - " or " – " and kept when it reads like a name.
+    static func captionList(_ caption: String?) -> [String] {
+        guard let caption else { return [] }
+        let marker = #/^\s*(?:\d{1,2}\s*[.)]|[-•▪·]|\d\x{FE0F}?\x{20E3})\s*(.+)$/#
+        let items = caption.split(whereSeparator: \.isNewline).compactMap { line -> String? in
+            guard let m = String(line).firstMatch(of: marker) else { return nil }
+            var s = String(m.1)
+            for cut in ["(@", " @", " - ", " – ", " — ", ":"] { if let r = s.range(of: cut) { s = String(s[..<r.lowerBound]) } }
+            s = s.trimmingCharacters(in: CharacterSet.alphanumerics.inverted.subtracting(CharacterSet(charactersIn: "&'’")))
+            guard (3...40).contains(s.count), s.split(separator: " ").count <= 5, s.rangeOfCharacter(from: .letters) != nil,
+                  !s.contains("#"), !s.lowercased().contains("http") else { return nil }
+            return s
+        }
+        return items.count >= 2 ? items : []
     }
 
     /// Short label-like lines: 3–40 characters, four words at most, not a sentence,

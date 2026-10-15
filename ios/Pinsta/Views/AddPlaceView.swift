@@ -361,7 +361,7 @@ struct AddPlaceView: View {
             let slideCity = PlaceSearch.areaOfTag(post.locationName)
                 ?? PlaceSearch.handleWithCity(post.ownerUsername)?.split(separator: " ").last.map(String.init) ?? post.city
             async let onSlides = SlideText.places(
-                slides: post.slides ?? [], city: slideCity, account: [post.ownerFullName, post.ownerUsername].compactMap { $0 }
+                slides: post.slides ?? [], caption: post.caption, city: slideCity, account: [post.ownerFullName, post.ownerUsername].compactMap { $0 }
             )
             var found: [PlaceCandidate] = []
             var from: Source = .account
