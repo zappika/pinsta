@@ -4,9 +4,19 @@ The product is **Vicolo**. Code, repo, folder and the Vercel project still say p
 
 **`parity.md` is the web ↔ iOS comparison** (what each app has, what differs on purpose). Update it in the same commit as any change that adds or closes a difference.
 
-Read `plan.md` first: it has the "Last session" block, what's waiting on Sarp,
-and the dated decisions. This file is *how things work* so a session can
-continue without re-deriving anything.
+Read `plan.md` first (one screen: now, waiting on Sarp, to design, last session). This file is
+*how things work* so a session can continue without re-deriving anything. The other docs, and
+when to touch them:
+- `builds.md`: what's in TestFlight vs the next build. **Every iOS change adds a line under
+  "Next build" in the same commit**, so nothing waits only in git.
+- `changelog.md`: what testers read per build (written at upload, from builds.md's "Next build").
+- `beta.md`: testers' feedback, open items, test links. Tester names never go in (public repo).
+- `backlog.md`: everything for later. `docs/decisions.md`: dated decisions; add one when Sarp
+  settles something. `docs/history.md`: past sessions; the old "Last session" block moves there.
+- Sarp tests every build on the phone but often doesn't report back: ask once, don't nag.
+
+Commands: the generic `/plan` `/build` `/review` `/wrap` loop and Sander handoffs aren't used on
+Vicolo (Sarp, 2026-10-15). Design calls are Sarp's.
 
 ## What it is, in one line
 Paste (or share) an Instagram post → the place it shows is saved to a personal
@@ -140,7 +150,7 @@ No `dark:` classes. `globals.css` flips Tailwind's stone palette variables (and 
 The web list is Sarp's alone (`lib/owner.ts`). Every `/api/places*` route and
 `/api/places/search` need header `x-pinsta-key: $PINSTA_OWNER_KEY`; the web app
 asks for it once and keeps it in localStorage (`lib/api.ts`). `/api/extract` is
-open for the iOS app, but only the owner gets Google candidates from it. `/api/price` is open too (one Google call per iOS food/drink save). Both are paid and unthrottled; a firewall rate limit is proposed in plan.md. The key
+open for the iOS app, but only the owner gets Google candidates from it. `/api/price` is open too (one Google call per iOS food/drink save). Both are paid and unthrottled; a firewall rate limit is for much later (plan.md → Waiting on Sarp). The key
 lives in `.env.local` and Vercel env — **never in the repo, which is public**.
 While the env var is unset the lock is off. Local curl with the key:
 `curl -H "x-pinsta-key: $(grep PINSTA_OWNER_KEY .env.local | cut -d= -f2)" localhost:3010/api/places`
@@ -202,7 +212,7 @@ xcodebuild -project Pinsta.xcodeproj -scheme Pinsta -sdk iphoneos -destination '
 xcodebuild -exportArchive -archivePath build/Vicolo.xcarchive -exportOptionsPlist build/export.plist \
   -exportPath build/export -allowProvisioningUpdates   # export.plist: method app-store-connect, destination upload, teamID 8D6ML34D52
 ```
-**Every upload adds its section to the top of `changelog.md`** (same commit as the bump): what a tester notices, in plain words, no internals. Testers read it at `vicolo.space/changelog` (menu → What's new; a red dot on the menu button until they open it for a new build).
+**Every upload, same commit as the bump:** `builds.md` "Next build" becomes "In TestFlight" (old one → Earlier builds, phone ☐), its tester lines go to the top of `changelog.md` (what a tester notices, in plain words, no internals). Then tag it: `git tag ios-N && git push origin ios-N`. Check nothing was missed with `git log ios-<previous>..HEAD -- ios lib app/api`. Testers read it at `vicolo.space/changelog` (menu → What's new; a red dot on the menu button until they open it for a new build).
 `ios/build/` is gitignored; recreate `export.plist` if missing. Archiving needs an Apple account in Xcode → Settings → Accounts; without one it fails with "No Accounts" / "No profiles for 'se.sarper.vicolo'" (the Mac Sarp worked on 2026-10-02 had none; earlier builds came from the other machine). Team 8D6ML34D52 (paid), Sarp's iPhone 15 is registered. Processing at Apple takes 10–20 min.
 
 ## Testing iOS
