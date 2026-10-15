@@ -2,6 +2,9 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
+## Waiting for build 24 (Sarp builds it)
+- **Caption lists are list posts** (`35b223b`, 2026-10-15): a numbered list in the caption opens "This post has N places", like Vink's slides. Checked on the simulator with the Amsterdam reel `DAblyc9ICgR` (five places). On a phone: share that reel.
+
 ## Open after 2026-10-14 (feedback round: Mert + testers)
 Everything below the line is built and in **1.0 (23)**; this is what is not.
 - **Testers on old builds:** all five were on 21 (installed the morning of 10-14). TestFlight only updates by itself when a tester turns on Automatic Updates. Nudge them: "TestFlight → Vicolo → Update, and turn on Automatic Updates". Idea, not built: an in-app "new version ready" banner (server holds the latest build number, opens TestFlight).

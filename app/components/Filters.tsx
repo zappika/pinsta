@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CATEGORIES } from "@/lib/categories";
+import { subtypeOf, subtypesOf, typeLabel } from "@/lib/subtypes";
 import BuddyMenu from "./BuddyMenu";
 import type { Place } from "./types";
 
@@ -15,7 +16,7 @@ type Props = {
   onCategory: (c: string | null) => void;
 };
 
-type Option = { value: string | null; label: string; count: number | null };
+type Option = { value: string | null; label: string; count: number | null; sub?: boolean };
 
 /**
  * The header *is* the filter: "Barcelona ▾  Everything ▾".
@@ -44,11 +45,10 @@ export default function Filters({ places, labels, city, category, onCity, onCate
     for (const p of scoped) if (p.category) counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
     return [
       { value: null, label: "Everything", count: scoped.length },
-      ...CATEGORIES.filter((c) => counts.has(c)).map((c) => ({
-        value: c,
-        label: pluralize(c),
-        count: counts.get(c)!,
-      })),
+      ...CATEGORIES.filter((c) => counts.has(c)).flatMap((c) => [
+        { value: c, label: pluralize(c), count: counts.get(c)! },
+        ...subtypesOf(scoped, c).map((s) => ({ ...s, sub: true })),
+      ]),
     ];
   }, [places, labels, city]);
 
@@ -62,7 +62,7 @@ export default function Filters({ places, labels, city, category, onCity, onCate
           className="max-w-[65%] shrink-0 text-2xl font-semibold tracking-tight"
         />
         <Trigger
-          label={category ? pluralize(category) : "Everything"}
+          label={category ? whatLabel(category) : "Everything"}
           onClick={() => setOpen("category")}
           className="text-2xl font-semibold tracking-tight text-stone-400"
         />
@@ -159,12 +159,12 @@ function Picker({
           {options.map((o) => {
             const active = o.value === selected;
             return (
-              <li key={o.label}>
+              <li key={o.value ?? ""}>
                 <button
                   type="button"
                   onClick={() => onSelect(o.value)}
                   aria-pressed={active}
-                  className={`vicolo-picker-row flex w-full items-center justify-between px-4 py-3.5 text-left text-base active:bg-stone-50 ${active ? "vicolo-selected" : ""}`}
+                  className={`vicolo-picker-row flex w-full items-center justify-between text-left ${o.sub ? "py-2.5 pl-8 pr-4 text-[15px] text-stone-500" : "px-4 py-3.5 text-base"} active:bg-stone-50 ${active ? "vicolo-selected" : ""}`}
                 >
                   <span className={`flex items-center gap-2 ${active ? "font-semibold" : "font-medium"}`}>
                     {o.label}
@@ -190,4 +190,9 @@ function Picker({
 function pluralize(category: string) {
   if (category === "Nature" || category === "Culture" || category === "Other") return category;
   return category.endsWith("y") ? `${category.slice(0, -1)}ies` : `${category}s`;
+}
+
+function whatLabel(what: string) {
+  const sub = subtypeOf(what);
+  return sub ? `${typeLabel(sub)}s` : pluralize(what);
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import BrandIllustration from "./BrandIllustration";
+import { matchesWhat } from "@/lib/subtypes";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, setOwnerKey } from "@/lib/api";
@@ -193,7 +194,7 @@ export default function PinstaApp() {
     return places.filter(
       (p) =>
         (city === null || labels.get(p.id) === city) &&
-        (category === null || p.category === category),
+        (category === null || matchesWhat(p, category)),
     );
   }, [places, labels, city, category]);
 
@@ -313,7 +314,7 @@ export default function PinstaApp() {
 
         {places && places.length > 0 && visible.length === 0 && view !== "map" && (
           <div className="mx-auto mt-10 max-w-[280px] text-center">
-            <BrandIllustration coffee={category === "Cafe"} />
+            <BrandIllustration coffee={category?.startsWith("Cafe") ?? false} />
             <h2 className="mt-4 text-base font-medium">No places here yet</h2>
             <p className="mt-2 text-sm text-stone-500">Try another area or clear your filters.</p>
             <button type="button" onClick={() => { setCity(null); setCategory(null); }} className="mt-3 min-h-11 rounded-full px-4 text-sm font-medium underline underline-offset-4">Show all places</button>
