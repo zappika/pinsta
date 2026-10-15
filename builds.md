@@ -14,7 +14,9 @@ How it stays true:
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
 ## Next build (since `ios-25`)
-- (nothing yet)
+- With no places near you, the map opens on all your places, not on the nearest country. Only places worlds apart (say Tokyo and Barcelona) still open on one country, the one with the most places.
+- A carousel or caption list now also finds the places Apple Maps doesn't know, by asking Google.
+- *(internal)* Not built or run yet: this Mac has no Xcode. Swift type-checked with swiftc only. Check on the other Mac: Vink's Oslo carousel `C_OOWiDS7Gh` should give 6 of 6 (Tranen from Google), and the opening map with places in two far-apart cities.
 
 ## In TestFlight: 1.0 (25) · 2026-10-15 · `ios-25` · phone ☑ (Sarp, 2026-10-15)
 - Menu → What's new opens vicolo.space/changelog; a red dot on the menu button until it's opened for a new build.

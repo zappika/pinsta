@@ -43,3 +43,5 @@ something that a later session might otherwise undo. (Moved out of plan.md 2026-
 - **2026-10-05 — Animated splash (Take 1) replaces the still**; the launch screen becomes a storyboard so the poster can aspect-fill like the movie.
 - **2026-10-05 — Location is asked on open only from 3 saved places, and after the splash (Sarp).** A new user's first launches never open on a permission question.
 - **2026-10-02 — Background retries back off; gone posts are never retried.** Each retry is a paid call on Sarp's accounts.
+- **2026-10-15 — Everywhere frames every place (Sarp, from a tester).** Supersedes 2026-10-06's one country. A tester in Copenhagen with places in Lisbon, Paris and Oslo opened on Norway (nearest country, one bakery) and called it random. Now all places, like a Google Maps saved map; only places worlds apart (over 4,000 km) get one country, the one with most places, never the nearest.
+- **2026-10-15 — Slide names Apple Maps misses are asked of Google.** Only once Apple has found the list's area, one place per slide, at most 6 queries a post.

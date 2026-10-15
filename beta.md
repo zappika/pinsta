@@ -19,11 +19,12 @@ Newest round first. When something is fixed, strike it through with the build it
 ### 2026-10-14 round (Mert + testers)
 Builds 21–25 (2026-10-14 → 10-15) are the answer to this round: place finding, profile saves, list posts, the Share to… tutorial, stuck help, the location primer, What's new. Build 25 checked on Sarp's phone 2026-10-15. Still open:
 - **Testers on old builds:** all five were on 21. Nudge them to update and turn on Automatic Updates. Idea, not built: an in-app "new version ready" banner (server holds the latest build number, opens TestFlight).
-- **iOS 26 untested:** 4 of 5 testers are on 26.x; only the iOS 27 simulator is installed (Sarp declined the 9 GB download). Ask the iPhone 13 tester (most sessions) to try the latest build.
-- **Dark mode** of the new screens (Share to… page, stuck note, paste offer, pick-many sheet) unchecked.
+- ~~iOS 26 untested~~ Testers on 26 seem fine; left (Sarp, 2026-10-15).
+- ~~Dark mode of the new screens~~ Checked by Sarp, 2026-10-15.
+- ~~**"The app shows a random place when I open it"**~~ (tester in Copenhagen with places in Lisbon, Paris and Oslo; she asked for the whole map, like a Google Maps saved map). The map framed the country *nearest* to her: Norway, one bakery in Oslo. Fixed for build 26: Everywhere frames every place unless they're worlds apart.
 - **Tutorial photo:** a tester offered a real one for page 1. Waiting for the file (original, with permission); it's a swap of `OnboardingRestaurant/restaurant.jpg`.
 - **For testers to verify (Sarp):** Apple Maps results on their own posts, the least-tested area.
-- **List posts, gaps:** a slide name Apple Maps doesn't have is dropped (Tranen); no Google fallback for slide names yet. Web has no list posts (needs server-side text reading).
+- ~~A slide name Apple Maps doesn't have is dropped (Tranen)~~ Google fallback for build 26. Still open: web has no list posts (needs server-side text reading).
 - **Noted, left (Sarp):** pre-fill the search with the account's name when nothing is found.
 - **Not solvable from the post:** a venue named nowhere (only an event collective's @handle), places only *spoken* in a reel, places on no map at all.
 

@@ -34,31 +34,73 @@ enum SlideText {
             for await r in group { if let r { out.append(r) } }
             return out.sorted { $0.0 < $1.0 }
         }
-        var names: [(String, Data?)] = listed.map { ($0, nil) }
-        for (_, data, lines) in read where slides.count >= 2 {
+        // Each name keeps where it came from: its slide (0…), or its caption line (-1, -2…).
+        var names: [(String, Data?, Int)] = listed.enumerated().map { ($0.element, nil, -1 - $0.offset) }
+        for (i, data, lines) in read where slides.count >= 2 {
             let mine = account.map { fold($0).filter { $0.isLetter || $0.isNumber } }.filter { !$0.isEmpty }
             for l in lines where !names.contains(where: { fold($0.0) == fold(l) }) {
                 let letters = fold(l).filter { $0.isLetter || $0.isNumber }
                 if mine.contains(where: { $0 == letters || $0.hasPrefix(letters) }) { continue }
-                names.append((l, data))
+                names.append((l, data, i))
             }
         }
         guard names.count >= 2 else { return [] }
 
         let near = await city.asyncFlatMap { await PlaceSearch.locate($0) }
         // One after another: Apple throttles a burst (fourteen at once took 50 s; in turn, 0.2 s each).
-        var found: [Found] = []
-        for (name, data) in names.prefix(14) {
+        var found: [(Found, Int)] = []
+        func keep(_ c: PlaceCandidate, _ data: Data?, _ from: Int) {
+            guard !account.contains(where: { named(c.name, $0) }), !found.contains(where: { $0.0.candidate.id == c.id }) else { return }
+            found.append((Found(candidate: c, image: data), from))
+        }
+        for (name, data, from) in names.prefix(14) {
             let hits = (try? await search(name, near: near)) ?? []
-            if let c = hits.first(where: { named($0.name, name) && PlaceSearch.isNear($0, near) }),
-               !account.contains(where: { named(c.name, $0) }),
-               !found.contains(where: { $0.candidate.id == c.id }) {
-                found.append(Found(candidate: c, image: data))
+            if let c = hits.first(where: { named($0.name, name) && PlaceSearch.isNear($0, near) }) { keep(c, data, from) }
+        }
+
+        // Apple Maps lags on some places (Tranen, Oslo, 2026-10-14: the one of six it missed).
+        // Once Apple has found the list's area, the slides (and caption lines) it found nothing on
+        // are asked of Google there: a slide's lines in order until one is a place, at most
+        // `googleAsks` queries a post (paid, counted on the server's daily cap).
+        if !found.isEmpty, let area = near ?? centre(found.map(\.0)) {
+            let missed = Dictionary(grouping: names.prefix(14).filter { n in !found.contains { $0.1 == n.2 } }, by: \.2)
+            var asked = 0
+            for from in missed.keys.sorted(by: { ($0 < 0 ? -100 - $0 : $0) < ($1 < 0 ? -100 - $1 : $1) }) {
+                for (name, data, _) in missed[from] ?? [] where asked < googleAsks {
+                    asked += 1
+                    let hits = await GoogleFallback.search([name], near: area)
+                    if let c = hits.first(where: { calls($0.name, name) && PlaceSearch.isNear($0, area) }) { keep(c, data, from); break }
+                }
             }
+            found.sort { ($0.1 < 0 ? -100 - $0.1 : $0.1) < ($1.1 < 0 ? -100 - $1.1 : $1.1) }
         }
         // The biggest group within 40 km of each other: six Oslo places, not a namesake in Steninge.
-        let kept = biggestCluster(found)
+        let kept = biggestCluster(found.map(\.0))
         return kept.count >= 2 ? kept : []
+    }
+
+    /// The most Google queries one list post may make for names Apple Maps missed.
+    static let googleAsks = 6
+
+    /// The middle of the places Apple found; nil when it found none (then Google isn't asked).
+    private static func centre(_ found: [Found]) -> CLLocationCoordinate2D? {
+        guard !found.isEmpty else { return nil }
+        let n = Double(found.count)
+        return CLLocationCoordinate2D(latitude: found.map(\.candidate.latitude).reduce(0, +) / n,
+                                      longitude: found.map(\.candidate.longitude).reduce(0, +) / n)
+    }
+
+    /// Google's name for it says the label as whole words: "Tranen" → "Restaurant Tranen", but
+    /// "Bar" is not "Barcelona Bar Guide" (four letters at least), and `named` still holds.
+    private static func calls(_ place: String, _ label: String) -> Bool {
+        if named(place, label) { return true }
+        let p = words(place), l = words(label)
+        guard l.joined().count >= 4, l.count <= p.count else { return false }
+        return (0...(p.count - l.count)).contains { Array(p[$0..<($0 + l.count)]) == l }
+    }
+
+    private static func words(_ s: String) -> [String] {
+        fold(s).split { !($0.isLetter || $0.isNumber) }.map(String.init)
     }
 
     /// The items of a list in the caption: two or more lines starting "1." / "2)" / "-" / "•",
