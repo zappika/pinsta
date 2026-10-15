@@ -2,7 +2,8 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
-## Waiting for build 24 (Sarp builds it)
+## 1.0 (24) uploaded 2026-10-15 — try these on a phone
+Also in 24: the **Culture** category (cinemas, theatres, concert halls; stand-in icon) and the tutorial's real photo (Salzi, Vienna).
 - **Location primer** (2026-10-15): from the 2nd place (was 3), a page in the tutorial's look explains why before iOS asks: "Open on your town", two of your own pins and the blue dot on a drawn map, one Continue button that always leads to the system question (App Review 5.1.1 rejects a "Not now" here; "Don't Allow" is iOS's). Shows on open, after an in-app save once its success card has gone, or back from a share; never over a sheet. Allowing frames the map on your town at once. Web: threshold 2, no primer. Popup text no longer mentions Near me. On a phone: fresh install, save two places.
 - **Caption lists are list posts** (`35b223b`, 2026-10-15): a numbered list in the caption opens "This post has N places", like Vink's slides. Checked on the simulator with the Amsterdam reel `DAblyc9ICgR` (five places). On a phone: share that reel.
 - **What menu sub-rows** (`0045274`, 2026-10-15): a type shared by 2+ places (Apple category, or Google type via the fallback) gets an indented row under its category, as on the web. Only new saves carry a type. On a phone: save two breweries (or two cinemas) and open What.
