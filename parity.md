@@ -33,7 +33,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-15 (build 24). Also at bac
 
 - Place card: floating, one size, "why it's here" line, the venue's website ("@handle" for an Instagram one). iOS takes the website from MapKit, web from Google; iOS has no "From Emilie's list" until it imports.
 - Want to go / Been there: the place card's two-button switch, 😞 🙂 😃 after Been there, then folded into the face (tap to change or undo); buddy menu → Been there list, latest first. Date kept, not shown. Nothing on the map, no filter. Web stores it in Neon (`visited_at`, `rating`), iOS on the phone (`visitedAt`, `rating`).
-- Map, Everywhere: one country framed (most places; nearest with a location), no country chips. iOS names countries in English from the ISO code (`CountryName` folds older local names like "日本").
+- Map, Everywhere: every place framed; only places worlds apart (over 4,000 km) get one country, the one with most places. No country chips. iOS names countries in English from the ISO code (`CountryName` folds older local names like "日本").
 
 - Views: Map, List, Cards, Tiles; the view pill with the round + apart from it (Liquid Glass on iOS 26+).
 - Category icons: Sarp's 3D set (web `public/types`, iOS `Type*` assets).

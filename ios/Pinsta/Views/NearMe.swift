@@ -7,6 +7,18 @@ import Network
 final class NearMe: NSObject, CLLocationManagerDelegate {
     static let km: Double = 50
 
+    /// Places wider than this are "worlds apart": Everywhere frames one country, not all of
+    /// them (Lisbon to Oslo ~2,800 km fits; Japan and Spain don't). Same as SPREAD_KM in lib/geo.ts.
+    static let spreadKm: Double = 4000
+
+    /// How far apart the places are: the diagonal of the box around them (spreadKm in lib/geo.ts).
+    static func spread(_ points: [CLLocationCoordinate2D]) -> Double {
+        guard points.count >= 2 else { return 0 }
+        let lats = points.map(\.latitude), lngs = points.map(\.longitude)
+        return CLLocation(latitude: lats.min()!, longitude: lngs.min()!)
+            .distance(from: CLLocation(latitude: lats.max()!, longitude: lngs.max()!)) / 1000
+    }
+
     private let manager = CLLocationManager()
     /// Everyone asking while a fix is on its way gets that fix. (A second ask used
     /// to answer the first with nil, which sent the opening screen to the list.)

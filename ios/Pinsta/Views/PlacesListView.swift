@@ -128,22 +128,20 @@ private struct PlacesContent: View {
     // Where you are: located on launch for the opening town and the map's frame (fix in `screen.here`).
     @State private var nearMe = NearMe()
 
-    /// Everywhere on the map frames one country, not the world (port of the web,
-    /// 2026-10-06): the one with most places, or with a location fix the nearest.
-    /// The others are a zoom out away (no country chips: Sarp, 2026-10-06).
+    /// Everywhere on the map frames every place, like a saved map in Google Maps (port of the
+    /// web, Sarp 2026-10-15: from Copenhagen, the nearest country was Norway with one bakery, and a
+    /// tester read it as random). Only places worlds apart (`NearMe.spreadKm`, Japan and Spain) get
+    /// one country: the one with most places. The others are a zoom out away.
     private var countries: [(name: String, places: [Place])] {
         Dictionary(grouping: visible) { CountryName.english($0.country) ?? "Elsewhere" }
             .map { (name: $0.key, places: $0.value) }
             .sorted { $0.places.count != $1.places.count ? $0.places.count > $1.places.count : $0.name < $1.name }
     }
     private var framed: (name: String, places: [Place])? {
+        guard city == nil else { return nil }
+        guard NearMe.spread(visible.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }) > NearMe.spreadKm else { return nil }
         let groups = countries
-        guard city == nil, groups.count > 1 else { return nil }
-        guard let here else { return groups.first }
-        func away(_ g: (name: String, places: [Place])) -> CLLocationDistance {
-            g.places.map { here.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude)) }.min() ?? .infinity
-        }
-        return groups.min { away($0) < away($1) }
+        return groups.count > 1 ? groups.first : nil
     }
 
     private var visible: [Place] {

@@ -20,7 +20,7 @@ import BuddyMenu from "./BuddyMenu";
 import { MAPS_LABEL, defaultMaps, openIn, setDefaultMaps, type MapsApp } from "@/lib/directions";
 import ViewSwitch, { type View } from "./ViewSwitch";
 import { destinationLabels } from "@/lib/grouping";
-import { NEAR_KM, currentPosition, kmBetween, locationOnOpen } from "@/lib/geo";
+import { NEAR_KM, currentPosition, kmBetween, SPREAD_KM, spreadKm, locationOnOpen } from "@/lib/geo";
 
 export default function PinstaApp() {
   const [places, setPlaces] = useState<Place[] | null>(null);
@@ -198,10 +198,11 @@ export default function PinstaApp() {
     );
   }, [places, labels, city, category]);
 
-  // Everywhere on the map frames one country, not the world (Sarp, 2026-10-06:
-  // Japan and Spain in one frame showed neither). Without a location, the one
-  // with most places; with one, the country nearest to you. The others are a zoom out away
-  // (no country chips: Sarp, 2026-10-06).
+  // Everywhere on the map frames every place, like a saved map in Google Maps (Sarp, 2026-10-15:
+  // a tester in Copenhagen with places in Lisbon, Paris and Oslo was opened on the nearest
+  // country, Norway, one bakery, and read it as random). Only when the places are worlds apart
+  // (wider than SPREAD_KM, Japan and Spain) one country: the one with most places, as Japan and
+  // Spain in one frame showed neither (2026-10-06). The others are a zoom out away.
   const countries = useMemo(() => {
     const by = new Map<string, Place[]>();
     for (const p of visible) {
@@ -211,11 +212,9 @@ export default function PinstaApp() {
     return [...by].map(([name, ps]) => ({ name, places: ps })).sort((a, b) => b.places.length - a.places.length);
   }, [visible]);
   const framed = useMemo(() => {
-    if (city !== null || countries.length < 2) return null;
-    if (!here) return countries[0];
-    const away = (g: (typeof countries)[number]) => Math.min(...g.places.map((p) => kmBetween(here, p)));
-    return countries.reduce((a, b) => (away(b) < away(a) ? b : a));
-  }, [countries, city, here]);
+    if (city !== null || countries.length < 2 || spreadKm(visible) <= SPREAD_KM) return null;
+    return countries[0];
+  }, [countries, city, visible]);
 
   function onSaved(p: Place) {
     setPlaces((prev) => [p, ...(prev ?? [])]);

@@ -9,6 +9,18 @@ export function kmBetween(a: { lat: number; lng: number }, b: { lat: number; lng
   return 12742 * Math.asin(Math.sqrt(h));
 }
 
+/** Places wider than this are "worlds apart": the map frames one country, not all of them
+ * (Lisbon to Oslo is ~2,800 km and fits; Japan and Spain don't). ↔ `NearMe.spreadKm` on iOS. */
+export const SPREAD_KM = 4000;
+
+/** How far apart the places are: the diagonal of the box around them. */
+export function spreadKm(ps: { lat: number; lng: number }[]) {
+  if (ps.length < 2) return 0;
+  const lats = ps.map((p) => p.lat);
+  const lngs = ps.map((p) => p.lng);
+  return kmBetween({ lat: Math.min(...lats), lng: Math.min(...lngs) }, { lat: Math.max(...lats), lng: Math.max(...lngs) });
+}
+
 /** The opening screen asks for location only from this many saved places on (Sarp, 2026-10-05; two since 2026-10-15). */
 export const ASK_AFTER = 2;
 
