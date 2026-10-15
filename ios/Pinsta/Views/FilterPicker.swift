@@ -10,6 +10,8 @@ struct FilterPicker: View {
         let label: String
         let count: Int?
         var locate = false
+        /// A What sub-row (`Subtypes`): indented, smaller, grey.
+        var sub = false
         let selected: Bool
         let pick: () -> Void
     }
@@ -61,9 +63,12 @@ struct FilterPicker: View {
                 if i > 0 { Divider().padding(.leading, 16) }
                 Button(action: o.pick) {
                     HStack(spacing: 8) {
+                        if o.sub { Spacer().frame(width: 8) }
                         if o.locate { Image(systemName: "location.fill").font(.subheadline) }
                         Text(o.label)
-                            .fontWeight(o.selected ? .semibold : .medium)
+                            .font(o.sub ? .subheadline : .body)
+                            .fontWeight(o.selected ? .semibold : (o.sub ? .regular : .medium))
+                            .foregroundStyle(o.sub && !o.selected ? Color(.secondaryLabel) : Color(.label))
                             .lineLimit(1)
                         Spacer(minLength: 12)
                         if let count = o.count {

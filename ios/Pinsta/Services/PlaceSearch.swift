@@ -17,6 +17,8 @@ struct PlaceCandidate: Identifiable, Hashable {
     var website: String? = nil
     /// A station or a car park: a real place, almost never what a post means.
     var isTransit = false
+    /// Google's primaryType or Apple's category as a type id, when finer than `category` (`Subtypes`).
+    var subtype: String? = nil
 }
 
 enum PlaceSearch {
@@ -419,7 +421,8 @@ extension PlaceCandidate {
             country: placemark.isoCountryCode.flatMap { Locale(identifier: "en").localizedString(forRegionCode: $0) } ?? placemark.country,
             category: PlaceCategory.from(item.pointOfInterestCategory, name: name),
             website: item.url?.absoluteString,
-            isTransit: [.publicTransport, .parking, .gasStation, .evCharger].contains(item.pointOfInterestCategory)
+            isTransit: [.publicTransport, .parking, .gasStation, .evCharger].contains(item.pointOfInterestCategory),
+            subtype: Subtypes.fromApple(item.pointOfInterestCategory)
         )
     }
 }

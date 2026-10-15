@@ -209,6 +209,8 @@ final class ListImport {
             category: rows[i].category
         )
         place.website = c.website
+        // A row moved to another category keeps no type of the old one.
+        if rows[i].category == c.category { place.subtypeRaw = c.subtype }
         place.fromListTitle = title ?? "Google Maps list"
         place.fromListOwner = owner
         if visited == true { place.visitedAt = Date() }

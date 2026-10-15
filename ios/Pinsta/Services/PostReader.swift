@@ -228,7 +228,7 @@ enum GoogleFallback {
     private struct Found: Decodable {
         let placeId: String; let name: String; let formattedAddress: String?
         let lat: Double; let lng: Double
-        let category: String; let country: String?; let city: String?; let region: String?
+        let category: String; let primaryType: String?; let country: String?; let city: String?; let region: String?
     }
 
     static func search(_ queries: [String], near: CLLocationCoordinate2D? = nil) async -> [PlaceCandidate] {
@@ -248,7 +248,8 @@ enum GoogleFallback {
             PlaceCandidate(
                 id: "google:\($0.placeId)", name: $0.name, latitude: $0.lat, longitude: $0.lng,
                 address: $0.formattedAddress, city: $0.city, region: $0.region, country: $0.country,
-                category: PlaceCategory(rawValue: $0.category) ?? .other
+                category: PlaceCategory(rawValue: $0.category) ?? .other,
+                subtype: $0.primaryType
             )
         }
     }

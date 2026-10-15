@@ -8,6 +8,8 @@ import CoreLocation
 final class Screen {
     var city: String?
     var category: PlaceCategory?
+    /// A sub-row of the What menu (`Subtypes`), within `category`.
+    var subtype: String?
     var adding = false
     var editing: Place?
     var here: CLLocation?
@@ -18,6 +20,8 @@ final class Screen {
     var leftForInstagram = false
     /// Back from Instagram with nothing saved: the tutorial shows the step they likely missed.
     var stuck = false
+    /// `LocationPrimer` is up: the list reached `NearMe.askAfter` places, location never asked.
+    var askingLocation = false
     /// Testing: `-addURL <link>` opens the save sheet with that link, the way a share arrives.
     var launchURL = UserDefaults.standard.string(forKey: "addURL")
 }
@@ -69,12 +73,14 @@ struct PlacesListView: View {
 
 private struct PlacesContent: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \Place.createdAt, order: .reverse) private var places: [Place]
 
     let screen: Screen
     // The screen's state lives in `Screen`; these read like local state.
     private var city: String? { get { screen.city } nonmutating set { screen.city = newValue } }
-    private var category: PlaceCategory? { get { screen.category } nonmutating set { screen.category = newValue } }
+    private var category: PlaceCategory? { get { screen.category } nonmutating set { screen.category = newValue; screen.subtype = nil } }
+    private var subtype: String? { get { screen.subtype } nonmutating set { screen.subtype = newValue } }
     private var adding: Bool { get { screen.adding } nonmutating set { screen.adding = newValue } }
     private var editing: Place? { get { screen.editing } nonmutating set { screen.editing = newValue } }
     private var here: CLLocation? { get { screen.here } nonmutating set { screen.here = newValue } }
@@ -143,7 +149,7 @@ private struct PlacesContent: View {
     private var visible: [Place] {
         let labels = labels
         return shown.filter { p in
-            (city == nil || labels[p.id] == city) && (category == nil || p.category == category)
+            (city == nil || labels[p.id] == city) && (category == nil || p.category == category) && (subtype == nil || p.subtypeRaw == subtype)
         }
     }
 
@@ -229,6 +235,10 @@ private struct PlacesContent: View {
             TutorialCover()
                 .preferredColorScheme(settings.appearance.scheme)
         }
+        .fullScreenCover(isPresented: Bindable(screen).askingLocation, onDismiss: { Task { await goHere() } }) {
+            LocationPrimer(places: Array(shown.prefix(2))) { screen.askingLocation = false }
+                .preferredColorScheme(settings.appearance.scheme)
+        }
         .confirmationDialog("Open directions in", isPresented: Bindable(settings).choosingOpen, titleVisibility: .visible) {
             ForEach(Settings.MapsApp.allCases, id: \.self) { app in
                 Button(app.label) {
@@ -243,6 +253,7 @@ private struct PlacesContent: View {
             // No web import: the web list is Sarp's, and every install starts empty.
             if launchURL != nil { adding = true }
             start()
+            askIfDue()
             await PhotoRetry.run(in: context)
             await PriceLookup.run(in: context)
         }
@@ -255,8 +266,9 @@ private struct PlacesContent: View {
         .onChange(of: category) { _, _ in peek = nil }
         // A place waiting behind the Undo toast is gone as far as a new save is
         // concerned: otherwise a new post could join it and be deleted with it.
-        .onChange(of: adding) { _, open in if open { commitPending() } }
+        .onChange(of: adding) { _, open in if open { commitPending() } else { askIfDue() } }
         .onChange(of: editing == nil) { _, closed in if !closed { commitPending() } }
+        .onChange(of: places.count) { _, _ in askIfDue() }
         .onChange(of: view) { _, _ in peek = nil }
         .onDisappear { commitPending() }
     }
@@ -268,7 +280,8 @@ private struct PlacesContent: View {
     /// Offline → the list of everything. No location, or nothing within reach → the map
     /// of everything. Whatever was picked meanwhile wins. Once per launch, once there is a list and the splash is
     /// over. Location is asked here only from `NearMe.askAfter` places on (Sarp,
-    /// 2026-10-05); before that the map of everything opens, no question.
+    /// 2026-10-05, two since 2026-10-15), and only after `LocationPrimer`; before that
+    /// the map of everything opens, no question.
     private func start() {
         guard !started, !places.isEmpty, Launch.shared.splashDone else { return }
         started = true
@@ -276,13 +289,36 @@ private struct PlacesContent: View {
         Task {
             guard await NearMe.online() else { return toList() }
             // Not asked yet with a small list, or refused: the map of everything.
-            guard nearMe.onOpen(placeCount: places.count) == .locate, let fix = await nearMe.locate() else { return }
-            here = fix
-            let nearest = shown
-                .map { ($0, fix.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude))) }
-                .filter { $0.1 <= NearMe.km * 1000 }
-                .min { $0.1 < $1.1 }?.0
-            if city == nil, let nearest, let town = labels[nearest.id] { city = town }
+            switch nearMe.onOpen(placeCount: places.count) {
+            case .locate: await goHere()
+            case .ask: askIfDue()
+            case .wait, .refused: break
+            }
+        }
+    }
+
+    /// Where you are, and the town of your nearest place as the Where row.
+    private func goHere() async {
+        guard let fix = await nearMe.locate() else { return }
+        here = fix
+        let nearest = shown
+            .map { ($0, fix.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude))) }
+            .filter { $0.1 <= NearMe.km * 1000 }
+            .min { $0.1 < $1.1 }?.0
+        if city == nil, let nearest, let town = labels[nearest.id] { city = town }
+    }
+
+    /// `LocationPrimer` once the list has reached `NearMe.askAfter` places and location was
+    /// never asked: on open, after an in-app save once its success card has gone, or back
+    /// from a share. Never over a sheet; a moment's pause so it doesn't snap in.
+    private func askIfDue() {
+        let busy = { adding || editing != nil || screen.askingLocation || settings.showingSheet
+            || settings.showingBeenThere || settings.showingImport || settings.showingTutorial }
+        guard started, !busy(), nearMe.onOpen(placeCount: places.count) == .ask else { return }
+        Task {
+            try? await Task.sleep(for: .seconds(0.6))
+            guard !busy(), scenePhase == .active else { return }
+            screen.askingLocation = true
         }
     }
 
@@ -425,9 +461,13 @@ private struct PlacesContent: View {
         return counts.sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }
     }
 
-    private var categories: [(PlaceCategory, Int)] {
+    private var scoped: [Place] {
         let labels = labels
-        let scoped = city == nil ? shown : shown.filter { labels[$0.id] == city }
+        return city == nil ? shown : shown.filter { labels[$0.id] == city }
+    }
+
+    private var categories: [(PlaceCategory, Int)] {
+        let scoped = scoped
         var counts: [PlaceCategory: Int] = [:]
         for p in scoped { counts[p.category, default: 0] += 1 }
         return PlaceCategory.allCases.compactMap { c in counts[c].map { (c, $0) } }
@@ -453,7 +493,7 @@ private struct PlacesContent: View {
                 .layoutPriority(1)
 
                 Button { picking = .category } label: {
-                    headerLabel(category?.plural ?? "Everything", muted: true)
+                    headerLabel(subtype.map { Subtypes.label($0) + "s" } ?? category?.plural ?? "Everything", muted: true)
                 }
                 .buttonStyle(.plain)
                 Spacer(minLength: 0)
@@ -488,8 +528,12 @@ private struct PlacesContent: View {
         var options: [FilterPicker.Option] = [
             FilterPicker.Option(id: "everything", label: "Everything", count: total, selected: category == nil) { pick { category = nil } },
         ]
+        let scoped = scoped
         for (cat, count) in categories {
-            options.append(FilterPicker.Option(id: cat.rawValue, label: cat.plural, count: count, selected: category == cat) { pick { category = cat } })
+            options.append(FilterPicker.Option(id: cat.rawValue, label: cat.plural, count: count, selected: category == cat && subtype == nil) { pick { category = cat } })
+            for s in Subtypes.of(scoped, in: cat) {
+                options.append(FilterPicker.Option(id: "\(cat.rawValue)/\(s.type)", label: s.label, count: s.count, sub: true, selected: subtype == s.type) { pick { category = cat; subtype = s.type } })
+            }
         }
         return options
     }

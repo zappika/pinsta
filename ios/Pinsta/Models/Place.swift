@@ -54,6 +54,8 @@ final class Place {
     /// Imported from a shared Google Maps list (web: `from_list`): its name and owner. Not shown yet.
     var fromListTitle: String?
     var fromListOwner: String?
+    /// The finer type behind the What menu's sub-rows (`Subtypes`); nil for older saves.
+    var subtypeRaw: String?
 
     /// "$" for the card, or nil.
     var priceLabel: String? {

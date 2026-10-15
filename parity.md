@@ -9,7 +9,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-14 (build 23).
 |---|---|---|
 | Google Maps list import | `/import`: grouped review, Move / Move all, asks Want to go or Been there for the whole list (icons), keeps the list's name and owner; Google matches on the server | Same screen (buddy menu → Import from Google): the list read by `/api/list`, matched with MapKit on the phone (a second, looser pass for towns and big sites), Import any time (after Want to go / Been there is picked), carries on in the background, 250 at most; photos by name + pin from `/api/photo`. Keeps the list's name and owner, not shown yet |
 | Share tutorial (four pages: Share → Share to… → Vicolo → saved) | No (Sarp: not needed on web) | Empty list, and menu → How to save; back-from-Instagram note and copied-link offer on the empty list |
-| What menu sub-rows (2+ places sharing a Google type, e.g. Wine bar under Bars; `lib/subtypes.ts`) | Yes; label is the type id in words | Not yet: `Place` stores no raw type, Apple has no cuisines |
+| What menu sub-rows (2+ places sharing a type, e.g. Wine bar under Bars; `lib/subtypes.ts` ↔ `Subtypes.swift`) | Google `primaryType` | Apple's category (brewery, movie_theater…), or Google's type when the fallback found it; no cuisines (Apple has none, Sarp: no rows from our food words). Only saves from now on carry a type |
 | List posts: several places on a carousel's slides or a numbered list in the caption, pick many | No: slides need text reading on the server (a caption list would not) | Yes (Vision on the phone); a slide name Apple Maps lacks is dropped |
 
 ## Different on purpose
@@ -38,6 +38,6 @@ closes a difference (CLAUDE.md). Last updated 2026-10-14 (build 23).
 - Category icons: Sarp's 3D set (web `public/types`, iOS `Type*` assets).
 - The post button opens the post; no embedded posts.
 - Where/What pickers, grouping (`lib/grouping.ts` ↔ `Grouping.swift`), metros, same-place merging.
-- Opens on the town you're in (nearest place within 50 km), with a blue dot where you are; location asked on open only from 3 places. No Near me row.
+- Opens on the town you're in (nearest place within 50 km), with a blue dot where you are; location asked only from 2 places. iOS first shows `LocationPrimer` (why, one Continue button → the system question; App Review rejects a skip button); web asks the browser directly (the web list is Sarp's). No Near me row.
 - Settings: Directions app, Appearance.
 - Swipe-to-delete with a 5 s Undo.
