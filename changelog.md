@@ -8,6 +8,10 @@ backoffice, web-only changes). Headings read "## Build N · D Month".
 
 # What's new in Vicolo
 
+## Build 25 · 15 October
+
+- What's new in the menu shows what changed in each build. A red dot on the menu button means there's something you haven't read yet.
+
 ## Build 24 · 15 October
 
 - Before asking for your location, Vicolo now explains why. It asks from your second saved place.

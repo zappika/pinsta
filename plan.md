@@ -2,8 +2,8 @@
 
 _Formerly Pinsta. Renamed 2026-09-29; the repo, folder, Vercel project and code names still say pinsta._
 
-## For build 25
-- **What's new** (2026-10-15): menu → What's new opens `vicolo.space/changelog` (from `changelog.md`, builds 13–24 written up for testers) in Safari's sheet; a red dot on the menu button until it's opened for a new build. Web menu has it too; `backoffice.vicolo.space/parity` shows `parity.md`. Shipping 25 = add its changelog section first.
+## 1.0 (25) uploaded 2026-10-15 — try on a phone
+- **What's new** (2026-10-15): menu → What's new opens `vicolo.space/changelog` (from `changelog.md`, builds 13–24 written up for testers) in Safari's sheet; a red dot on the menu button until it's opened for a new build. Web menu has it too; `backoffice.vicolo.space/parity` shows `parity.md`. On a phone: the red dot on the menu, What's new opens the page, the dot goes.
 
 ## 1.0 (24) uploaded 2026-10-15 — try these on a phone
 Also in 24: the **Culture** category (cinemas, theatres, concert halls; stand-in icon) and the tutorial's real photo (Salzi, Vienna).
