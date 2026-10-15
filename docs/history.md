@@ -5,6 +5,11 @@ new session notes go in plan.md "Last session", the previous one moves here.
 
 ## Session log (newest first)
 
+### 2026-10-15: docs and workflow
+- plan.md cut to one screen. Build log → `builds.md` (current vs next, `ios-N` tags on every build), beta feedback → `beta.md`, expansions and roadmap → `backlog.md`, dated decisions → `docs/decisions.md`, sessions and phases → `docs/history.md`.
+- Earlier the same day (other machine): builds 24 and 25 (location primer, caption lists, What sub-rows, Culture, What's new) and the `/changelog` and `/parity` pages. See `builds.md`.
+- Stale remote branches deleted.
+
 ### 2026-10-14: finding the place, from Mert's and testers' feedback (web + iOS)
 - **1.0 (23) uploaded 2026-10-14**: 22 plus list posts (several places from a carousel), "Address of the …:" lines, caption @mentions.
 - **1.0 (22) uploaded 2026-10-14** with everything below: place finding, profile saves, the Share to… tutorial page, stuck help, copied-link offer, Google fallback.

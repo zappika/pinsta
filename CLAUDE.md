@@ -24,7 +24,7 @@ list with Google/Apple Maps links. Web app + native iOS app, same rules.
 
 ## Run it
 
-**Web** (Next.js, Vercel, Neon Postgres). One Vercel project (`pinsta-two`), hosts split by `proxy.ts`:
+**Web** (Next.js, Vercel, Neon Postgres). One Vercel project (`pinsta`, default address `pinsta-two.vercel.app`), hosts split by `proxy.ts`:
 - `vicolo.space` — marketing index (`app/page.tsx`, share card `app/opengraph-image.tsx`) + `/privacy`
 - `app.vicolo.space` — the product: the list (served from `app/app/page.tsx`), `/import` (for every user, not owner tooling)
 - `backoffice.vicolo.space` — owner tooling: `/usage`; future owner pages go here
@@ -152,7 +152,7 @@ The web list is Sarp's alone (`lib/owner.ts`). Every `/api/places*` route and
 asks for it once and keeps it in localStorage (`lib/api.ts`). `/api/extract` is
 open for the iOS app, but only the owner gets Google candidates from it. `/api/price` is open too (one Google call per iOS food/drink save). Both are paid and unthrottled; a firewall rate limit is for much later (plan.md → Waiting on Sarp). The key
 lives in `.env.local` and Vercel env — **never in the repo, which is public**.
-While the env var is unset the lock is off. Local curl with the key:
+While the env var is unset the lock is off. It is a **sensitive** Vercel variable: neither the dashboard nor `vercel env pull` shows it (the pull gives a placeholder that fails with 401). Copies: the other Mac's `.env.local`, and `pinsta-owner-key` in localStorage of any unlocked browser. Lost → set a new value in Vercel and redeploy. Local curl with the key:
 `curl -H "x-pinsta-key: $(grep PINSTA_OWNER_KEY .env.local | cut -d= -f2)" localhost:3010/api/places`
 
 ## Gotchas that cost time

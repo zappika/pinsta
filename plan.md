@@ -16,6 +16,7 @@ The friends beta is running (since 2026-10-14). Feedback from it comes first; se
 2. **Design pass, list pickers:** see "To design".
 
 ## Waiting on Sarp
+- **On the other Mac:** the owner key (`.env.local`) to unlock the web list on the phone, then look at the locate button and the wider town view. Your verdict → port both to iOS. Also build 26 there (this Mac has no Xcode), see `builds.md`.
 - Nudge testers to update and turn on Automatic Updates; ask the iPhone 13 (iOS 26) tester to try the latest build.
 - The tester's tutorial photo (file + permission).
 - Testers list → light CRM in backoffice: later, not started.
@@ -34,8 +35,9 @@ The friends beta is running (since 2026-10-14). Feedback from it comes first; se
 - **iCloud backup: deferred until the beta settles (CTO call, 2026-10-02).** SwiftData + CloudKit means dropping `@Attribute(.unique)` on `Place.id`, a CloudKit container, and deploying the schema to production in the CloudKit dashboard, or TestFlight builds silently don't sync. None of it can be checked on the simulator without an iCloud sign-in. Revisit when a friend loses a list.
 - **Apify: keep, cache, or replace.** Decide from the Usage sheet once the beta has run a while.
 
-## Last session — 2026-10-15: docs and workflow
-- plan.md cut to one screen. Build log → `builds.md` (current vs next, `ios-N` tags on every build), beta feedback → `beta.md`, expansions and roadmap → `backlog.md`, dated decisions → `docs/decisions.md`, sessions and phases → `docs/history.md`.
-- Earlier the same day (other machine): builds 24 and 25 (location primer, caption lists, What sub-rows, Culture, What's new) and the `/changelog` and `/parity` pages. See `builds.md`.
-- Stale remote branches deleted.
-- When a session ends, its notes replace this block and the previous block moves to the top of `docs/history.md` → Session log.
+## Last session — 2026-10-15 (work Mac): map fixes from the beta, workflow
+- **Map, Everywhere** frames every place, unless they're over 4,000 km apart (then the country with most places). A tester in Copenhagen was opened on Norway, one bakery. Web + iOS.
+- **List posts (iOS):** slide names Apple Maps misses (Tranen) are asked of Google, at most 6 a post.
+- **Web map:** a locate button above the + and no frame tighter than 4.5 km. Checked in the preview with stub data; waits for Sarp on the phone before iOS.
+- **Not done here:** this Mac has no Xcode (iOS type-checked with swiftc only) and the owner key isn't on it (sensitive in Vercel). Build 26 and the iOS port happen on the other Mac.
+- Earlier the same session: docs restructured (`builds.md`, `beta.md`, `docs/`), `ios-1`…`ios-25` tags, stale branches deleted, build 25 checked on the phone.
