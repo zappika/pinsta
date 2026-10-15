@@ -16,7 +16,7 @@ How it stays true:
 ## Next build (since `ios-25`)
 - (nothing yet)
 
-## In TestFlight: 1.0 (25) · 2026-10-15 · `ios-25` · phone ☐
+## In TestFlight: 1.0 (25) · 2026-10-15 · `ios-25` · phone ☑ (Sarp, 2026-10-15)
 - Menu → What's new opens vicolo.space/changelog; a red dot on the menu button until it's opened for a new build.
 - On a phone: the dot shows, What's new opens the page, the dot goes.
 
@@ -32,9 +32,9 @@ include a commit or two after it).
 
 | Build | Date | What | Phone |
 |---|---|---|---|
-| 24 | 10-15 | location primer, caption lists, What sub-rows, Culture | ☐ |
-| 23 | 10-14 | list posts (several places from a carousel), "Address of the …:" lines, caption @mentions | ☐ |
-| 22 | 10-14 | place finding (street tags, 📍, collabs), profile saves, Share to… tutorial page, stuck help, copied-link offer, Google fallback | ☐ |
+| 24 | 10-15 | location primer, caption lists, What sub-rows, Culture | ☑ via 25 |
+| 23 | 10-14 | list posts (several places from a carousel), "Address of the …:" lines, caption @mentions | ☑ via 25 |
+| 22 | 10-14 | place finding (street tags, 📍, collabs), profile saves, Share to… tutorial page, stuck help, copied-link offer, Google fallback | ☑ via 25 |
 | 21 | 10-14 | tutorial opens a post of a place, asks to favorite Vicolo — **first build testers installed** | ☑ |
 | 20 | 10-11 | plain "Import N places" label | ☑ |
 | 19 | 10-11 | list import asks Want to go or Been there | ☑ |
@@ -56,4 +56,4 @@ include a commit or two after it).
 | 2–3 | 10-01 | share card over the host app, reading steps, first-run steps, menu + Settings sheet | ☑ |
 | 1 | 10-01 | first upload | ☑ |
 
-Builds up to 21 are ☑ because later builds were tried on top of them; 22–25 wait for Sarp's word.
+Builds 21–25 answer the beta testers' feedback (`beta.md`). 25 was checked on Sarp's phone 2026-10-15, which covers 22–24; up to 21, later builds were tried on top of them.

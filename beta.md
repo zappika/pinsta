@@ -17,6 +17,7 @@ What's new for testers: `changelog.md` → vicolo.space/changelog (menu → What
 Newest round first. When something is fixed, strike it through with the build it shipped in, then drop it next round.
 
 ### 2026-10-14 round (Mert + testers)
+Builds 21–25 (2026-10-14 → 10-15) are the answer to this round: place finding, profile saves, list posts, the Share to… tutorial, stuck help, the location primer, What's new. Build 25 checked on Sarp's phone 2026-10-15. Still open:
 - **Testers on old builds:** all five were on 21. Nudge them to update and turn on Automatic Updates. Idea, not built: an in-app "new version ready" banner (server holds the latest build number, opens TestFlight).
 - **iOS 26 untested:** 4 of 5 testers are on 26.x; only the iOS 27 simulator is installed (Sarp declined the 9 GB download). Ask the iPhone 13 tester (most sessions) to try the latest build.
 - **Dark mode** of the new screens (Share to… page, stuck note, paste offer, pick-many sheet) unchecked.

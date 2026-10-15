@@ -12,14 +12,12 @@ One screen: what's happening now. Elsewhere:
 
 ## Now
 The friends beta is running (since 2026-10-14). Feedback from it comes first; see `beta.md`.
-1. **Builds 22–25 on a phone:** the checks are listed per build in `builds.md`.
-2. **The 2026-10-14 feedback round:** what's still open is in `beta.md`.
-3. **Design pass, list pickers:** see "To design".
+1. **The 2026-10-14 feedback round:** answered by builds 21–25 (25 checked on the phone 2026-10-15); what's still open is in `beta.md`.
+2. **Design pass, list pickers:** see "To design".
 
 ## Waiting on Sarp
 - Nudge testers to update and turn on Automatic Updates; ask the iPhone 13 (iOS 26) tester to try the latest build.
 - The tester's tutorial photo (file + permission).
-- Word on builds 22–25 from the phone ("fine" is enough → ☑ in `builds.md`).
 - Testers list → light CRM in backoffice: later, not started.
 - Rate limiting and usage review: much later (Sarp, 2026-10-08). Don't bring up.
 
