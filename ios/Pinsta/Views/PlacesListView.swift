@@ -25,7 +25,7 @@ final class Screen {
     /// The empty list's tutorial is what's on screen, not the chosen view.
     var tutorial = false
     /// Testing: `-addURL <link>` opens the save sheet with that link, the way a share arrives.
-    var launchURL = UserDefaults.standard.string(forKey: "addURL")
+    var launchURL = TestArgs.string("addURL")
 }
 
 /// Thin wrapper: re-runs the query when the app comes back to the foreground
@@ -105,7 +105,7 @@ private struct PlacesContent: View {
     @State private var notice: String?
     @State private var noticeTask: Task<Void, Never>?
 
-    private func showNotice(_ text: String, seconds: Double = ProcessInfo.processInfo.arguments.contains("-slowNotices") ? 30 : 5) {
+    private func showNotice(_ text: String, seconds: Double = TestArgs.has("-slowNotices") ? 30 : 5) {
         withAnimation(.snappy) { notice = text }
         noticeTask?.cancel()
         noticeTask = Task {
@@ -251,7 +251,7 @@ private struct PlacesContent: View {
         .sheet(isPresented: Bindable(settings).showingBeenThere) { BeenThereSheet() }
         .sheet(isPresented: Bindable(settings).showingImport, onDismiss: clearImportLink, content: importSheet)
         .sheet(isPresented: Bindable(settings).showingChangelog) { ChangelogView().ignoresSafeArea() }
-        .onAppear { if UserDefaults.standard.string(forKey: "importURL") != nil { settings.showingImport = true } }
+        .onAppear { if TestArgs.string("importURL") != nil { settings.showingImport = true } }
         .fullScreenCover(isPresented: Bindable(settings).showingTutorial) {
             TutorialCover()
                 .preferredColorScheme(settings.appearance.scheme)

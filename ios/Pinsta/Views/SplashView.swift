@@ -30,7 +30,7 @@ struct SplashView: View {
 
     /// Not when the app opens straight into a save (`-addURL`, like a share).
     static var shouldShow: Bool {
-        UserDefaults.standard.string(forKey: "addURL") == nil
+        TestArgs.string("addURL") == nil
     }
 }
 
@@ -69,7 +69,7 @@ final class SplashUIView: UIView {
         addSubview(poster)
 
         // Testing (CLAUDE.md, "Splash assets"): keep the still up to compare with the launch screen.
-        if ProcessInfo.processInfo.arguments.contains("-splashHold") { return }
+        if TestArgs.has("-splashHold") { return }
         timer = Timer.scheduledTimer(withTimeInterval: Self.hold, repeats: false) { [weak self] _ in self?.finish() }
         // Sent to the background meanwhile: don't come back to it.
         observer = NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in self?.finish() }

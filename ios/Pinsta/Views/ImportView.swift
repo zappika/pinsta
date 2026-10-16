@@ -42,7 +42,7 @@ struct ImportView: View {
             if let initialLink, initialLink != job.link { url = initialLink; read(); return }
             if url.isEmpty, let link = job.link { url = link }
             // Testing: `-importURL <link>` opens here and reads that list.
-            if job.rows.isEmpty, let link = UserDefaults.standard.string(forKey: "importURL") { url = link; read() }
+            if job.rows.isEmpty, let link = TestArgs.string("importURL") { url = link; read() }
         }
     }
 
