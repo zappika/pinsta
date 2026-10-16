@@ -8,6 +8,10 @@ backoffice, web-only changes). Headings read "## Build N · D Month".
 
 # What's new in Vicolo
 
+## Build 28 · 16 October
+
+- Vicolo now notes how each save went (the post's link, and whether it found the place or you gave up) so wrong places can be fixed without you having to tell Sarp. No names, no list. The privacy page says exactly what is sent.
+
 ## Build 27 · 16 October
 
 - A round arrow above the + on the map shows where you are: one tap and the map frames you and your surroundings, with the blue dot.

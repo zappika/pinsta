@@ -13,14 +13,11 @@ How it stays true:
 - `git log ios-N..HEAD -- ios lib app/api` is the check: anything there that isn't listed under Next build was forgotten.
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
-## Next build (since `ios-27`)
-- *(internal)* Every save sheet reports how it ended (saved by itself, picked, searched, list post, already saved, changed, gave up) with the link, build and a random install id to `POST /api/saves`; backoffice → Saves lists them, misses first. Reports wait in the App Group until sent, so the share extension's survive it closing. Privacy page and manifests updated.
+## Next build (since `ios-28`)
 
-## In TestFlight: 1.0 (27) · 2026-10-16 · `ios-27` · phone ☐
-- A round arrow above the + on the map shows where you are: one tap and the map frames you and your surroundings, with the blue dot.
-- The map never zooms in tighter than a neighbourhood, so a single place shows the streets around it.
-- *(internal)* Locate button and 4.5 km frame ported from the web (they were waiting on Sarp's look and missed build 26). Checked in the Simulator from Barcelona.
-- A person tagged in a venue's post no longer pulls in namesakes from another country (Pophams' London post offered places in Lille).
+## In TestFlight: 1.0 (28) · 2026-10-16 · `ios-28` · phone ☐
+- Vicolo now notes how each save went (the post's link, and whether it found the place or you gave up) so wrong places can be fixed without you having to tell Sarp. No names, no list. The privacy page says exactly what is sent.
+- *(internal)* Every save sheet reports how it ended (saved by itself, picked, searched, list post, already saved, changed, gave up) with the link, build and a random install id to `POST /api/saves`; backoffice → Saves lists them, misses first. Reports wait in the App Group until sent, so the share extension's survive it closing. Privacy page and manifests updated.
 
 ## Earlier builds
 Tags `ios-1` … `ios-25` mark the commit that set each build number (the upload may
@@ -28,6 +25,7 @@ include a commit or two after it).
 
 | Build | Date | What | Phone |
 |---|---|---|---|
+| 27 | 10-16 | Locate button, 4.5 km minimum frame, Pophams fix (mentioned accounts' far-off namesakes) | ☐ |
 | 26 | 10-16 | + menu, photo pins, place finding from handles and hashtags, list posts with busy covers, English town names | ☑ (Sarp, 2026-10-16) |
 | 25 | 10-15 | What's new in the menu | ☑ |
 | 24 | 10-15 | location primer, caption lists, What sub-rows, Culture | ☑ via 25 |
