@@ -326,6 +326,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
           pin.append(img);
         } else if (!g.loud) {
           pin.style.backgroundColor = tier === "street" ? tintFor(p.category) : deepen(tintFor(p.category));
+          pin.style.setProperty("--glow", deepen(tintFor(p.category)));
           if (tier === "street") {
             const icon = document.createElement("img");
             icon.src = placeIcon(p);
@@ -370,7 +371,10 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
       const csize = g.loud ? (text ? 24 : 30) : tier === "street" ? quietPx : 16;
       el.className = `pinsta-pin pinsta-cluster${g.loud ? " pinsta-pin-text" : " pinsta-cluster-quiet"}`;
       el.style.cssText = `width:${csize}px;height:${csize}px;z-index:${g.loud ? 3 : 1}`;
-      if (!g.loud) el.style.backgroundColor = tier === "street" ? tintFor(top) : deepen(tintFor(top));
+      if (!g.loud) {
+        el.style.backgroundColor = tier === "street" ? tintFor(top) : deepen(tintFor(top));
+        el.style.setProperty("--glow", deepen(tintFor(top)));
+      }
       if (g.loud || tier === "street") {
         el.textContent = String(g.members.length);
       }

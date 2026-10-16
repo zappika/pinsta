@@ -39,9 +39,6 @@
     border-color: #2a2623;
     box-shadow: 0 2px 10px rgb(0 0 0 / 0.5);
   }
-:root[data-theme="dark"] .pinsta-pin.active {
-    border-color: #f5f5f4;
-  }
 :root[data-theme="dark"] .pinsta-pin-label {
     color: #f5f5f4;
     text-shadow: 0 0 3px #000, 0 0 3px #000, 0 0 3px #000;
@@ -84,9 +81,6 @@
   :root:not([data-theme="light"]) .pinsta-pin {
       border-color: #2a2623;
       box-shadow: 0 2px 10px rgb(0 0 0 / 0.5);
-    }
-  :root:not([data-theme="light"]) .pinsta-pin.active {
-      border-color: #f5f5f4;
     }
   :root:not([data-theme="light"]) .pinsta-pin-label {
       color: #f5f5f4;
@@ -150,17 +144,20 @@ body {
   object-fit: contain;
   pointer-events: none;
 }
+/* Selected: lifted, not outlined (a black ring looked heavy, Sarp 2026-10-16). */
 .pinsta-pin.active {
-  transform: scale(1.2);
-  border-color: #1c1917;
+  transform: scale(1.25);
+  box-shadow: 0 6px 16px rgb(0 0 0 / 0.35);
 }
 /* Quiet: a tinted dot with a thin ring, so it reads as a pin and not as the map. */
+/* A soft glow in the dot's own colour (Sarp, 2026-10-16). --glow is set per pin. */
 .pinsta-pin-dot {
   border-width: 1.5px;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  box-shadow: 0 0 9px 1px color-mix(in srgb, var(--glow, #a8a29e) 55%, transparent), 0 1px 2px rgb(0 0 0 / 0.2);
 }
 .pinsta-pin-dot.active {
   transform: scale(1.6);
+  box-shadow: 0 0 14px 3px color-mix(in srgb, var(--glow, #a8a29e) 65%, transparent), 0 2px 6px rgb(0 0 0 / 0.3);
 }
 .pinsta-pin-quiet .pinsta-pin-icon {
   width: 20px;
@@ -178,7 +175,7 @@ body {
   border-width: 1.5px;
 }
 .pinsta-cluster-quiet {
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25), 0 0 0 1px rgb(0 0 0 / 0.08);
+  box-shadow: 0 0 10px 2px color-mix(in srgb, var(--glow, #a8a29e) 55%, transparent), 0 1px 3px rgb(0 0 0 / 0.25);
 }
 /* A dot is drawn small but tapped big. */
 .pinsta-pin-tap::before {
