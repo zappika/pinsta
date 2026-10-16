@@ -121,6 +121,9 @@ private struct PlacesContent: View {
     @State private var generation: [UUID: Int] = [:]
     @State private var toast: Place?
     @State private var toastTask: Task<Void, Never>?
+    /// The + fans out its choices first; the save sheet opens on one (Sarp, 2026-10-16).
+    @State private var fan = false
+    @State private var addMode: AddPlaceView.AddMode = .post
 
     private var labels: [UUID: String] { Grouping.destinationLabels(places) }
     private var shown: [Place] { places.filter { !hidden.contains($0.id) } }
@@ -178,7 +181,7 @@ private struct PlacesContent: View {
                 ZStack {
                     if !shown.isEmpty {
                         ViewSwitch(view: $view)
-                            .opacity(adding ? 0 : 1)
+                            .opacity(pillHidden ? 0 : 1)
                     }
                 }
                 .frame(maxWidth: .infinity, minHeight: 56)
@@ -199,7 +202,7 @@ private struct PlacesContent: View {
                     if let place = editing {
                         AddPlaceView(editing: place, onFinish: { editing = nil })
                     } else {
-                        AddPlaceView(initialURL: launchURL, onFinish: { adding = false; launchURL = nil })
+                        newPlaceSheet
                     }
                 }
             }
@@ -220,14 +223,14 @@ private struct PlacesContent: View {
             // Its own glass circle beside the view pill, as on the web; not a tab
             // bar item (the system TabView of build 6+ merged them, Sarp disliked it).
             // The empty list has its own "Paste a link", so no + there, only the ×.
-            if (peek == nil || view == .cards) && (adding || editing != nil || !shown.isEmpty) { plusButton }
+            plusLayer
         }
         .overlay { picker }
         .animation(.snappy(duration: 0.25), value: picking)
         .animation(.snappy, value: notice)
         .sheet(isPresented: Bindable(settings).showingSheet) { SettingsSheet() }
         .sheet(isPresented: Bindable(settings).showingBeenThere) { BeenThereSheet() }
-        .sheet(isPresented: Bindable(settings).showingImport) { ImportView() }
+        .sheet(isPresented: Bindable(settings).showingImport, onDismiss: clearImportLink, content: importSheet)
         .sheet(isPresented: Bindable(settings).showingChangelog) { ChangelogView().ignoresSafeArea() }
         .onAppear { if UserDefaults.standard.string(forKey: "importURL") != nil { settings.showingImport = true } }
         .fullScreenCover(isPresented: Bindable(settings).showingTutorial) {
@@ -591,19 +594,56 @@ private struct PlacesContent: View {
         .padding(.top, 40)
     }
 
+    /// The view pill steps aside for the save sheet and the + menu.
+    private var pillHidden: Bool { adding || fan }
+
+    private func importSheet() -> ImportView { ImportView(initialLink: settings.importLink) }
+    private func clearImportLink() { settings.importLink = nil }
+
+    /// The + menu under the +, so the + can close it.
+    private var plusLayer: some View {
+        ZStack(alignment: .bottomTrailing) {
+            addMenu
+            if (peek == nil || view == .cards) && (adding || editing != nil || !shown.isEmpty) { plusButton }
+        }
+    }
+
+    private var addMenu: AddMenu {
+        AddMenu(open: fan, onClose: { fan = false }, onPick: pick)
+    }
+
+    private func pick(_ mode: AddPlaceView.AddMode) {
+        fan = false
+        addMode = mode
+        adding = true
+    }
+
+    private var newPlaceSheet: AddPlaceView {
+        AddPlaceView(initialURL: launchURL, onFinish: { adding = false; launchURL = nil },
+                     mode: launchURL == nil ? addMode : .post, onList: handOff)
+    }
+
+    /// A Google Maps list pasted into the save sheet: Import reads it.
+    private func handOff(_ link: String) {
+        adding = false
+        launchURL = nil
+        settings.importLink = link
+        settings.showingImport = true
+    }
+
     /// Round +, springs on press, turns into × while the save sheet is open and closes it.
     private var plusButton: some View {
         Button {
-            if adding || editing != nil { adding = false; editing = nil } else { adding = true }
+            if adding || editing != nil { adding = false; editing = nil } else { fan.toggle() }
         } label: {
             Image(systemName: "plus")
                 .font(.system(size: 22, weight: .semibold))
-                .rotationEffect(.degrees(adding || editing != nil ? 135 : 0))
-                .animation(.spring(response: 0.35, dampingFraction: 0.55), value: adding)
+                .rotationEffect(.degrees(adding || editing != nil || fan ? 135 : 0))
+                .animation(.spring(response: 0.35, dampingFraction: 0.55), value: adding || fan)
                 .modifier(PlusLook())
         }
         .buttonStyle(PressSpring())
-        .accessibilityLabel(adding || editing != nil ? "Close" : "Save a place")
+        .accessibilityLabel(adding || editing != nil || fan ? "Close" : "Save a place")
         .padding(.trailing, 20)
         .padding(.bottom, 8)
     }

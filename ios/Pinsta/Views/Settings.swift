@@ -32,6 +32,8 @@ final class Settings {
     /// Buddy menu → Been there.
     var showingBeenThere = false
     var showingImport = false
+    /// A list link from the save sheet, for ImportView to read.
+    var importLink: String?
     /// Buddy menu → What's new: the public changelog, in Safari's sheet.
     var showingChangelog = false
 

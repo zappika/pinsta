@@ -1,13 +1,15 @@
 import SwiftUI
 import SwiftData
 
-/// Buddy menu → Import from Google: the web's /import on the phone (Sarp, 2026-10-09: same
+/// The + menu → Google Maps, with a list link (was the buddy menu's Import from Google until 2026-10-16): the web's /import on the phone (Sarp, 2026-10-09: same
 /// flow, same design). Paste a shared list's link, review it grouped by type (untick, move a
 /// place or a whole group to another type), import. Matching runs with MapKit while the
 /// review is open and goes on after it closes (`ListImport`).
 struct ImportView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    /// A list link pasted into the + menu's Google Maps entry: read at once.
+    var initialLink: String? = nil
     @State private var url = ""
     private var job: ListImport { .shared }
 
@@ -37,6 +39,7 @@ struct ImportView: View {
             .safeAreaInset(edge: .bottom) { if !job.rows.isEmpty { importButton } }
         }
         .onAppear {
+            if let initialLink, initialLink != job.link { url = initialLink; read(); return }
             if url.isEmpty, let link = job.link { url = link }
             // Testing: `-importURL <link>` opens here and reads that list.
             if job.rows.isEmpty, let link = UserDefaults.standard.string(forKey: "importURL") { url = link; read() }

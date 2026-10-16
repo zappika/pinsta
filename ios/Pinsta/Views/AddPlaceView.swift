@@ -21,6 +21,24 @@ struct AddPlaceView: View {
     var onFinish: (() -> Void)? = nil
     /// Extensions can't read the general pasteboard.
     var allowsPasteboard = true
+    /// Which + menu entry opened the sheet: it sets the field's hint (Sarp, 2026-10-16).
+    var mode: AddMode = .post
+    /// A Google Maps list was pasted: Import takes it from here.
+    var onList: ((String) -> Void)? = nil
+
+    enum AddMode { case post, google }
+
+    /// In-app saves of a pasted post mention the share sheet, the first few times. The how is for the tutorial.
+    private static let shareTipKey = "shareTipShown"
+    private static let shareTipTimes = 3
+    private func takeShareTip() -> Bool {
+        let n = UserDefaults.standard.integer(forKey: Self.shareTipKey)
+        guard n < Self.shareTipTimes else { return false }
+        UserDefaults.standard.set(n + 1, forKey: Self.shareTipKey)
+        return true
+    }
+    /// Asked once, when the success card appears.
+    @State private var shareTip = false
 
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
@@ -112,7 +130,11 @@ struct AddPlaceView: View {
     var body: some View {
         VStack(spacing: 0) {
             if let saved {
-                SavedCard(saved: saved, onDone: finish)
+                SavedCard(saved: saved, onDone: finish, shareTip: shareTip)
+                    .onAppear {
+                        // Only a pasted post saved in the app: a share already came through the sheet.
+                        if mode == .post, allowsPasteboard, initialURL == nil, editing == nil, !saved.already { shareTip = takeShareTip() }
+                    }
                     .transition(.opacity)
                     .task(id: saved.place.id) {
                         try? await Task.sleep(for: .seconds(Self.savedSeconds))
@@ -216,7 +238,7 @@ struct AddPlaceView: View {
     private var urlField: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                TextField("Type a place, or paste a link", text: $urlText)
+                TextField(mode == .google ? "Paste a Google Maps link" : "Paste an Instagram link, or type a place", text: $urlText)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .focused($focus, equals: .url)
@@ -238,6 +260,10 @@ struct AddPlaceView: View {
                     .padding(.horizontal, 14).padding(.vertical, 10)
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.separator)))
                 }
+            }
+            if mode == .google && urlText.isEmpty && editing == nil {
+                Text("A place, or a whole list. In Google Maps, Share the place or the list. A list has to be shared, not private.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             if !urlText.isEmpty && validURL == nil && looksLikeLink {
                 Text("Needs to be an Instagram post or profile, a TikTok video, or a Google Maps place.").font(.caption).foregroundStyle(.red)
@@ -444,6 +470,10 @@ struct AddPlaceView: View {
             } else if candidates.isEmpty {
                 focus = .query
             }
+        } catch let list as PostReader.ListLink {
+            guard !Task.isCancelled else { return }
+            reading = .idle
+            onList?(list.url)
         } catch {
             guard !Task.isCancelled else { return }
             reading = .failed(error.localizedDescription)
@@ -696,6 +726,7 @@ private struct ManyList: View {
 private struct SavedCard: View {
     let saved: AddPlaceView.Saved
     let onDone: () -> Void
+    var shareTip = false
     @State private var started = false
 
     private static let ink = Color(hex: 0x1F1C1A)
@@ -738,6 +769,9 @@ private struct SavedCard: View {
                     Text(place.name).font(.system(size: 28, weight: .semibold)).lineLimit(2)
                     Text([place.category.rawValue, place.city ?? place.country].compactMap { $0 }.joined(separator: " · "))
                         .font(.body).opacity(0.8).lineLimit(1)
+                    if shareTip {
+                        Text("Faster next time: in Instagram, tap Share, then Vicolo.").font(.subheadline).opacity(0.9).padding(.top, 10)
+                    }
                 }
                 .foregroundStyle(photo ? Self.paper : Self.ink)
                 .padding(.horizontal, 20).padding(.bottom, 24)

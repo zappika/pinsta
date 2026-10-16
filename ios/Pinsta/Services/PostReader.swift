@@ -50,9 +50,13 @@ enum PostReader {
         var errorDescription: String? { message }
     }
 
+    /// A Google Maps list, not a place: the + menu's Google Maps entry takes both, and a list goes to Import.
+    struct ListLink: Error { let url: String }
+
     private struct Envelope: Decodable {
         let post: InstagramPost?
         let error: String?
+        var list: String? = nil
         /// Set by the server when the post is gone for good.
         var permanent: Bool? = nil
     }
@@ -70,6 +74,7 @@ enum PostReader {
         guard let envelope = try? JSONDecoder().decode(Envelope.self, from: data) else {
             throw APIError(message: "Vicolo's server didn't answer properly. Try again in a minute.")
         }
+        if status == 200, let list = envelope.list { throw ListLink(url: list) }
         guard status == 200, let post = envelope.post else {
             let message = envelope.error ?? "Could not read post"
             throw APIError(message: message, permanent: envelope.permanent == true || isGone(message))

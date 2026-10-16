@@ -22,6 +22,9 @@ How it stays true:
 - Removing a place and leaving the app right away removes it for real: sharing the post again no longer says "Already in Vicolo".
 - Towns in Japan (and anywhere written in another alphabet) show in English; places already saved are fixed on the next launch.
 - A post whose hashtags name a city (#tokyo) is searched there: no more saving a namesake at the other end of the country.
+- The + now opens a small menu: Instagram post or Google Maps. Google Maps takes a single place or a whole shared list; a list goes straight to the import. Import from Google left the menu top right (it still shows there while a list is importing).
+- The first few times you save a post by pasting its link, the success card mentions you can share straight from Instagram.
+- Places saved from a post show the post's photo on the map; list imports keep their icons.
 - *(internal)* 2026-10-16: compiled with xcodebuild (device, unsigned) and the search checked with swiftc + real MapKit on Sarp's five links and Mert's cases; then run in the Simulator after `sudo xcodebuild -runFirstLaunch`: English town name and the delete-then-leave fix both checked on iPhone 17.
 - *(internal)* Not built or run yet: this Mac has no Xcode. Swift type-checked with swiftc only. Check on the other Mac: Vink's Oslo carousel `C_OOWiDS7Gh` should give 6 of 6 (Tranen from Google), and the opening map with places in two far-apart cities.
 

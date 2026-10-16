@@ -1,8 +1,9 @@
 import SwiftUI
 import MapKit
 
-/// The current Where·What selection on a map, framed to fit it. Pins are the
-/// category icon on a soft type tint (a photo shrunk to 44pt is unreadable).
+/// The current Where·What selection on a map, framed to fit it. A place saved from a post
+/// shows the post's photo, round; one from a list or a Maps link the category icon on its
+/// tint, so the map shows how much came from where (Sarp, 2026-10-16, as the web).
 /// Pins that would overlap on screen group into a count on the tint of their
 /// most common type; tap a group to zoom until it splits. Port of the web's
 /// PlacesMap: same 44pt rule, no grouping at street level.
@@ -141,14 +142,29 @@ struct PlacesMapView: View {
 
     private func pin(_ place: Place) -> some View {
         let active = selected?.id == place.id
-        return place.icon.resizable().scaledToFit()
-            .frame(width: 28, height: 28)
-            .frame(width: 44, height: 44)
-            .background(place.category.tint, in: Circle())
+        return Group {
+            if Self.fromPost(place) {
+                PlacePhoto(place: place, points: 44)
+                    .frame(width: 44, height: 44)
+                    .background(place.category.tint)
+                    .clipShape(Circle())
+            } else {
+                place.icon.resizable().scaledToFit()
+                    .frame(width: 28, height: 28)
+                    .frame(width: 44, height: 44)
+                    .background(place.category.tint, in: Circle())
+            }
+        }
             .overlay(Circle().strokeBorder(active ? Color.primary : Color(.systemBackground), lineWidth: 3))
             .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
             .scaleEffect(active ? 1.2 : 1)
             .animation(.snappy, value: active)
+    }
+
+    /// Saved from an Instagram or TikTok post, with its picture; not a list import or a Maps link.
+    static func fromPost(_ p: Place) -> Bool {
+        p.fromListTitle == nil && p.imageData != nil
+            && (p.instagramURL.contains("instagram.com") || p.instagramURL.contains("tiktok.com"))
     }
 
     private func groupPin(_ g: PinGroup) -> some View {
