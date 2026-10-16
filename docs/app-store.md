@@ -165,14 +165,15 @@ Reviewers often don't have Instagram set up. Make the core flow testable without
 ## 8. Order of work
 
 1. ⬜ The time-sensitive manual steps in §9 (DSA, agreements, the email).
-2. Code, one build:
+2. Code (all in the next build after 29):
    - ✅ privacy manifests, debug args, Help + Privacy in the menu
-   - ⚠️ accessibility pass
-   - ⚠️ Duo check
+   - ✅ Help improve Vicolo switch (§4)
+   - ✅ accessibility pass: VoiceOver, larger text, Reduce Motion (§5); ⬜ Inspector audit on your Mac (§9)
+   - ⬜ Duo check: code reviewed, not run; needs the iOS 27.1 runtime (§9)
    - 🎨 What's new for store users
-3. ✅ Web: `/privacy` rewritten, `/support` added (2026-10-16).
-4. 🎨 Icon Composer icon (tinted), screenshots, optional preview video, optional header asset.
-5. ⬜ Metadata, review notes, manual release → submit. Keep TestFlight testers on the same build.
+3. ✅ Web: `/privacy` rewritten (incl. the switch), `/support` added (2026-10-16).
+4. Assets and texts: ⬜ GPT6 makes them (`docs/tasks/app-store-listing.md`), 🎨 you approve; 🎨 Icon Composer icon (tinted). No video for now.
+5. ⬜ Upload the next build, then metadata, review notes, manual release → submit. Keep TestFlight testers on the same build.
 6. After approval: release, then a featuring nomination for the next update (Duo, widget).
 
 ## 9. Sarp's manual list (nothing here is code)
