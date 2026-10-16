@@ -27,7 +27,7 @@ include a commit or two after it).
 
 | Build | Date | What | Phone |
 |---|---|---|---|
-| 26 | 10-16 | + menu, photo pins, place finding from handles and hashtags, list posts with busy covers, English town names | ☐ |
+| 26 | 10-16 | + menu, photo pins, place finding from handles and hashtags, list posts with busy covers, English town names | ☑ (Sarp, 2026-10-16) |
 | 25 | 10-15 | What's new in the menu | ☑ |
 | 24 | 10-15 | location primer, caption lists, What sub-rows, Culture | ☑ via 25 |
 | 23 | 10-14 | list posts (several places from a carousel), "Address of the …:" lines, caption @mentions | ☑ via 25 |
