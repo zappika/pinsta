@@ -1,0 +1,11 @@
+Vicolo saves places from public posts and map links to a personal map on the iPhone. People can browse by city or kind, mark places as visited, and open directions. No account or sign-in is needed.
+
+You can test the save flow without installing a social app. Tap +, choose Instagram post, then paste https://www.instagram.com/p/DdJIacKIplU/ to save Ästad Vingård. The same entry accepts this public location-tagged TikTok: https://www.tiktok.com/@linkstraveler/video/7678584307878874376 . For a post with several places, paste https://www.instagram.com/p/C_OOWiDS7Gh/ and choose from the five Oslo venues.
+
+For map links, tap +, choose Google Maps, then paste this place link: https://www.google.com/maps/place/Cal+Pep/@41.3810,2.1810,17z/data=!3d41.3810!4d2.1810 . To test shared-list import, use https://maps.app.goo.gl/2LvBeE5dXwo2iQcz6 in the same flow. Safari → Share → Vicolo also opens the save flow for a supported link.
+
+Location permission helps open the map around the town the person is in. The app asks after two places have been saved, following an explanation screen. The device location is not sent to the server.
+
+Vicolo reads only the public post the person chooses to share. It shows the post image and caption as a reminder with a link to the original post. There is no feed or media download feature. The app also offers native map browsing, a share extension, place grouping, and on-device reading of multi-place posts.
+
+Review contact: hello@vicolo.space. Enter the review contact phone in App Store Connect's separate contact field. The sample links were checked on 16 October 2026; recheck them on submission day.

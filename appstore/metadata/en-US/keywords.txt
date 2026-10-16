@@ -1,0 +1,1 @@
+travel,restaurant,cafe,bar,museum,trip,map,bookmark,city,food,drink,spots,itinerary,attractions

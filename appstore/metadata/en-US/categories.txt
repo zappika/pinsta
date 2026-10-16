@@ -1,0 +1,2 @@
+Primary: Travel — the map keeps places discovered for trips and days out.
+Secondary: Food & Drink — restaurants, cafés and bars are common places people save.
