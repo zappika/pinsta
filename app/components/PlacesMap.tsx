@@ -89,10 +89,10 @@ type Props = {
 /** A map that has not drawn by then is treated as offline. */
 const LOAD_TIMEOUT_MS = 12_000;
 
-/** The post's picture, for a place saved from an Instagram or TikTok post; null for list imports and Maps links. */
+/** The photo of a place picked one at a time (a post, a name, a Maps link): loud. Null for a list
+ * import (quiet) or a place with no photo. Sarp, 2026-10-16: places saved by name count too. */
 function fromPost(p: Place): string | null {
-  if (p.fromList || !p.imageUrl) return null;
-  return /instagram\.com|tiktok\.com/.test(p.instagramUrl) ? p.imageUrl : null;
+  return p.fromList ? null : p.imageUrl;
 }
 
 export default function PlacesMap({ places, selected, onSelect, onFail, focus, here = null, goHere = 0, onAway }: Props) {
