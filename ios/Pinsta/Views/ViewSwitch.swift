@@ -36,7 +36,10 @@ struct ViewSwitch: View {
                 // No withAnimation here: it animated the whole content swap, so the
                 // list slid and resized into the map. Only the lozenge animates
                 // (the .animation below); the view itself changes in one frame.
-                Button { view = v } label: {
+                Button {
+                    if v != view { Uses.count("pick.\(v.rawValue)") }
+                    view = v
+                } label: {
                     Image(systemName: v.symbol)
                         .font(.system(size: 17, weight: .medium))
                         .foregroundStyle(active ? (glass ? Color(.label) : Color(.systemBackground)) : .secondary)

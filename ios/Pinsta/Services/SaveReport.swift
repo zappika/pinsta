@@ -37,7 +37,7 @@ enum SaveReport {
     private static var defaults: UserDefaults? { UserDefaults(suiteName: Persistence.appGroup) }
 
     /// One random id per install, shared by the app and the extension. Says "the same phone", not who.
-    private static var install: String {
+    static var install: String {
         if let id = defaults?.string(forKey: "installID") { return id }
         let id = UUID().uuidString
         defaults?.set(id, forKey: "installID")

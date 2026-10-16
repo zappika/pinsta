@@ -135,3 +135,24 @@ export type SaveDetail = {
 };
 
 export type Save = typeof saves.$inferSelect;
+
+/**
+ * How the app is used (Sarp, 2026-10-16: "I catch myself using the other views a lot less than
+ * the map"). Per install and day, running totals the phone sends (`ios/Pinsta/Services/Uses.swift`):
+ * `open`, `pick.<view>` (a tap on the view pill), `sec.<screen>` (seconds on screen: map, list,
+ * cards, tiles, tutorial). Anonymous like `saves`: a random install id, no names, no list.
+ * The phone resends a day's totals as they grow, so a row takes the larger count, never adds.
+ */
+export const uses = pgTable(
+  "uses",
+  {
+    day: date("day").notNull(),
+    install: text("install").notNull(),
+    event: text("event").notNull(),
+    count: integer("count").notNull().default(0),
+    build: integer("build"),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.install, t.event] })],
+);
+
+export type Use = typeof uses.$inferSelect;

@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, setOwnerKey } from "@/lib/api";
-import type { Save } from "@/lib/db/schema";
+import type { Save, Use } from "@/lib/db/schema";
 import Locked from "./Locked";
 
 /**
  * /saves (backoffice): how the phones' saves ended, last 30 days. The point is
  * the misses: a post someone gave up on is a case to open and fix, reported
- * without anyone having to message Sarp. Owner-only, like /usage.
+ * without anyone having to message Sarp. Owner-only, like /usage. Below the
+ * outcomes: where saves came from, and how the app is used (`/api/uses`).
  */
 const OUTCOME: Record<string, string> = {
   auto: "Saved by itself",
@@ -22,6 +23,7 @@ const OUTCOME: Record<string, string> = {
 
 export default function SavesPage() {
   const [rows, setRows] = useState<Save[] | null>(null);
+  const [usesRows, setUses] = useState<Use[]>([]);
   const [failed, setFailed] = useState(false);
   const [locked, setLocked] = useState(false);
   const [keyTried, setKeyTried] = useState(false);
@@ -32,6 +34,10 @@ export default function SavesPage() {
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d: { saves: Save[] }) => setRows(d.saves))
       .catch(() => setFailed(true));
+    api("/api/uses")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d: { uses: Use[] }) => setUses(d.uses))
+      .catch(() => {});
   }, []);
   useEffect(load, [load]);
   useEffect(() => {
@@ -64,13 +70,13 @@ export default function SavesPage() {
       ) : rows.length === 0 ? (
         <p className="mt-6 text-sm text-stone-400">Nothing yet. Phones report from the build after 27.</p>
       ) : (
-        <Report rows={rows} />
+        <Report rows={rows} uses={usesRows} />
       )}
     </main>
   );
 }
 
-function Report({ rows }: { rows: Save[] }) {
+function Report({ rows, uses }: { rows: Save[]; uses: Use[] }) {
   const count = (o: string) => rows.filter((r) => r.outcome === o).length;
   const tries = rows.filter((r) => r.outcome !== "already" && r.outcome !== "changed");
   const pct = (n: number) => (tries.length ? `${Math.round((100 * n) / tries.length)}%` : "–");
@@ -98,6 +104,9 @@ function Report({ rows }: { rows: Save[] }) {
         </p>
       </section>
 
+      <Sources rows={tries} />
+      <Usage uses={uses} />
+
       <h2 className="mt-8 text-xs font-medium uppercase tracking-wide text-stone-400">Misses ({misses.length})</h2>
       <p className="mt-1 text-xs text-stone-400">Gave up, or the post couldn&apos;t be read. Each is a case to open.</p>
       <Rows rows={misses} />
@@ -119,6 +128,99 @@ function Report({ rows }: { rows: Save[] }) {
       <Rows rows={rows} />
     </>
   );
+}
+
+/** What kind of link (or a typed name), and whether it came through the share sheet. */
+function sourceOf(url: string | null): string {
+  if (!url) return "Typed a name";
+  if (/tiktok\.com/.test(url)) return "TikTok";
+  if (/google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps/.test(url)) return "Google Maps";
+  if (/instagram\.com\/(p|reel|reels|tv)\//.test(url)) return /\/(reel|reels|tv)\//.test(url) ? "Instagram reel" : "Instagram post";
+  if (/instagram\.com|^@/.test(url)) return "Instagram profile";
+  return /^https?:/.test(url) ? "Other link" : "Typed a name";
+}
+
+function Sources({ rows }: { rows: Save[] }) {
+  if (rows.length === 0) return null;
+  const by = new Map<string, { share: number; app: number }>();
+  for (const r of rows) {
+    const k = sourceOf(r.url);
+    const e = by.get(k) ?? { share: 0, app: 0 };
+    e[r.detail.via === "share" ? "share" : "app"]++;
+    by.set(k, e);
+  }
+  const sorted = [...by.entries()].sort((a, b) => b[1].share + b[1].app - (a[1].share + a[1].app));
+  return (
+    <>
+      <h2 className="mt-8 text-xs font-medium uppercase tracking-wide text-stone-400">Where saves came from</h2>
+      <section className="mt-2 overflow-hidden rounded-2xl bg-white">
+        <div className="divide-y divide-stone-100 px-4">
+          <div className="flex gap-3 py-2 text-xs text-stone-400">
+            <p className="flex-1" />
+            <p className="w-20 text-right">share sheet</p>
+            <p className="w-14 text-right">in app</p>
+          </div>
+          {sorted.map(([k, e]) => (
+            <div key={k} className="flex items-baseline gap-3 py-2.5 text-sm">
+              <p className="flex-1 font-medium">{k}</p>
+              <p className="w-20 text-right tabular-nums">{e.share}</p>
+              <p className="w-14 text-right tabular-nums">{e.app}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
+const SCREENS = ["map", "list", "cards", "tiles", "tutorial"];
+
+/** Seconds on each screen, view pill taps, opens: summed over every phone, last 30 days. */
+function Usage({ uses }: { uses: Use[] }) {
+  if (uses.length === 0) return null;
+  const sum = (event: string) => uses.filter((u) => u.event === event).reduce((n, u) => n + u.count, 0);
+  const phones = (event: string) => new Set(uses.filter((u) => u.event === event && u.count > 0).map((u) => u.install)).size;
+  const total = SCREENS.reduce((n, s) => n + sum(`sec.${s}`), 0);
+  const opens = sum("open");
+  const installs = new Set(uses.map((u) => u.install)).size;
+  return (
+    <>
+      <h2 className="mt-8 text-xs font-medium uppercase tracking-wide text-stone-400">How the app is used</h2>
+      <section className="mt-2 overflow-hidden rounded-2xl bg-white">
+        <div className="divide-y divide-stone-100 px-4">
+          <div className="flex gap-3 py-2 text-xs text-stone-400">
+            <p className="flex-1" />
+            <p className="w-16 text-right">time</p>
+            <p className="w-12 text-right">share</p>
+            <p className="w-12 text-right">picked</p>
+            <p className="w-14 text-right">phones</p>
+          </div>
+          {SCREENS.map((s) => {
+            const sec = sum(`sec.${s}`);
+            return (
+              <div key={s} className="flex items-baseline gap-3 py-2.5 text-sm">
+                <p className="flex-1 font-medium capitalize">{s}</p>
+                <p className="w-16 text-right tabular-nums">{duration(sec)}</p>
+                <p className="w-12 text-right text-xs text-stone-400 tabular-nums">{total ? `${Math.round((100 * sec) / total)}%` : "–"}</p>
+                <p className="w-12 text-right tabular-nums">{s === "tutorial" ? "" : sum(`pick.${s}`)}</p>
+                <p className="w-14 text-right tabular-nums">{phones(`sec.${s}`)}</p>
+              </div>
+            );
+          })}
+        </div>
+        <p className="border-t border-stone-100 px-4 py-3 text-xs text-stone-400">
+          {opens} {opens === 1 ? "open" : "opens"} on {installs} {installs === 1 ? "phone" : "phones"}. Time is while the app is in
+          front; picked counts taps on the view pill (every open starts on the map).
+        </p>
+      </section>
+    </>
+  );
+}
+
+function duration(sec: number): string {
+  if (sec < 60) return `${sec} s`;
+  if (sec < 3600) return `${Math.round(sec / 60)} min`;
+  return `${(sec / 3600).toFixed(1)} h`;
 }
 
 function Rows({ rows }: { rows: Save[] }) {

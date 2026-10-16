@@ -14,6 +14,10 @@ How it stays true:
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
 ## Next build (since `ios-28`)
+- A post that names places only on signs in a street photo no longer ticks them for you: those names are listed unticked, the post's own places stay ticked.
+- Vicolo now also counts how it's used (how often it's opened, which views you pick and how long each is on screen), with no places, links or names. The privacy page says so.
+- *(internal)* `SlideText.Reading.signs`: a slide with any Vision line under 0.5 confidence is a photo of signs (casa.lawa `DeW-H5LCsup`, slide 5); its names start unticked. Vink's Oslo slides all read at 1.0, still 5 of 5 ticked.
+- *(internal)* `Uses.swift` + `ScreenClock`: per-day running totals (`open`, `pick.<view>`, `sec.<screen>` incl. `tutorial`) in the App Group, sent to open `POST /api/uses` on launch and on background; the server keeps the larger count. Backoffice → Saves shows them, plus where saves came from (link kind × share sheet / in app).
 
 ## In TestFlight: 1.0 (28) · 2026-10-16 · `ios-28` · phone ☐
 - Vicolo now notes how each save went (the post's link, and whether it found the place or you gave up) so wrong places can be fixed without you having to tell Sarp. No names, no list. The privacy page says exactly what is sent.

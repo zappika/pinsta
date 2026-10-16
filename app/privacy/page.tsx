@@ -11,7 +11,7 @@ export default function Privacy() {
   return (
     <main className="mx-auto max-w-xl px-5 py-12 text-stone-800 leading-relaxed">
       <h1 className="text-2xl font-semibold text-stone-900">Vicolo privacy</h1>
-      <p className="mt-1 text-sm text-stone-500">Last updated 2 October 2026</p>
+      <p className="mt-1 text-sm text-stone-500">Last updated 16 October 2026</p>
 
       <p className="mt-6">
         Vicolo saves places from Instagram, TikTok and Google Maps links to a list on your phone. There is no account, no
@@ -36,6 +36,11 @@ export default function Privacy() {
           place it saved (or that you gave up), what it suggested, and the app’s version. It carries a random number
           made on your phone, so several saves can be seen as one phone, but no name, account or list. It is used only
           to find the posts Vicolo gets wrong.
+        </li>
+        <li>
+          <strong>How the app is used.</strong> The app sends Vicolo’s server a few counts per day: how often it was
+          opened, which views (map, list, cards, tiles) you picked and how long each was on screen. They carry the same
+          random number, never places, links, names or where you are. They are used only to decide what to improve.
         </li>
         <li>
           <strong>Place searches.</strong> To match a post to a real place, your phone searches Apple Maps.

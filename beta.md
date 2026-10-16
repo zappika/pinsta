@@ -19,7 +19,8 @@ Newest round first. When something is fixed, strike it through with the build it
 ### 2026-10-16 round, on build 26
 - ~~Pophams `DeeRAfqIuGl`: "Stuart Studio" in Lille first~~: from `@lilliestuart` (a person) in the caption, ranked first by the new mention rule. A mentioned account's results more than 100 km from the poster's own are dropped. For build 27.
 - **Jolene `Deb1PksCAdA` (@jolene_newingtongreen):** failed on Sarp's phone on 26. The search finds Jolene London; the Simulator once got "Couldn't read that post" (the read, not the search) and once worked. Suspect Apify (5 reads at a time on the free plan, many test reads that day). Open: retry on the phone; if it keeps failing, look at the extract logs.
-- **casa.lawa `DeW-H5LCsup` (Catania):** Bar Popolare found (hard: another venue's post), plus a laundry and a café whose signs are in a street photo on one slide. Idea: names from a slide that's mostly unreadable text start unticked; must keep Vink's Oslo slides (four names each) ticked. Photo: the link's `img_index=7` doesn't match Apify's six pictures (a video slide, likely), so not used. Waiting on Sarp.
+- ~~casa.lawa `DeW-H5LCsup` (Catania): a laundry and a café from a street photo's signs, ticked next to Bar Popolare~~: names off a slide Vision reads shakily start unticked. Oslo still 5 of 5 ticked. For build 29.
+- **Jolene `Deb1PksCAdA`:** still for Sarp to retry on the phone (2026-10-16).
 
 ### 2026-10-16 round (Sarp's own tries)
 Most were "can't read the location" or "Apple Maps doesn't have it". Fixed for build 26 (search on web and iOS):
@@ -33,11 +34,11 @@ Most were "can't read the location" or "Apple Maps doesn't have it". Fixed for b
 - 楽園 itself: the tag saved "Rakusuien" in Fukuoka by itself. Now a hashtag naming a city (#tokyo) keeps a tag search there: offers Tokyo-area "Rakuen"s, saves nothing by itself. Still not the curry shop: Apple finds it only as "rakuen curry Tokyo" (Latin letters, from @rakuen_curry); adding co-authors to tag searches put JaJa's photographer @gushy.me above JaJa, so left out.
 - ~~Elena `@elenamontreal`: hotels in Spain and Italy~~: Montreal is a known handle city now; "Elena" in Montréal first.
 - ~~gatrooms `DZFfxgUCL8I` (Dua Lipa's 3 Berlin spots): offered the hotel itself~~: no city (only #BerlinGuide) and the cover's twelve lines used up the slide searches. Hashtag prefixes give the city; every slide's first line is searched first; Google asked per unfound line. 3 of 3. Oslo now 5 of 6 (Tranen via Google; Hyde gone from both maps).
-- **Map pins:** places saved from a post show the post's photo again (web now; iOS after Sarp's look). List imports and Maps links keep the type icon.
+- **Map pins:** places saved from a post show the post's photo (web, and iOS since build 26). List imports and Maps links keep the type icon. Sarp, 2026-10-16: "the Google Maps imports make the map view ugly"; photos for them too is open.
 
 ### 2026-10-14 round (Mert + testers)
 Builds 21–25 (2026-10-14 → 10-15) are the answer to this round: place finding, profile saves, list posts, the Share to… tutorial, stuck help, the location primer, What's new. Build 25 checked on Sarp's phone 2026-10-15. Still open:
-- **Testers on old builds:** all five were on 21. Nudge them to update and turn on Automatic Updates. Idea, not built: an in-app "new version ready" banner (server holds the latest build number, opens TestFlight).
+- **Testers on old builds:** all on 25 or later by 2026-10-16 (Sarp); the banner idea is backlog. Earlier: all five were on 21. Nudge them to update and turn on Automatic Updates. Idea, not built: an in-app "new version ready" banner (server holds the latest build number, opens TestFlight).
 - ~~iOS 26 untested~~ Testers on 26 seem fine; left (Sarp, 2026-10-15).
 - ~~Dark mode of the new screens~~ Checked by Sarp, 2026-10-15.
 - ~~**"The app shows a random place when I open it"**~~ (tester in Copenhagen with places in Lisbon, Paris and Oslo; she asked for the whole map, like a Google Maps saved map). The map framed the country *nearest* to her: Norway, one bakery in Oslo. Fixed for build 26: Everywhere frames every place unless they're worlds apart.

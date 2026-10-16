@@ -14,7 +14,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-15 (build 24). Also at bac
 | The + menu | Fans out Instagram post / Google Maps (a place or a list → /import); Import left the buddy menu; Paste on both screens; a share-sheet tip on the first 3 pasted saves (Sarp, 2026-10-16) | Same (`AddMenu.swift`); a list link opens ImportView. The buddy menu keeps a "Google list" row only while an import runs, for its progress |
 | Map pins | A place saved from an Instagram/TikTok post shows the post's photo; list imports and Maps links keep the type icon on its tint (Sarp, 2026-10-16) | Same (`PlacesMapView.fromPost`) |
 | Town names in English | Google answers in English | A town or region in another script is geocoded again in English (`EnglishNames`) |
-| List posts: several places on a carousel's slides or a numbered list in the caption, pick many | No: slides need text reading on the server (a caption list would not) | Yes (Vision on the phone); a slide name Apple Maps lacks is dropped |
+| List posts: several places on a carousel's slides or a numbered list in the caption, pick many | No: slides need text reading on the server (a caption list would not) | Yes (Vision on the phone); a slide name Apple Maps lacks is asked of Google; names off a street photo's signs start unticked |
 
 ## Different on purpose
 
@@ -28,6 +28,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-15 (build 24). Also at bac
 | Price ($–$$$$) | Google, on save | Asks `/api/price`, which asks Google |
 | Usage sheet and `/usage` | Yes | No: the costs are Sarp's to watch |
 | Save reports (`/api/saves`, backoffice `/saves`) | No: the web list is Sarp's own | Every save sheet reports how it ended (`SaveReport.swift`) |
+| Use counts (`/api/uses`, on backoffice `/saves`) | No: the web list is Sarp's own | Opens, view picks, seconds per screen (`Uses.swift`) |
 | What's new (menu → `/changelog`) | Opens in a new tab, no dot (the changelog is about iOS builds) | In-app Safari sheet; red dot on the menu button until a new build's What's new is opened |
 | Share from Instagram | Paste a link | Share sheet → Vicolo, or paste |
 | Save by typing a name / @handle (first field) | Yes (Google) | Yes (MapKit) |

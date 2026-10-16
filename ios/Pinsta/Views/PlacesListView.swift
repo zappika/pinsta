@@ -22,6 +22,8 @@ final class Screen {
     var stuck = false
     /// `LocationPrimer` is up: the list reached `NearMe.askAfter` places, location never asked.
     var askingLocation = false
+    /// The empty list's tutorial is what's on screen, not the chosen view.
+    var tutorial = false
     /// Testing: `-addURL <link>` opens the save sheet with that link, the way a share arrives.
     var launchURL = UserDefaults.standard.string(forKey: "addURL")
 }
@@ -37,6 +39,7 @@ struct PlacesListView: View {
     @State private var screen = Screen()
     /// The extension's last write that this list has seen (`Persistence.lastWrite`).
     @State private var seenWrite = Persistence.lastWrite
+    @State private var clock = ScreenClock()
 
     var body: some View {
         PlacesContent(view: $view, started: $started, screen: screen)
@@ -58,6 +61,19 @@ struct PlacesListView: View {
             }
             .onChange(of: screen.adding) { _, _ in refreshIfShared() }
             .onChange(of: screen.editing == nil) { _, _ in refreshIfShared() }
+            // How the app is used (`Uses`): opens, and the seconds each screen is in front.
+            .task { Uses.count("open"); tick() }
+            .onChange(of: view) { _, _ in tick() }
+            .onChange(of: screen.tutorial) { _, _ in tick() }
+            .onChange(of: scenePhase) { old, phase in
+                if phase == .active && old == .background { Uses.count("open") }
+                tick()
+                if phase == .background { Task { await Uses.flush() } }
+            }
+    }
+
+    private func tick() {
+        clock.set(screen.tutorial ? "tutorial" : view.rawValue, running: scenePhase != .background)
     }
 
     /// Rebuild only for a share that landed meanwhile, and never under an open sheet;
@@ -261,6 +277,7 @@ private struct PlacesContent: View {
             askIfDue()
             // Save reports the share extension couldn't send before it closed.
             Task { await SaveReport.flush() }
+            Task { await Uses.flush() }
             await PhotoRetry.run(in: context)
             await PriceLookup.run(in: context)
             await EnglishNames.run(in: context)
@@ -344,6 +361,7 @@ private struct PlacesContent: View {
             content(v)
         }
         .background(shown.isEmpty ? Tutorial.background : Color(.systemGroupedBackground))
+        .onChange(of: shown.isEmpty, initial: true) { _, empty in screen.tutorial = empty }
     }
 
     @ViewBuilder
