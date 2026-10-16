@@ -8,6 +8,11 @@ backoffice, web-only changes). Headings read "## Build N · D Month".
 
 # What's new in Vicolo
 
+## Build 29 · 16 October
+
+- A post that names places only on signs in a street photo no longer ticks them for you: those names are listed unticked, the post's own places stay ticked.
+- Vicolo now also counts how it's used (how often it's opened, which views you pick and how long each is on screen), with no places, links or names. The privacy page says so.
+
 ## Build 28 · 16 October
 
 - Vicolo now notes how each save went (the post's link, and whether it found the place or you gave up) so wrong places can be fixed without you having to tell Sarp. No names, no list. The privacy page says exactly what is sent.
