@@ -8,6 +8,18 @@ backoffice, web-only changes). Headings read "## Build N · D Month".
 
 # What's new in Vicolo
 
+## Build 26 · 16 October
+
+- The + now opens a small menu: Instagram post or Google Maps. Google Maps takes a single place or a whole shared list. Import from Google moved here from the menu top right.
+- Places saved from a post show the post's photo on the map. Places imported from a list keep their icons.
+- Finding the place is smarter when the post has no clear tag. If the account names its city (criollo_oax, jaja.berlin, strakers_nyc) or a hashtag does (#tokyo, #BerlinGuide), Vicolo looks there, not for a namesake abroad.
+- A restaurant @mentioned in the caption comes first. Airports, ferries and stations no longer show up just because they share the city's name.
+- When Apple Maps only has far-off guesses, Vicolo asks Google straight away.
+- Carousels with a busy cover still find every place on the later slides, including ones Apple Maps doesn't know.
+- With no places near you, the map opens on all your places, not on the nearest country.
+- Towns in Japan, and anywhere written in another alphabet, show in English.
+- Removing a place and leaving the app right away now really removes it, so sharing that post again works.
+
 ## Build 25 · 15 October
 
 - What's new in the menu shows what changed in each build. A red dot on the menu button means there's something you haven't read yet.

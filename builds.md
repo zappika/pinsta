@@ -13,7 +13,9 @@ How it stays true:
 - `git log ios-N..HEAD -- ios lib app/api` is the check: anything there that isn't listed under Next build was forgotten.
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
-## Next build (since `ios-25`)
+## Next build (since `ios-26`)
+
+## In TestFlight: 1.0 (26) · 2026-10-16 · `ios-26` · phone ☐
 - With no places near you, the map opens on all your places, not on the nearest country. Only places worlds apart (say Tokyo and Barcelona) still open on one country, the one with the most places.
 - A carousel or caption list now also finds the places Apple Maps doesn't know, by asking Google.
 - Posts whose account names its city (criollo_oax, jaja.berlin, strakers_nyc, selma__paris) find the place there, not a namesake abroad. Many more city shorthands are known: Oaxaca, Lisbon (lx), Milan, Vienna, Athens, Tokyo, Mexico City and the like.
@@ -29,22 +31,13 @@ How it stays true:
 - *(internal)* 2026-10-16: compiled with xcodebuild (device, unsigned) and the search checked with swiftc + real MapKit on Sarp's five links and Mert's cases; then run in the Simulator after `sudo xcodebuild -runFirstLaunch`: English town name and the delete-then-leave fix both checked on iPhone 17.
 - *(internal)* List posts checked in the Simulator: gatrooms `DZFfxgUCL8I` 3 of 3; Vink's Oslo `C_OOWiDS7Gh` 5 of 6 (Tranen from Google as "Åpent Bakeri Tranen"; Hyde is on neither Apple nor Google now). Swift type-checked with swiftc only. Check on the other Mac: Vink's Oslo carousel `C_OOWiDS7Gh` should give 6 of 6 (Tranen from Google), and the opening map with places in two far-apart cities.
 
-## In TestFlight: 1.0 (25) · 2026-10-15 · `ios-25` · phone ☑ (Sarp, 2026-10-15)
-- Menu → What's new opens vicolo.space/changelog; a red dot on the menu button until it's opened for a new build.
-- On a phone: the dot shows, What's new opens the page, the dot goes.
-
-Also new since build 23 (in 24, uploaded the same morning):
-- **Location primer:** from the 2nd place (was 3), a page in the tutorial's look explains why before iOS asks, with one Continue button that always leads to the system question (App Review 5.1.1 rejects a "Not now" there). Shows on open, after an in-app save once its success card has gone, or back from a share; never over a sheet. Allowing frames the map on your town. On a phone: fresh install, save two places.
-- **Caption lists are list posts:** a numbered list in the caption opens "This post has N places". On a phone: share the Amsterdam reel `DAblyc9ICgR`.
-- **What menu sub-rows:** a type shared by 2+ places gets an indented row under its category. Only new saves carry a type. On a phone: save two breweries (or two cinemas) and open What.
-- **Culture** category (stand-in icon); the tutorial's real photo (Salzi, Vienna).
-
 ## Earlier builds
 Tags `ios-1` … `ios-25` mark the commit that set each build number (the upload may
 include a commit or two after it).
 
 | Build | Date | What | Phone |
 |---|---|---|---|
+| 25 | 10-15 | What's new in the menu | ☑ |
 | 24 | 10-15 | location primer, caption lists, What sub-rows, Culture | ☑ via 25 |
 | 23 | 10-14 | list posts (several places from a carousel), "Address of the …:" lines, caption @mentions | ☑ via 25 |
 | 22 | 10-14 | place finding (street tags, 📍, collabs), profile saves, Share to… tutorial page, stuck help, copied-link offer, Google fallback | ☑ via 25 |
