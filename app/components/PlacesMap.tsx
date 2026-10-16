@@ -274,7 +274,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     const text = styleRef.current === "text" && z < 15;
     const loudPx = text ? 10 : LOUD_PX[tier];
     const quietPx = QUIET_PX[tier];
-    type Group = { x: number; y: number; members: Place[]; loud: boolean; fanBy?: number };
+    type Group = { x: number; y: number; members: Place[]; loud: boolean; fanBy?: number; fanned?: boolean };
     const groups: Group[] = [];
     for (const p of placesRef.current) {
       const loud = fromPost(p) !== null;
@@ -296,7 +296,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     // A few post places together sit side by side, centred on the group, each its own photo.
     const drawn: Group[] = groups.flatMap((g) =>
       g.loud && g.members.length > 1 && g.members.length <= FAN_MAX
-        ? g.members.map((p, i) => ({ ...g, members: [p], fanBy: i - (g.members.length - 1) / 2 }))
+        ? g.members.map((p, i) => ({ ...g, members: [p], fanBy: i - (g.members.length - 1) / 2, fanned: true }))
         : [{ ...g, fanBy: 0 }],
     );
 
@@ -306,8 +306,9 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
       const size = g.loud ? loudPx : quietPx;
       if (g.members.length === 1) {
         const p = g.members[0];
-        const twin = g.loud && !g.fanBy ? seen.find((q) => Math.hypot(q.x - g.x, q.y - g.y) < size) : undefined;
-        const fan = g.fanBy || (twin ? ++twin.n : 0);
+        const twin = g.loud && !g.fanned ? seen.find((q) => Math.hypot(q.x - g.x, q.y - g.y) < size) : undefined;
+        // The middle of an odd fan has fanBy 0 and still belongs to the fan (it sat on its neighbour).
+        const fan = g.fanned ? g.fanBy! : twin ? ++twin.n : 0;
         if (g.loud && !twin) seen.push({ x: g.x + fan * (size + 4), y: g.y, n: 0 });
         const el = document.createElement("div");
         el.style.cssText = `width:${size}px;height:${size}px;cursor:pointer;z-index:${g.loud ? 2 : 1}`;
@@ -358,24 +359,36 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
         });
         keyboardButton(el, p.name, open);
         // Fanned from the group's middle (fanBy), or sideways from a twin at street level.
-        const marker = new lib.Marker({ element: el, offset: [fan * (size + 4) + (g.fanBy ? g.x - m.project([p.lng, p.lat]).x : 0), g.fanBy ? g.y - m.project([p.lng, p.lat]).y : 0] }).setLngLat([p.lng, p.lat]).addTo(m);
+        const marker = new lib.Marker({ element: el, offset: [fan * (size + 4) + (g.fanned ? g.x - m.project([p.lng, p.lat]).x : 0), g.fanned ? g.y - m.project([p.lng, p.lat]).y : 0] }).setLngLat([p.lng, p.lat]).addTo(m);
         markers.current.set(p.id, { marker, pin });
         continue;
       }
-      // More post places than fit side by side: a dark count. Quiet ones: a slightly bigger dot and no
-      // number; counts shouted as loud as the photos (Barcelona, 70 imports).
+      // More picked places than fit side by side: a mosaic of up to four of their photos in one circle
+      // (a dark count read as a black dot from afar, Venice and Tokyo, 2026-10-16). "Text" style: a
+      // dark count. Quiet ones: a slightly bigger dot and no number; counts shouted as loud as the photos.
       const el = document.createElement("div");
       const counts = new Map<string, number>();
       for (const p of g.members) counts.set(p.category ?? "Other", (counts.get(p.category ?? "Other") ?? 0) + 1);
       const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
-      const csize = g.loud ? (text ? 24 : 30) : tier === "street" ? quietPx : 16;
-      el.className = `pinsta-pin pinsta-cluster${g.loud ? " pinsta-pin-text" : " pinsta-cluster-quiet"}`;
+      const photos = g.loud && !text ? g.members.map(fromPost).filter((u): u is string => !!u).slice(0, 4) : [];
+      const csize = photos.length ? Math.max(size, 40) : g.loud ? 24 : tier === "street" ? quietPx : 16;
+      el.className = `pinsta-pin pinsta-cluster${photos.length ? " pinsta-mosaic" : g.loud ? " pinsta-pin-text" : " pinsta-cluster-quiet"}`;
+      if (photos.length) {
+        el.dataset.n = String(Math.min(photos.length, 4));
+        for (const u of photos) {
+          const img = document.createElement("img");
+          img.src = u;
+          img.alt = "";
+          img.draggable = false;
+          el.append(img);
+        }
+      }
       el.style.cssText = `width:${csize}px;height:${csize}px;z-index:${g.loud ? 3 : 1}`;
       if (!g.loud) {
         el.style.backgroundColor = tier === "street" ? tintFor(top) : deepen(tintFor(top));
         el.style.setProperty("--glow", deepen(tintFor(top)));
       }
-      if (g.loud || tier === "street") {
+      if ((g.loud && !photos.length) || (!g.loud && tier === "street")) {
         el.textContent = String(g.members.length);
       }
       taken.push({ x0: g.x - csize / 2, y0: g.y - csize / 2, x1: g.x + csize / 2, y1: g.y + csize / 2 });

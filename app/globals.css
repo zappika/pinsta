@@ -177,6 +177,31 @@ body {
 .pinsta-cluster-quiet {
   box-shadow: 0 0 10px 2px color-mix(in srgb, var(--glow, #a8a29e) 55%, transparent), 0 1px 3px rgb(0 0 0 / 0.25);
 }
+/* Several picked places in one spot: their photos tiled in one circle, so it reads as many. */
+.pinsta-mosaic {
+  display: grid;
+  overflow: hidden;
+  gap: 1px;
+  background: #fff;
+  cursor: pointer;
+}
+.pinsta-mosaic img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+.pinsta-mosaic[data-n="2"] {
+  grid-template-columns: 1fr 1fr;
+}
+.pinsta-mosaic[data-n="3"],
+.pinsta-mosaic[data-n="4"] {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+.pinsta-mosaic[data-n="3"] img:first-child {
+  grid-row: span 2;
+}
 /* A dot is drawn small but tapped big. */
 .pinsta-pin-tap::before {
   content: "";
