@@ -14,6 +14,7 @@ How it stays true:
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
 ## Next build (since `ios-27`)
+- *(internal)* Every save sheet reports how it ended (saved by itself, picked, searched, list post, already saved, changed, gave up) with the link, build and a random install id to `POST /api/saves`; backoffice → Saves lists them, misses first. Reports wait in the App Group until sent, so the share extension's survive it closing. Privacy page and manifests updated.
 
 ## In TestFlight: 1.0 (27) · 2026-10-16 · `ios-27` · phone ☐
 - A round arrow above the + on the map shows where you are: one tap and the map frames you and your surroundings, with the blue dot.

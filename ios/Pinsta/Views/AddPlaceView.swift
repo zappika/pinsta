@@ -65,9 +65,13 @@ struct AddPlaceView: View {
     @State private var many: [SlideText.Found] = []
     @State private var picked: Set<String> = []
     @FocusState private var focus: Field?
+    /// What this sheet tried, for `SaveReport`; sent once, when it ends.
+    @State private var tried = SaveReport.Detail()
+    @State private var reported = false
+    @State private var opened = Date()
 
     private enum Field { case url, query }
-    private enum Source { case tag, account, link }
+    private enum Source: String { case tag, account, link }
     fileprivate struct Saved {
         let place: Place; let already: Bool; let changed: Bool
         /// The post was added to a place already in the list, not saved as a new one.
@@ -202,6 +206,7 @@ struct AddPlaceView: View {
             try? await Task.sleep(for: .milliseconds(350))
             focus = .url
         }
+        .onDisappear { reportGaveUp() }
         .task(id: validURL) { if editing == nil { await readPost() } }
         .task(id: typed) { await manualSearch() }
     }
@@ -352,6 +357,7 @@ struct AddPlaceView: View {
         many = []
         query = ""
         error = nil
+        tried = SaveReport.Detail()
         // Debounce: while a URL is being typed, every prefix is a "valid" post
         // link. Only the one that survives 700ms of silence gets read. A shared
         // link is complete already: read it at once.
@@ -361,6 +367,7 @@ struct AddPlaceView: View {
         guard !Task.isCancelled else { return }
         if let existing = existingPlace(for: validURL) {
             reading = .idle
+            report(.already, place: existing.name)
             await show(Saved(place: existing, already: true, changed: false))
             return
         }
@@ -371,6 +378,7 @@ struct AddPlaceView: View {
             // canonical URL. The pre-read duplicate check cannot see that.
             if let existing = existingPlace(for: post.url) {
                 reading = .idle
+                report(.already, place: existing.name)
                 await show(Saved(place: existing, already: true, changed: false))
                 return
             }
@@ -456,7 +464,11 @@ struct AddPlaceView: View {
             // The search field is open while this runs: if the user started typing,
             // their own results win, and nothing saves itself behind their back.
             guard !Task.isCancelled, query.trimmed.count < 3 else { return }
+            tried.offered = found.count
+            tried.source = found.isEmpty ? nil : from.rawValue
             if listed.count >= 2 {
+                tried.listed = listed.count
+                tried.source = "slides"
                 withAnimation(.snappy) {
                     many = listed
                     picked = Set(listed.map(\.candidate.id))
@@ -467,17 +479,20 @@ struct AddPlaceView: View {
             source = found.isEmpty ? nil : from
             // Only a location tag or a Maps link is trusted enough to save without a tap.
             if candidates.count == 1, source == .tag || source == .link {
-                save(candidates[0])
+                save(candidates[0], auto: true)
             } else if candidates.isEmpty {
                 focus = .query
             }
         } catch let list as PostReader.ListLink {
             guard !Task.isCancelled else { return }
             reading = .idle
+            // Import takes the list from here: not a save sheet's outcome.
+            reported = true
             onList?(list.url)
         } catch {
             guard !Task.isCancelled else { return }
             reading = .failed(error.localizedDescription)
+            tried.readError = error.localizedDescription
             focus = .query
         }
     }
@@ -531,10 +546,13 @@ struct AddPlaceView: View {
         .disabled(widening)
     }
 
-    private func save(_ c: PlaceCandidate) {
+    private func save(_ c: PlaceCandidate, auto: Bool = false) {
         // Saved by name, no post: a Maps link to the place stands in, as for list imports.
         guard let validURL = validURL ?? (byName ? Self.mapsLink(c) : nil), saving == nil else { return }
         saving = c.id
+        tried.rank = candidates.firstIndex { $0.id == c.id }
+        tried.google = c.id.hasPrefix("google:")
+        let outcome: SaveReport.Outcome = auto ? .auto : typed.count >= 3 ? .searched : .picked
         Task {
             if let editing {
                 editing.name = c.name
@@ -553,11 +571,14 @@ struct AddPlaceView: View {
                 editing.priceChecked = false
                 persist()
                 Task { await PriceLookup.check(editing, in: context) }
+                report(.changed, place: c.name)
                 await show(Saved(place: editing, already: false, changed: true))
                 saving = nil
                 return
             }
-            await show(await store(c, url: post?.url ?? validURL, image: postImage))
+            let s = await store(c, url: post?.url ?? validURL, image: postImage)
+            report(s.already ? .already : outcome, place: c.name)
+            await show(s)
             saving = nil
         }
     }
@@ -632,6 +653,8 @@ struct AddPlaceView: View {
         Task {
             var results: [Saved] = []
             for f in chosen { results.append(await store(f.candidate, url: url, image: f.image ?? postImage)) }
+            tried.saved = chosen.count
+            report(.many, place: first.candidate.name)
             var card = results[0]
             card.milestone = chosen.count == 1 ? card.milestone : "\(chosen.count) places saved"
             await show(card)
@@ -677,7 +700,27 @@ struct AddPlaceView: View {
     }
 
     private func finish() {
+        reportGaveUp()
         if let onFinish { onFinish() } else { dismiss() }
+    }
+
+    /// Once per sheet. The link is the server's canonical one when the post was read.
+    private func report(_ outcome: SaveReport.Outcome, place: String?) {
+        guard !reported else { return }
+        reported = true
+        var d = tried
+        d.place = place
+        d.seconds = Int(Date().timeIntervalSince(validURL != nil ? readStarted : opened))
+        d.via = allowsPasteboard ? "app" : "share"
+        SaveReport.send(outcome, url: post?.url ?? validURL, detail: d)
+    }
+
+    /// Closed without a save, after a link or a name was in: a miss. Opening and cancelling isn't one,
+    /// and neither is leaving a change of place as it was.
+    private func reportGaveUp() {
+        guard !reported, editing == nil, validURL != nil || byName else { return }
+        tried.step = label
+        report(.gave_up, place: nil)
     }
 }
 

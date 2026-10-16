@@ -32,6 +32,12 @@ export default function Privacy() {
           who saved which link.
         </li>
         <li>
+          <strong>How a save went.</strong> After each save, the app tells Vicolo’s server how it ended: the link, the
+          place it saved (or that you gave up), what it suggested, and the app’s version. It carries a random number
+          made on your phone, so several saves can be seen as one phone, but no name, account or list. It is used only
+          to find the posts Vicolo gets wrong.
+        </li>
+        <li>
           <strong>Place searches.</strong> To match a post to a real place, your phone searches Apple Maps.
         </li>
         <li>

@@ -27,6 +27,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-15 (build 24). Also at bac
 | Photo when a post has none | Google photo | None; the post is re-read later (`PhotoRetry`) |
 | Price ($–$$$$) | Google, on save | Asks `/api/price`, which asks Google |
 | Usage sheet and `/usage` | Yes | No: the costs are Sarp's to watch |
+| Save reports (`/api/saves`, backoffice `/saves`) | No: the web list is Sarp's own | Every save sheet reports how it ended (`SaveReport.swift`) |
 | What's new (menu → `/changelog`) | Opens in a new tab, no dot (the changelog is about iOS builds) | In-app Safari sheet; red dot on the menu button until a new build's What's new is opened |
 | Share from Instagram | Paste a link | Share sheet → Vicolo, or paste |
 | Save by typing a name / @handle (first field) | Yes (Google) | Yes (MapKit) |

@@ -259,6 +259,8 @@ private struct PlacesContent: View {
             if launchURL != nil { adding = true }
             start()
             askIfDue()
+            // Save reports the share extension couldn't send before it closed.
+            Task { await SaveReport.flush() }
             await PhotoRetry.run(in: context)
             await PriceLookup.run(in: context)
             await EnglishNames.run(in: context)

@@ -14,8 +14,10 @@ One screen: what's happening now. Elsewhere:
 The friends beta is running (since 2026-10-14). Feedback from it comes first; see `beta.md`.
 1. **The 2026-10-14 feedback round:** answered by builds 21–25 (25 checked on the phone 2026-10-15); what's still open is in `beta.md`.
 2. **Design pass, list pickers:** see "To design".
+3. **Save reports** (2026-10-16): from build 28, backoffice → Saves shows how every tester save ended, misses first. Work the misses from there instead of waiting for messages.
 
 ## Waiting on Sarp
+- **Upload build 28** so save reports start coming in. Before the App Store (not needed for TestFlight): App Store Connect → App Privacy → Product Interaction, not linked to the user, Analytics.
 - **Build 26 on the phone:** tick it in `builds.md` once tried. Before every upload, check `parity.md` for web-only rows (the locate button missed 26 that way).
 - Nudge testers to update and turn on Automatic Updates; ask the iPhone 13 (iOS 26) tester to try the latest build.
 - The tester's tutorial photo (file + permission).

@@ -94,3 +94,44 @@ export const listMatches = pgTable("list_matches", {
   match: jsonb("match").$type<{ placeId: string; name: string; city: string | null; category: string } | null>(),
   matchedAt: timestamp("matched_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * How each save on a phone ended (POST /api/saves, the Saves page on the
+ * backoffice): the beta's failures without waiting for someone to report them.
+ * One row per save sheet that had a link or a name, sent by the iOS app.
+ * Anonymous: `install` is a random id made on the phone, no name, no list.
+ * `id` comes from the phone, so a report sent twice is stored once.
+ */
+export const saves = pgTable("saves", {
+  id: uuid("id").primaryKey(),
+  at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  install: text("install").notNull(),
+  build: integer("build"),
+  url: text("url"),
+  outcome: text("outcome").notNull(),
+  detail: jsonb("detail").$type<SaveDetail>().notNull().default({}),
+});
+
+/** What the phone saw on the way (`ios/Pinsta/Services/SaveReport.swift`). */
+export type SaveDetail = {
+  /** Null when the post was read; the reader's error otherwise. */
+  readError?: string | null;
+  /** Where the suggestions came from: tag, account, link, search. */
+  source?: string | null;
+  offered?: number;
+  /** 0-based position of the saved suggestion. */
+  rank?: number | null;
+  /** The saved place came from Google, not Apple. */
+  google?: boolean;
+  /** A list post: places found, places saved. */
+  listed?: number;
+  saved?: number;
+  /** What the sheet was asking when it closed without a save. */
+  step?: string;
+  place?: string | null;
+  seconds?: number;
+  /** In-app sheet or the share sheet. */
+  via?: "app" | "share";
+};
+
+export type Save = typeof saves.$inferSelect;
