@@ -26,7 +26,7 @@ The friends beta is running (since 2026-10-14). Feedback from it comes first; se
 - **The "This post has N places" picker and the Google list import review, in one pass** (Sarp, 2026-10-15): the slide/caption list picker should look like the list import review.
 - List import success state (many places at once, not the one-place card).
 - What to offer for list places that couldn't be found (web has the same gap).
-- **A moving tutorial:** a short screen recording of the real path (Instagram paper plane → Share to… → Vicolo → saved) in place of the static pictures. Sarp doesn't hate it (2026-10-14). Static pages stay until then.
+- **A moving tutorial:** a short screen recording of the real path (Instagram paper plane → Share to… → Vicolo → saved) in place of the static pictures. Sarp doesn't hate it (2026-10-14). Static pages stay until then. It also carries the share-sheet setup (More → Edit → green + by Vicolo): the success card only says it can be done (Sarp, 2026-10-16; a step-by-step card there was built and dropped).
 - "From Emilie's list" on the iOS place card.
 - "Wrong place?" after an automatic save, as part of reworking the steps before the success card.
 - Two ideas from Corner's onboarding: "Try it with one of these" seed posts, and human "why it's here" lines (`backlog.md` → First experience).
