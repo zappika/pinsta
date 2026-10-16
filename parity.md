@@ -30,6 +30,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-15 (build 24). Also at bac
 | Save reports (`/api/saves`, backoffice `/saves`) | No: the web list is Sarp's own | Every save sheet reports how it ended (`SaveReport.swift`) |
 | Use counts (`/api/uses`, on backoffice `/saves`) | No: the web list is Sarp's own | Opens, view picks, seconds per screen (`Uses.swift`) |
 | What's new (menu → `/changelog`) | Opens in a new tab, no dot (the changelog is about iOS builds) | In-app Safari sheet; red dot on the menu button until a new build's What's new is opened |
+| Help and Privacy (menu → `/support`, `/privacy`) | No (the web list is Sarp's alone; the marketing page links both) | Buddy menu, below What's new, in the same in-app Safari sheet (`WebPageView`); the App Store asks for both in the app (2026-10-16) |
 | Share from Instagram | Paste a link | Share sheet → Vicolo, or paste |
 | Save by typing a name / @handle (first field) | Yes (Google) | Yes (MapKit) |
 | Save from an Instagram profile link / @handle | Yes | Yes; Apple Maps lacks some venues Google has (BATA) |

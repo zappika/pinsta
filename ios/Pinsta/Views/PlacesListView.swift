@@ -250,7 +250,7 @@ private struct PlacesContent: View {
         .sheet(isPresented: Bindable(settings).showingSheet) { SettingsSheet() }
         .sheet(isPresented: Bindable(settings).showingBeenThere) { BeenThereSheet() }
         .sheet(isPresented: Bindable(settings).showingImport, onDismiss: clearImportLink, content: importSheet)
-        .sheet(isPresented: Bindable(settings).showingChangelog) { ChangelogView().ignoresSafeArea() }
+        .sheet(item: Bindable(settings).webPage) { WebPageView(page: $0).ignoresSafeArea() }
         .onAppear { if TestArgs.string("importURL") != nil { settings.showingImport = true } }
         .fullScreenCover(isPresented: Bindable(settings).showingTutorial) {
             TutorialCover()
@@ -342,7 +342,7 @@ private struct PlacesContent: View {
     private func askIfDue() {
         let busy = { adding || editing != nil || screen.askingLocation || settings.showingSheet
             || settings.showingBeenThere || settings.showingImport || settings.showingTutorial
-            || settings.showingChangelog }
+            || settings.webPage != nil }
         guard started, !busy(), nearMe.onOpen(placeCount: places.count) == .ask else { return }
         Task {
             try? await Task.sleep(for: .seconds(0.6))

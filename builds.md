@@ -14,6 +14,7 @@ How it stays true:
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
 ## Next build (since `ios-29`)
+- Menu → Help and Privacy: how to save, common questions, how to reach us, and what Vicolo does with your data.
 - *(internal)* Privacy manifests (app + extension) declare UserDefaults (CA92.1, 1C8F.1) and the data that leaves the phone: links/places (Other User Content), usage counts, read errors. For the App Store.
 - *(internal)* Testing launch arguments (`-addURL`, `-importURL`, `-slowNotices`, `-splashHold`) work in Debug builds only (`Views/TestArgs.swift`).
 

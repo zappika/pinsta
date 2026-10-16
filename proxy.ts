@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 // One Vercel project, three hosts (Sarp, 2026-10-08):
-//   vicolo.space            — marketing index, /privacy, /changelog (testers read it)
+//   vicolo.space            — marketing index, /privacy, /support, /changelog (testers read it)
 //   app.vicolo.space        — the product: the list (served from /app), /import
 //   backoffice.vicolo.space — owner tooling: /usage, /saves, /parity
 // pinsta-two.vercel.app keeps serving the list at / for older links.

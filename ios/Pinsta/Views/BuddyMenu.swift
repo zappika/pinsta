@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The round elephant button, top right: a short menu, like the web's. Settings,
-/// Been there, Import from Google and What's new open as their own sheets; a red dot
+/// Been there, Import from Google, What's new, Help and Privacy open as their own sheets; a red dot
 /// on the button means a build whose What's new hasn't been opened. Accounts belong to the Social package.
 struct BuddyMenu: View {
     private let settings = Settings.shared
@@ -38,6 +38,19 @@ struct BuddyMenu: View {
             } label: {
                 Label("What's new", systemImage: "sparkles")
                 if settings.changelogIsNew { Text("Build \(Settings.build)") }
+            }
+            // The App Store asks for both inside the app (guidelines 1.5 and 5.1.1).
+            Section {
+                Button {
+                    settings.webPage = .support
+                } label: {
+                    Label("Help", systemImage: "lifepreserver")
+                }
+                Button {
+                    settings.webPage = .privacy
+                } label: {
+                    Label("Privacy", systemImage: "hand.raised")
+                }
             }
         } label: {
             // Explicit colour: a Menu label otherwise takes the tint, which vanished in dark.

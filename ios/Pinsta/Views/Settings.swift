@@ -34,8 +34,8 @@ final class Settings {
     var showingImport = false
     /// A list link from the save sheet, for ImportView to read.
     var importLink: String?
-    /// Buddy menu → What's new: the public changelog, in Safari's sheet.
-    var showingChangelog = false
+    /// Buddy menu → What's new, Help or Privacy, in Safari's sheet.
+    var webPage: WebPage?
 
     /// The installed build, from the bundle.
     static let build = Int(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "") ?? 0
@@ -48,7 +48,7 @@ final class Settings {
 
     func openChangelog() {
         seenChangelogBuild = Self.build
-        showingChangelog = true
+        webPage = .changelog
     }
 
     private init() {

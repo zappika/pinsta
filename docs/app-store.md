@@ -15,8 +15,8 @@ Legend: ✅ done · ⚠️ needs work · ⬜ to do in App Store Connect · 🎨 
 | Built with Xcode 26+ / iOS 26 SDK (2026-04-28). From **April 2027**: iOS 27 SDK | ✅ This Mac has Xcode 27.1 |
 | Minimum deployment target iOS 13+ (2026-09-09) | ✅ iOS 18.0 |
 | Privacy manifest with approved reasons for required-reason APIs (2024-05-01) | ✅ (2026-10-16, after build 29) Both `PrivacyInfo.xcprivacy` declare `UserDefaults` with `CA92.1` (own app) and `1C8F.1` (App Group). They were empty before, which gets an ITMS-91053 warning on upload. No file-timestamp, uptime or disk-space APIs found. |
-| Privacy policy link in App Store Connect **and inside the app**, "easily accessible" (5.1.1 i) | ⚠️ None in the app. The buddy menu has Settings, Been there, How to save and What's new. Needs a Privacy link → `vicolo.space/privacy`. 🎨 where it sits |
-| Contact info in the app and on the Support URL (1.5) | ⚠️ None in the app, and no support page. Needs a support page (e.g. `vicolo.space/support`: what it is, how to save, FAQ, an email) and a "Contact / Help" in the menu. 🎨 |
+| Privacy policy link in App Store Connect **and inside the app**, "easily accessible" (5.1.1 i) | ✅ Buddy menu → Privacy opens `vicolo.space/privacy` in an in-app Safari sheet (after build 29) |
+| Contact info in the app and on the Support URL (1.5) | ✅ Buddy menu → Help opens `vicolo.space/support` (how to save, common questions, hello@vicolo.space). ⬜ The address must actually receive mail (§9). |
 | Age rating questionnaire, including the new social media questions (required for submissions since Sept 2026) | ⬜ Answer "no" to social media capabilities: there's no feed of other people's content. Expect **4+**. |
 | EU Digital Services Act trader status, declared for new apps | ⬜ Do this **first**. Forum reports from Jul–Oct 2026 describe verification sitting "In Review" for 3–7 weeks with the app blocked in all 27 EU countries meanwhile. A free app with no revenue, ads or VAT registration is normally a non-trader, but even non-traders must declare it. If you declare trader, your address, phone and email are shown on the product page. 🎨 (personal call: privacy vs. consumer trust) |
 | Export compliance | ✅ `ITSAppUsesNonExemptEncryption: false` on both targets (HTTPS only) |
@@ -37,9 +37,9 @@ account don't apply. No in-app purchases.
 | Description | 4,000 | You may say it works with links "from Instagram, TikTok and Google Maps" in the body (describes functionality), but don't use their logos. |
 | Keywords | 100 | Comma-separated, no spaces after commas, don't repeat words already in the name or subtitle, no competitor or trademark names. |
 | What's New | 4,000 | Not shown for 1.0. |
-| Support URL | required | Needs to exist (see §1). |
-| Marketing URL | optional | `https://vicolo.space` |
-| Privacy Policy URL | required | `https://vicolo.space/privacy`, once updated (§4) |
+| Support URL | required | `https://www.vicolo.space/support` |
+| Marketing URL | optional | `https://www.vicolo.space`. Its text still says "a small beta with friends": change it before launch, or leave the field empty. |
+| Privacy Policy URL | required | `https://www.vicolo.space/privacy` |
 | Category | primary + optional secondary | **Travel** (primary), **Food & Drink** or **Navigation** (secondary). 🎨 |
 | Copyright | required | e.g. "2026 Sarper Erel". No © symbol needed. |
 | Content rights | required | "Does your app contain, show or access third-party content?" → **Yes** (post images and captions). Be ready to show you have the rights to use it (5.2.2). See §7. |
@@ -94,7 +94,7 @@ rejection reason and also a trust problem.
 
 Also:
 - ✅ Both `PrivacyInfo.xcprivacy` list these three types (2026-10-16). Keep the App Store Connect answers identical.
-- **`/privacy` page**: add the Google search fallback, the photo lookup and the Google list import. Replace "Questions → TestFlight feedback" with a real contact. Add how long save reports and usage rows are kept, and how to ask for deletion: by install id, or "delete the app; nothing is tied to you" (5.1.1 i asks for retention and deletion).
+- ✅ **`/privacy` page** rewritten 2026-10-16: every server call (incl. Google fallback, photos, list import), who processes it, retention, how to ask for deletion, children, contact. Edit it with any new data flow.
 - **Consent** (5.1.1 ii: usage data needs consent "even if anonymous"): save reports and usage counts run without asking today. Most apps with anonymous analytics pass with disclosure alone, but a reviewer can cite this. A safe pattern is a "Share anonymous usage to improve Vicolo" switch in Settings, on by default and disclosed. 🎨
 
 **Age assurance** (Texas SB 2420 in force since 2026-06-04; similar laws elsewhere): Apple
@@ -164,18 +164,59 @@ Reviewers often don't have Instagram set up. Make the core flow testable without
 
 ## 8. Order of work
 
-1. ⬜ App Store Connect: create the app record (name check), **DSA trader declaration** (slow), age rating, App Privacy.
-2. ⚠️ Code, one build (privacy manifests and debug args are done):
-   - Privacy + Contact/Help in the menu 🎨
-   - accessibility pass
-   - Duo check
-   - What's new decision 🎨
-3. ⚠️ Web:
-   - `/privacy` rewrite
-   - `/support` page
+1. ⬜ The time-sensitive manual steps in §9 (DSA, agreements, the email).
+2. Code, one build:
+   - ✅ privacy manifests, debug args, Help + Privacy in the menu
+   - ⚠️ accessibility pass
+   - ⚠️ Duo check
+   - 🎨 What's new for store users
+3. ✅ Web: `/privacy` rewritten, `/support` added (2026-10-16).
 4. 🎨 Icon Composer icon (tinted), screenshots, optional preview video, optional header asset.
 5. ⬜ Metadata, review notes, manual release → submit. Keep TestFlight testers on the same build.
 6. After approval: release, then a featuring nomination for the next update (Duo, widget).
+
+## 9. Sarp's manual list (nothing here is code)
+
+Roughly in order. The first block has waiting times, so start it now.
+
+**Now — things that take days**
+- [ ] **hello@vicolo.space receives mail.** It is printed on /support, /privacy and will be in the listing. Free options: ImprovMX (forwards to any inbox) or iCloud+ Custom Email Domain (if you pay for iCloud+). Both need MX/TXT records where vicolo.space's DNS lives (Vercel → Domains). Send yourself a test mail.
+- [ ] **Accept the new agreement.** Apple updated the Developer Program License Agreement on 13 Oct 2026. Submissions are blocked until the Account Holder accepts it (App Store Connect shows a banner; also Business → Agreements). Free apps need only the Free Apps agreement, no tax or banking forms.
+- [ ] **DSA trader status** (App Store Connect → Business, then the app → App Information → App Store Regulations & Permits). Decide trader vs non-trader (see §1). Verification has taken weeks for some, and the EU storefront waits on it.
+- [ ] **Apple Developer account details are current**: your name as the seller on the listing, phone and address (used by App Review and DSA).
+
+**App Store Connect → the Vicolo app (the record exists, TestFlight uses it)**
+- [ ] App Information:
+  - name "Vicolo" + subtitle (≤30, no Instagram/TikTok)
+  - categories (Travel + Food & Drink?)
+  - content rights: "Yes, contains third-party content"
+  - age rating questionnaire (social media: no) → 4+
+- [ ] App Privacy: the three types in §4, all not linked and not tracking. Privacy Policy URL above.
+- [ ] Pricing and Availability: Free; pick territories.
+- [ ] Version 1.0 page:
+  - description, keywords (100 chars), promotional text, support and marketing URLs, copyright "2026 Sarper Erel"
+  - screenshots (6.9" and 6.3")
+  - build
+  - release: **Manually release this version**
+- [ ] App Review Information: your phone and email, "sign-in not required", the notes from §6 (test links checked that day).
+- [ ] Optional: Accessibility Nutrition Labels, after the accessibility pass (§5) — claim only what passes Apple's criteria.
+
+**Design work (yours)**
+- [ ] Screenshots: 5–6 frames (story in §3). I can take the raw simulator shots at the right sizes with a nice demo list; framing and headlines are yours.
+- [ ] Icon in Icon Composer, with a tinted look.
+- [ ] Optional: app preview video (share → saved), product page header.
+
+**Decisions (yours)**
+- [ ] What's new in the menu for store users (keep the changelog, rewrite it for users, or hide it in 1.0).
+- [ ] Usage counts and save reports: disclose only (today), or a Settings switch to turn them off (§4, 5.1.1 ii).
+- [ ] How far to go on the third-party content risk before 1.0 (§7.1).
+- [ ] Tutorial photo: rights to the stand-in, or the tester's photo with permission (2.3.9).
+- [ ] Marketing page: real text, or leave the Marketing URL empty for now.
+
+**Around submission**
+- [ ] Apify: a paid month (or confirm 5 concurrent runs is enough) while the reviewer tests.
+- [ ] Day of: the review-note links still exist; the latest TestFlight build is the one submitted; nobody is mid-deploy on the backend.
+- [ ] After approval: release by hand when you're ready; watch backoffice → Saves for the first strangers' misses.
 
 ## Sources
 - Apple, Upcoming requirements: https://developer.apple.com/news/upcoming-requirements/

@@ -24,7 +24,8 @@ export default function Home() {
       <p className="mt-3 text-lg leading-relaxed text-stone-600">{PITCH}</p>
       <p className="mt-2 text-stone-500">An iPhone app, in a small beta with friends.</p>
       <nav className="mt-10 text-sm text-stone-500">
-        <a href="/privacy" className="underline underline-offset-4">Privacy</a>
+        <a href="/support" className="underline underline-offset-4">Help</a>
+        <a href="/privacy" className="ml-5 underline underline-offset-4">Privacy</a>
       </nav>
     </main>
   );
