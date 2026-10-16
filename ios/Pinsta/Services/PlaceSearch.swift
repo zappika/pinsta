@@ -81,7 +81,7 @@ extension PlaceSearch {
         }
 
         // A city in a handle says where the tag is: "Criollo" from @criollo_oax, "JAJA" from @jaja.berlin (2026-10-16).
-        let place = postCity(ownerUsername: ownerUsername, coauthors: coauthors, town: nil)
+        let place = postCity(ownerUsername: ownerUsername, coauthors: coauthors, town: nil, hashtags: hashtags)
         if let place, !queries.contains("\(tag) \(place)") { queries.append("\(tag) \(place)") }
 
         let merged = await runAll(queries)
@@ -241,10 +241,16 @@ extension PlaceSearch {
     }
 
     /// Where a post is, when it says: a city in a co-author's or the poster's handle ("strakers_nyc",
-    /// "selma__paris"), else a town tag. Same rule as `postCity` in lib/google-places.ts.
-    static func postCity(ownerUsername: String?, coauthors: [String], town: String?) -> String? {
+    /// "selma__paris"), else a town tag, else a hashtag naming a city (#tokyo: 楽園 is in Tokyo, not Fukuoka).
+    /// Same rule as `postCity` in lib/google-places.ts.
+    static func postCity(ownerUsername: String?, coauthors: [String], town: String?, hashtags: [String] = []) -> String? {
         for u in coauthors + [ownerUsername].compactMap({ $0 }) { if let city = cityOfHandle(u) { return city } }
-        return town
+        if let town { return town }
+        for h in hashtags {
+            let key = fold(h).filter { ("a"..."z").contains($0) }
+            if let city = handleCitiesGlued.first(where: { $0.0 == key })?.1 { return city }
+        }
+        return nil
     }
 
     /// Within 30 km of a street tag's pin, or anywhere without one ("Bata, Ragusa" for a Stockholm post).

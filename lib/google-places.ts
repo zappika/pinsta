@@ -227,7 +227,7 @@ export async function resolveTag(input: {
   if (city) queries.add(`${tag} ${city}`);
   for (const q of input.extraQueries ?? []) if (q.trim()) queries.add(q.trim());
   // A city in a handle says where the tag is: "Criollo" from @criollo_oax, "JAJA" from @jaja.berlin (2026-10-16).
-  const where = postCity({ ownerUsername: input.ownerUsername ?? null, coauthors: input.coauthors ?? [], town: null });
+  const where = postCity({ ownerUsername: input.ownerUsername ?? null, coauthors: input.coauthors ?? [], town: null, hashtags: input.hashtags });
   if (where) queries.add(`${tag} ${where}`);
 
   const results = await Promise.all(
@@ -559,13 +559,21 @@ function nameWords(s: string, c?: PlaceCandidate) {
   return words(s).filter((w) => !HANDLE_CITY_NAMES.has(w) && !where.has(w));
 }
 
-/** Where a post is, when it says: a city in a co-author's or the poster's handle ("strakers_nyc", "selma__paris"), else a town tag. */
-export function postCity(input: { ownerUsername: string | null; coauthors: string[]; town: string | null }): string | null {
+/**
+ * Where a post is, when it says: a city in a co-author's or the poster's handle ("strakers_nyc",
+ * "selma__paris"), else a town tag, else a hashtag naming a city (#tokyo: 楽園 is in Tokyo, not Fukuoka).
+ */
+export function postCity(input: { ownerUsername: string | null; coauthors: string[]; town: string | null; hashtags?: string[] }): string | null {
   for (const u of [...input.coauthors, input.ownerUsername]) {
     const city = cityOfHandle(u);
     if (city) return city;
   }
-  return input.town;
+  if (input.town) return input.town;
+  for (const h of input.hashtags ?? []) {
+    const city = HANDLE_CITIES_GLUED[fold(h).replace(/[^a-z]/g, "")];
+    if (city) return city;
+  }
+  return null;
 }
 
 /** Within 30 km of a street tag's pin, or anywhere without one ("Bata, Ragusa" for a Stockholm post). */

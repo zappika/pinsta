@@ -24,7 +24,8 @@ Most were "can't read the location" or "Apple Maps doesn't have it". Fixed for b
 - ~~Selma `selma__paris`: LittleBig in Bratislava, Cape Town…~~: an "at Selma" guess has to carry the name, and far-off junk is dropped, so Google gets asked. Apple offers "SELMA'S" in Paris first; is that it? If not, "None of these" → Google. Not done: reading the poster's bio address (one more Apify read per stuck post).
 - ~~Arraval `Ded7Z8SigdT`: Barcelona airport and ferry above Arraval~~: transport must match the name, not the city; @mentioned accounts rank first.
 - ~~Deleted a place, shared again: "Already in Vicolo"~~: the Undo timer stopped when the app went to the background; leaving now commits the delete.
-- ~~Japanese town names (`DegsdXSFG26`, 楽園 in Kyōdō)~~: asked again in English.
+- ~~Japanese town names (`DegsdXSFG26`, 楽園 in Kyōdō)~~: asked again in English (checked in the Simulator: "Fukuoka").
+- 楽園 itself: the tag saved "Rakusuien" in Fukuoka by itself. Now a hashtag naming a city (#tokyo) keeps a tag search there: offers Tokyo-area "Rakuen"s, saves nothing by itself. Still not the curry shop: Apple finds it only as "rakuen curry Tokyo" (Latin letters, from @rakuen_curry); adding co-authors to tag searches put JaJa's photographer @gushy.me above JaJa, so left out.
 - **Map pins:** places saved from a post show the post's photo again (web now; iOS after Sarp's look). List imports and Maps links keep the type icon.
 
 ### 2026-10-14 round (Mert + testers)

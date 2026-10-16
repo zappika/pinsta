@@ -21,7 +21,8 @@ How it stays true:
 - A restaurant @mentioned in the caption or a co-author comes first; airports, ferries and stations no longer show up just because they share the city's name.
 - Removing a place and leaving the app right away removes it for real: sharing the post again no longer says "Already in Vicolo".
 - Towns in Japan (and anywhere written in another alphabet) show in English; places already saved are fixed on the next launch.
-- *(internal)* 2026-10-16: compiled with xcodebuild (device, unsigned) and the search checked with swiftc + real MapKit on Sarp's five links and Mert's cases; not run in the Simulator (CoreSimulator out of date, needs `sudo xcodebuild -runFirstLaunch`). English names: check the brutusmag post `DegsdXSFG26` on the phone.
+- A post whose hashtags name a city (#tokyo) is searched there: no more saving a namesake at the other end of the country.
+- *(internal)* 2026-10-16: compiled with xcodebuild (device, unsigned) and the search checked with swiftc + real MapKit on Sarp's five links and Mert's cases; then run in the Simulator after `sudo xcodebuild -runFirstLaunch`: English town name and the delete-then-leave fix both checked on iPhone 17.
 - *(internal)* Not built or run yet: this Mac has no Xcode. Swift type-checked with swiftc only. Check on the other Mac: Vink's Oslo carousel `C_OOWiDS7Gh` should give 6 of 6 (Tranen from Google), and the opening map with places in two far-apart cities.
 
 ## In TestFlight: 1.0 (25) · 2026-10-15 · `ios-25` · phone ☑ (Sarp, 2026-10-15)
