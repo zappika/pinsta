@@ -8,6 +8,12 @@ backoffice, web-only changes). Headings read "## Build N · D Month".
 
 # What's new in Vicolo
 
+## Build 27 · 16 October
+
+- A round arrow above the + on the map shows where you are: one tap and the map frames you and your surroundings, with the blue dot.
+- The map never zooms in tighter than a neighbourhood, so a single place shows the streets around it.
+- A person tagged in a venue's post no longer pulls in namesakes from another country.
+
 ## Build 26 · 16 October
 
 - The + now opens a small menu: Instagram post or Google Maps. Google Maps takes a single place or a whole shared list. Import from Google moved here from the menu top right.

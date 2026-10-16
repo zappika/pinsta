@@ -13,27 +13,13 @@ How it stays true:
 - `git log ios-N..HEAD -- ios lib app/api` is the check: anything there that isn't listed under Next build was forgotten.
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
-## Next build (since `ios-26`)
+## Next build (since `ios-27`)
+
+## In TestFlight: 1.0 (27) · 2026-10-16 · `ios-27` · phone ☐
 - A round arrow above the + on the map shows where you are: one tap and the map frames you and your surroundings, with the blue dot.
 - The map never zooms in tighter than a neighbourhood, so a single place shows the streets around it.
 - *(internal)* Locate button and 4.5 km frame ported from the web (they were waiting on Sarp's look and missed build 26). Checked in the Simulator from Barcelona.
 - A person tagged in a venue's post no longer pulls in namesakes from another country (Pophams' London post offered places in Lille).
-
-## In TestFlight: 1.0 (26) · 2026-10-16 · `ios-26` · phone ☐
-- With no places near you, the map opens on all your places, not on the nearest country. Only places worlds apart (say Tokyo and Barcelona) still open on one country, the one with the most places.
-- A carousel or caption list now also finds the places Apple Maps doesn't know, by asking Google.
-- Posts whose account names its city (criollo_oax, jaja.berlin, strakers_nyc, selma__paris) find the place there, not a namesake abroad. Many more city shorthands are known: Oaxaca, Lisbon (lx), Milan, Vienna, Athens, Tokyo, Mexico City and the like.
-- When Apple Maps only has far-off guesses for a post's city, Google is asked straight away.
-- A restaurant @mentioned in the caption or a co-author comes first; airports, ferries and stations no longer show up just because they share the city's name.
-- Removing a place and leaving the app right away removes it for real: sharing the post again no longer says "Already in Vicolo".
-- Towns in Japan (and anywhere written in another alphabet) show in English; places already saved are fixed on the next launch.
-- A post whose hashtags name a city (#tokyo) is searched there: no more saving a namesake at the other end of the country.
-- The + now opens a small menu: Instagram post or Google Maps. Google Maps takes a single place or a whole shared list; a list goes straight to the import. Import from Google left the menu top right (it still shows there while a list is importing).
-- The first few times you save a post by pasting its link, the success card mentions you can share straight from Instagram.
-- Places saved from a post show the post's photo on the map; list imports keep their icons.
-- Carousels with a busy cover slide still find every place on the later slides (a Berlin hotel's "3 Berlin spots" post: Julius Ernst, Hard Wax, Renate). A hashtag like #BerlinGuide now says the city.
-- *(internal)* 2026-10-16: compiled with xcodebuild (device, unsigned) and the search checked with swiftc + real MapKit on Sarp's five links and Mert's cases; then run in the Simulator after `sudo xcodebuild -runFirstLaunch`: English town name and the delete-then-leave fix both checked on iPhone 17.
-- *(internal)* List posts checked in the Simulator: gatrooms `DZFfxgUCL8I` 3 of 3; Vink's Oslo `C_OOWiDS7Gh` 5 of 6 (Tranen from Google as "Åpent Bakeri Tranen"; Hyde is on neither Apple nor Google now). Swift type-checked with swiftc only. Check on the other Mac: Vink's Oslo carousel `C_OOWiDS7Gh` should give 6 of 6 (Tranen from Google), and the opening map with places in two far-apart cities.
 
 ## Earlier builds
 Tags `ios-1` … `ios-25` mark the commit that set each build number (the upload may
@@ -41,6 +27,7 @@ include a commit or two after it).
 
 | Build | Date | What | Phone |
 |---|---|---|---|
+| 26 | 10-16 | + menu, photo pins, place finding from handles and hashtags, list posts with busy covers, English town names | ☐ |
 | 25 | 10-15 | What's new in the menu | ☑ |
 | 24 | 10-15 | location primer, caption lists, What sub-rows, Culture | ☑ via 25 |
 | 23 | 10-14 | list posts (several places from a carousel), "Address of the …:" lines, caption @mentions | ☑ via 25 |
