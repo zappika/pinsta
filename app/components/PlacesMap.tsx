@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { placeIcon, tintFor } from "@/lib/categories";
@@ -11,8 +11,21 @@ import type { Place } from "./types";
 // OpenFreeMap: vector tiles, no key, no quota. Positron is the quiet grey style; "dark" its night twin.
 const STYLE_LIGHT = "https://tiles.openfreemap.org/styles/positron";
 const STYLE_DARK = "https://tiles.openfreemap.org/styles/dark";
-/** Pins closer than this on screen are shown as one numbered circle. */
-const CLUSTER_PX = 44;
+/**
+ * Loud and quiet pins (Sarp, 2026-10-16: seventy imported pins drowned the few saved from posts,
+ * most of them the same gilda). A place saved from a post is loud: its photo, bigger as you zoom
+ * in. Everything else (list imports, Maps links, typed names) is quiet: a small dot in its type's
+ * tint, the type icon only at street level. Sizes by zoom tier; pins group only when they'd
+ * really overlap, and names show only where they fit.
+ */
+type Tier = "city" | "hood" | "street";
+const tierAt = (z: number): Tier => (z < 13.5 ? "city" : z < NO_CLUSTER_ZOOM ? "hood" : "street");
+const LOUD_PX: Record<Tier, number> = { city: 30, hood: 36, street: 44 };
+const QUIET_PX: Record<Tier, number> = { city: 12, hood: 12, street: 32 };
+/** Exploring (Sarp, 2026-10-16): "tiers" as above, or "text": zoomed out, a post's place is its
+ * name on a small dark dot, the photo from neighbourhood level. Temporary switch on the map. */
+type PinStyle = "tiers" | "text";
+const PIN_STYLE_KEY = "vicolo.pinStyle";
 /** From street level on, never group — two entries at one address would never split. */
 const NO_CLUSTER_ZOOM = 16;
 /** A frame is never narrower than this: a town's places in two neighbourhoods still show
@@ -48,7 +61,7 @@ type Props = {
 
 /**
  * The current Where/What selection on a map, framed to fit it (or to `focus`).
- * Pins are the type icon on a soft type tint; overlapping pins group into a count.
+ * Loud pins (saved from a post: its photo) over quiet ones (a tinted dot); see Tier.
  * Tap a pin → PeekCard; tap a group → zoom in until it splits.
  */
 /** A map that has not drawn by then is treated as offline. */
@@ -102,10 +115,6 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
       };
       m.on("dragstart", away);
       m.on("zoomstart", away);
-      // Names only once the pins have room; zoomed out they'd pile up.
-      const labels = () => container.current?.classList.toggle("show-labels", m.getZoom() > 9);
-      m.on("zoom", labels);
-      labels();
       map.current = m;
       // Appearance changed (menu or system): swap the base map; DOM pins stay put.
       const restyle = () => m.setStyle(isDark() ? STYLE_DARK : STYLE_LIGHT);
@@ -191,6 +200,21 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
   const clusterMarkers = useRef<maplibregl.Marker[]>([]);
+  const [pinStyle, setPinStyle] = useState<PinStyle>("tiers");
+  const styleRef = useRef<PinStyle>("tiers");
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(PIN_STYLE_KEY) === "text") setPinStyle("text");
+    } catch {}
+  }, []);
+  useEffect(() => {
+    styleRef.current = pinStyle;
+    try {
+      localStorage.setItem(PIN_STYLE_KEY, pinStyle);
+    } catch {}
+    if (libRef.current && map.current && ready.current) draw(libRef.current, map.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pinStyle]);
 
   /** New selection: frame it, then draw. */
   function setPlaces(lib: typeof maplibregl, m: maplibregl.Map) {
@@ -212,8 +236,8 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
   const redraw = useRef<() => void>(() => {});
 
   /**
-   * Greedy screen-space grouping: a pin within one pin-width of a group joins it.
-   * A group shows its count on the tint of its most common type; tap zooms in.
+   * Greedy screen-space grouping, loud and quiet apart: a pin joins a group it would overlap.
+   * Then names, loud first, each only where it hits no pin and no name already placed.
    */
   function draw(lib: typeof maplibregl, m: maplibregl.Map) {
     for (const { marker } of markers.current.values()) marker.remove();
@@ -221,49 +245,76 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     for (const c of clusterMarkers.current) c.remove();
     clusterMarkers.current = [];
 
-    const groups: { x: number; y: number; members: Place[] }[] = [];
+    const z = m.getZoom();
+    const tier = tierAt(z);
+    const text = styleRef.current === "text" && z < 15;
+    const loudPx = text ? 10 : LOUD_PX[tier];
+    const quietPx = QUIET_PX[tier];
+    type Group = { x: number; y: number; members: Place[]; loud: boolean };
+    const groups: Group[] = [];
     for (const p of placesRef.current) {
+      const loud = fromPost(p) !== null;
       const pt = m.project([p.lng, p.lat]);
-      const g = m.getZoom() < NO_CLUSTER_ZOOM ? groups.find((g) => Math.hypot(g.x - pt.x, g.y - pt.y) < CLUSTER_PX) : undefined;
+      // Dots barely overlap at 12 px: they group only when nearly on top of each other.
+      const near = loud ? loudPx + 2 : Math.max(quietPx - 2, 8);
+      const g = z < NO_CLUSTER_ZOOM ? groups.find((g) => g.loud === loud && Math.hypot(g.x - pt.x, g.y - pt.y) < near) : undefined;
       if (g) g.members.push(p);
-      else groups.push({ x: pt.x, y: pt.y, members: [p] });
+      else groups.push({ x: pt.x, y: pt.y, members: [p], loud });
     }
 
-    // Pins that would overlap (only possible at street level, where grouping stops) fan out sideways.
-    const seen: { x: number; y: number; n: number; els: HTMLElement[] }[] = [];
+    // What names mustn't cover: post photos, groups and other names. A faint dot under a name's
+    // white halo is fine; counting the dots left no room for any name in central Barcelona.
+    type Box = { x0: number; y0: number; x1: number; y1: number };
+    const taken: Box[] = [];
+    const hit = (b: Box) => taken.some((t) => b.x0 < t.x1 && b.x1 > t.x0 && b.y0 < t.y1 && b.y1 > t.y0);
+    const named: { el: HTMLElement; x: number; y: number; size: number; name: string; loud: boolean }[] = [];
+
+    // Pins that would overlap (only at street level, where grouping stops) fan out sideways.
+    const seen: { x: number; y: number; n: number }[] = [];
     for (const g of groups) {
+      const size = g.loud ? loudPx : quietPx;
       if (g.members.length === 1) {
-        const twin = seen.find((q) => Math.hypot(q.x - g.x, q.y - g.y) < CLUSTER_PX);
-        const fan = twin ? ++twin.n : 0;
         const p = g.members[0];
+        const twin = g.loud ? seen.find((q) => Math.hypot(q.x - g.x, q.y - g.y) < size) : undefined;
+        const fan = twin ? ++twin.n : 0;
+        if (g.loud && !twin) seen.push({ x: g.x, y: g.y, n: 0 });
         const el = document.createElement("div");
-        el.style.cssText = "width:44px;height:44px;cursor:pointer";
+        el.style.cssText = `width:${size}px;height:${size}px;cursor:pointer;z-index:${g.loud ? 2 : 1}`;
         const pin = document.createElement("div");
-        pin.className = "pinsta-pin";
-        // Saved from a post: the post's picture, the "cool" of it (Sarp, 2026-10-16). From a list or a
-        // Maps link: the type icon on its tint, so the map shows how much came from where.
+        pin.className = `pinsta-pin ${g.loud ? (text ? "pinsta-pin-text" : "pinsta-pin-loud") : tier === "street" ? "pinsta-pin-quiet" : "pinsta-pin-dot"}`;
+        pin.style.width = pin.style.height = `${size}px`;
         const photo = fromPost(p);
-        const icon = document.createElement("img");
-        icon.src = photo ?? placeIcon(p);
-        icon.alt = "";
-        icon.draggable = false;
-        icon.className = photo ? "pinsta-pin-photo" : "pinsta-pin-icon";
-        // A picture that won't load falls back to the type icon.
-        if (photo) icon.onerror = () => { icon.onerror = null; icon.src = placeIcon(p); icon.className = "pinsta-pin-icon"; pin.style.backgroundColor = tintFor(p.category); };
-        pin.append(icon);
-        pin.style.backgroundColor = photo ? "" : tintFor(p.category);
+        if (g.loud && !text) {
+          const img = document.createElement("img");
+          img.src = photo!;
+          img.alt = "";
+          img.draggable = false;
+          img.className = "pinsta-pin-photo";
+          // A picture that won't load: the type's tint, as a dot would have.
+          img.onerror = () => { img.remove(); pin.style.backgroundColor = tintFor(p.category); };
+          pin.append(img);
+        } else if (!g.loud) {
+          pin.style.backgroundColor = tintFor(p.category);
+          if (tier === "street") {
+            const icon = document.createElement("img");
+            icon.src = placeIcon(p);
+            icon.alt = "";
+            icon.draggable = false;
+            icon.className = "pinsta-pin-icon";
+            pin.append(icon);
+          }
+        }
         pin.classList.toggle("active", p.id === selectedRef.current);
         const label = document.createElement("div");
-        label.className = "pinsta-pin-label";
+        label.className = `pinsta-pin-label${g.loud ? "" : " quiet"}`;
+        label.style.left = `${size + 5}px`;
         label.textContent = p.name;
         el.append(pin, label);
-        if (twin) {
-          // Fanned pins: names would overlap, so they show in the PeekCard instead.
-          twin.els.push(el);
-          for (const e of twin.els) e.classList.add("no-label");
-        } else {
-          seen.push({ x: g.x, y: g.y, n: 0, els: [el] });
-        }
+        // A small dot is hard to hit: the tap target is bigger than what's drawn.
+        if (size < 24) el.classList.add("pinsta-pin-tap");
+        const x = g.x + fan * (size + 4);
+        if (g.loud) taken.push({ x0: x - size / 2, y0: g.y - size / 2, x1: x + size / 2, y1: g.y + size / 2 });
+        if (!twin) named.push({ el, x, y: g.y, size, name: p.name, loud: g.loud });
         const open = () => {
           onSelectRef.current(p);
           // Nudge the pin up so the PeekCard doesn't sit on top of it.
@@ -274,17 +325,35 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
           open();
         });
         keyboardButton(el, p.name, open);
-        const marker = new lib.Marker({ element: el, offset: [fan * 48, 0] }).setLngLat([p.lng, p.lat]).addTo(m);
+        const marker = new lib.Marker({ element: el, offset: [fan * (size + 4), 0] }).setLngLat([p.lng, p.lat]).addTo(m);
         markers.current.set(p.id, { marker, pin });
         continue;
       }
+      // A group of post places: the first one's photo with a count. Of quiet ones, a slightly bigger
+      // dot and no number: counts shouted as loud as the photos (Barcelona, 70 imports).
+      const el = document.createElement("div");
+      const photo = g.loud && !text ? g.members.map(fromPost).find(Boolean) : null;
       const counts = new Map<string, number>();
       for (const p of g.members) counts.set(p.category ?? "Other", (counts.get(p.category ?? "Other") ?? 0) + 1);
       const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
-      const el = document.createElement("div");
-      el.className = "pinsta-pin pinsta-cluster";
-      el.style.backgroundColor = tintFor(top);
-      el.textContent = String(g.members.length);
+      const csize = photo ? size : g.loud ? 24 : tier === "street" ? quietPx : 16;
+      el.className = `pinsta-pin pinsta-cluster${photo ? " pinsta-pin-loud" : g.loud ? " pinsta-pin-text" : " pinsta-cluster-quiet"}`;
+      el.style.cssText = `width:${csize}px;height:${csize}px;z-index:${g.loud ? 3 : 1}`;
+      if (!photo && !g.loud) el.style.backgroundColor = tintFor(top);
+      if (photo) {
+        const img = document.createElement("img");
+        img.src = photo;
+        img.alt = "";
+        img.draggable = false;
+        img.className = "pinsta-pin-photo";
+        const badge = document.createElement("span");
+        badge.className = "pinsta-badge";
+        badge.textContent = String(g.members.length);
+        el.append(img, badge);
+      } else if (g.loud || tier === "street") {
+        el.textContent = String(g.members.length);
+      }
+      taken.push({ x0: g.x - csize / 2, y0: g.y - csize / 2, x1: g.x + csize / 2, y1: g.y + csize / 2 });
       const zoomIn = () => {
         const b = new lib.LngLatBounds();
         for (const p of g.members) b.extend([p.lng, p.lat]);
@@ -297,6 +366,17 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
       keyboardButton(el, `${g.members.length} places`, zoomIn);
       const at = m.unproject([g.x, g.y]);
       clusterMarkers.current.push(new lib.Marker({ element: el }).setLngLat(at).addTo(m));
+    }
+
+    // Names: a post's place from city level in "text", from 12.5 in "tiers" (a phone shows all of
+    // central Barcelona at ~12.5); the rest from 14.5.
+    const wants = (n: (typeof named)[number]) => (n.loud ? text || z >= 12.5 : z >= 14.5);
+    for (const n of named.filter(wants).sort((a, b) => Number(b.loud) - Number(a.loud))) {
+      const w = n.name.length * (n.loud ? 7.2 : 6.4) + 4;
+      const box = { x0: n.x + n.size / 2 + 3, y0: n.y - 9, x1: n.x + n.size / 2 + 5 + w, y1: n.y + 9 };
+      if (hit(box)) continue;
+      taken.push(box);
+      n.el.classList.add("labelled");
     }
   }
 
@@ -334,6 +414,18 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
   return (
     <div className="absolute inset-0">
       <div ref={container} className="h-full w-full" />
+      {/* Temporary: compare the two pin styles on the real list (Sarp, 2026-10-16). */}
+      <div className="absolute left-3 top-[calc(env(safe-area-inset-top)+5.5rem)] z-10 flex rounded-full bg-white/90 p-0.5 text-xs font-medium shadow-sm backdrop-blur">
+        {(["tiers", "text"] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => setPinStyle(s)}
+            className={`rounded-full px-2.5 py-1 capitalize ${pinStyle === s ? "bg-stone-900 text-white" : "text-stone-500"}`}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

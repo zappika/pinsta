@@ -46,6 +46,19 @@
     color: #f5f5f4;
     text-shadow: 0 0 3px #000, 0 0 3px #000, 0 0 3px #000;
   }
+:root[data-theme="dark"] .pinsta-pin-dot,
+:root[data-theme="dark"] .pinsta-cluster-quiet {
+    opacity: 0.75;
+  }
+:root[data-theme="dark"] .pinsta-pin-label.quiet {
+    color: #c4bfbb;
+  }
+:root[data-theme="dark"] .pinsta-pin-text,
+:root[data-theme="dark"] .pinsta-badge {
+    background-color: #f5f5f4;
+    color: #1c1917;
+    border-color: #2a2623;
+  }
 
 /* System dark, unless pinned light. */
 @media (prefers-color-scheme: dark) {
@@ -80,6 +93,19 @@
       color: #f5f5f4;
       text-shadow: 0 0 3px #000, 0 0 3px #000, 0 0 3px #000;
     }
+  :root:not([data-theme="light"]) .pinsta-pin-dot,
+  :root:not([data-theme="light"]) .pinsta-cluster-quiet {
+      opacity: 0.75;
+    }
+  :root:not([data-theme="light"]) .pinsta-pin-label.quiet {
+      color: #c4bfbb;
+    }
+  :root:not([data-theme="light"]) .pinsta-pin-text,
+  :root:not([data-theme="light"]) .pinsta-badge {
+      background-color: #f5f5f4;
+      color: #1c1917;
+      border-color: #2a2623;
+    }
 }
 
 html {
@@ -105,8 +131,9 @@ body {
   height: 44px;
   border-radius: 9999px;
   background-color: #ececec; /* per-category tint set inline */
-  border: 3px solid #fff;
+  border: 2px solid #fff;
   box-shadow: 0 2px 8px rgb(0 0 0 / 0.2);
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -129,6 +156,54 @@ body {
   transform: scale(1.2);
   border-color: #1c1917;
 }
+/* Quiet: a tinted dot with a thin ring, so it reads as a pin and not as the map. */
+.pinsta-pin-dot {
+  border-width: 1.5px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+}
+.pinsta-pin-dot.active {
+  transform: scale(1.6);
+}
+.pinsta-pin-quiet .pinsta-pin-icon {
+  width: 20px;
+  height: 20px;
+}
+/* "text" style, zoomed out: a post's place is a small dark dot carrying its name. */
+.pinsta-pin-text {
+  background-color: #1c1917;
+  border-width: 1.5px;
+  color: #fff;
+}
+.pinsta-cluster-quiet,
+.pinsta-cluster.pinsta-pin-text {
+  font-size: 11px;
+  border-width: 1.5px;
+}
+.pinsta-cluster-quiet {
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25), 0 0 0 1px rgb(0 0 0 / 0.08);
+}
+.pinsta-badge {
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  background: #1c1917;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  border: 1.5px solid #fff;
+}
+/* A dot is drawn small but tapped big. */
+.pinsta-pin-tap::before {
+  content: "";
+  position: absolute;
+  inset: -10px;
+}
 .pinsta-cluster {
   cursor: pointer;
   font-size: 16px;
@@ -139,7 +214,6 @@ body {
 .pinsta-pin-label {
   display: none;
   position: absolute;
-  left: 50px;
   top: 50%;
   transform: translateY(-50%);
   white-space: nowrap;
@@ -149,11 +223,13 @@ body {
   text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
   pointer-events: none;
 }
-.show-labels .pinsta-pin-label {
+.labelled .pinsta-pin-label {
   display: block;
 }
-.show-labels .no-label .pinsta-pin-label {
-  display: none;
+.pinsta-pin-label.quiet {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #57534e;
 }
 .maplibregl-ctrl-attrib {
   font-size: 9px;

@@ -27,7 +27,7 @@ The friends beta is running (since 2026-10-14). Feedback from it comes first; se
 ## To design (Sarp)
 - **Google list import, "we're on it, come back to review"** (Sarp, 2026-10-16): the import runs on its own, a piece of UI says it's working, and the review waits until it's ready. Also fixes a list shared from Google Maps' share sheet (today the extension drops it: the save sheet goes blank) and long lists. First in our own UI, later the first notification. Matching runs on the server (Sarp, 2026-10-16): Google, ~3¢ a new entry after 5,000 free a month, finishes with the phone in a pocket, allows push later.
 - **Tutorial says what Vicolo is** (Sarp's list, 2026-10-16): next after the easy ones.
-- **Map pins for list imports:** a photo instead of the type icon? (Sarp's list: imports make the map ugly; reverses today's "ratio" call.)
+- **Map pins, loud and quiet** (web, 2026-10-16): try Tiers vs Text on the phone, pick one, then iOS. Remove the switch once picked.
 - **The "This post has N places" picker and the Google list import review, in one pass** (Sarp, 2026-10-15): the slide/caption list picker should look like the list import review.
 - List import success state (many places at once, not the one-place card).
 - What to offer for list places that couldn't be found (web has the same gap).
