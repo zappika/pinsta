@@ -17,7 +17,25 @@ type Props = {
   onClose: () => void;
   /** The place is in the list from this moment; the sheet becomes the success card. */
   onSaved: (place: Place) => void;
+  /** Which + menu entry opened the sheet: it sets the field's hint (a post, or a Google Maps place or list). */
+  mode?: AddMode;
 };
+
+export type AddMode = "post" | "google";
+
+/** Saves made by pasting a post link get a word about the share sheet, the first few times. */
+const SHARE_TIP_KEY = "vicolo.shareTipShown";
+const SHARE_TIP_TIMES = 3;
+function takeShareTip(): boolean {
+  try {
+    const n = Number(localStorage.getItem(SHARE_TIP_KEY) ?? 0);
+    if (n >= SHARE_TIP_TIMES) return false;
+    localStorage.setItem(SHARE_TIP_KEY, String(n + 1));
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 // What the sheet uses of /api/extract's post; edit mode builds one from a saved card, without kind.
 type PostInfo = Pick<ExtractResponse["post"], "url" | "caption" | "locationName" | "imageUrl" | "ownerUsername"> &
@@ -38,7 +56,7 @@ type Saved = { place: Place; already: boolean; changed?: boolean; merged?: boole
  * the post is read → the tag becomes a place. One match saves itself; several
  * ask for a tap; none hands over to search.
  */
-export default function AddPlace({ places, editing = null, onUpdated, onClose, onSaved }: Props) {
+export default function AddPlace({ places, editing = null, onUpdated, onClose, onSaved, mode = "post" }: Props) {
   const [url, setUrl] = useState(editing?.instagramUrl ?? "");
   const [extract, setExtract] = useState<Extract>(
     editing
@@ -121,7 +139,13 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
           candidates?: PlaceCandidate[];
           source?: Source;
           error?: string;
+          list?: string;
         };
+        // A Google Maps list, not a place: the import page reads it.
+        if (data.list) {
+          location.href = `/import?url=${encodeURIComponent(data.list)}`;
+          return;
+        }
         if (!res.ok || !data.post) throw new Error(data.error ?? "Could not read post");
         const found = data.candidates ?? [];
         setExtract({ status: "done", post: data.post, source: data.source ?? null });
@@ -254,6 +278,8 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
   const manualMode =
     extract.status === "error" || (extract.status === "done" && extract.source === null);
   // The sheet's question lives in its small label (Sarp, 2026-10-09): no headings.
+  // Asked once per success card, not on every render.
+  const [shareTip] = useState(() => mode === "post" && !editing && takeShareTip());
   const label = editing ? "Change place"
     : byName ? "Which place is it?"
     : !validUrl ? "Save a place"
@@ -269,7 +295,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
           the post row and a bar, no empty sheet. Grows up to a cap, then scrolls.
           Sits above the + (which becomes ×) and rises out of it. */}
       {saved ? (
-        <SavedCard saved={saved} onDone={onClose} />
+        <SavedCard saved={saved} onDone={onClose} shareTip={shareTip} />
       ) : (
       <div className="pinsta-rise relative m-3 mb-[calc(env(safe-area-inset-bottom)+5.25rem)] flex max-h-[min(480px,calc(100dvh-9rem))] flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
         {(
@@ -290,7 +316,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
                   autoCapitalize="off"
                   autoCorrect="off"
                   spellCheck={false}
-                  placeholder="Type a place, or paste a link"
+                  placeholder={mode === "google" ? "Paste a Google Maps link" : "Paste an Instagram link, or type a place"}
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   className={`min-w-0 flex-1 rounded-xl border bg-stone-50 px-3.5 py-2.5 text-base outline-none placeholder:text-stone-400 ${
@@ -303,6 +329,9 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
                   </button>
                 )}
               </div>
+              )}
+              {!editing && mode === "google" && !url && (
+                <p className="mt-1.5 text-xs text-stone-500">A place, or a whole list. In Google Maps, Share the place or the list. A list has to be shared, not private.</p>
               )}
               {!editing && urlTouched && !validUrl && looksLikeLink && (
                 <p className="mt-1.5 text-xs text-red-600">Needs to be an Instagram post or profile, a TikTok video, or a Google Maps place.</p>
@@ -391,7 +420,7 @@ const BAR_DELAY_MS = 500;
  * name when there is one. No photo → the type icon on its tint. Tap or wait to close.
  * Mirrors SavedCard in the iOS AddPlaceView.
  */
-function SavedCard({ saved, onDone }: { saved: Saved; onDone: () => void }) {
+function SavedCard({ saved, onDone, shareTip = false }: { saved: Saved; onDone: () => void; shareTip?: boolean }) {
   const { place, already, changed, merged, milestone } = saved;
   const [shown, setShown] = useState(false);
   useEffect(() => {
@@ -423,6 +452,9 @@ function SavedCard({ saved, onDone }: { saved: Saved; onDone: () => void }) {
         {line && <p className="mb-1 text-xs font-semibold uppercase tracking-wider opacity-80">{line}</p>}
         <p className="text-[28px] font-semibold leading-tight tracking-tight">{place.name}</p>
         <p className="mt-0.5 text-base opacity-80">{[place.category, town].filter(Boolean).join(" · ")}</p>
+        {shareTip && !already && (
+          <p className="mt-3 text-sm opacity-90">Faster next time: in Instagram, tap Share, then Vicolo.</p>
+        )}
       </div>
       <div className={`absolute inset-x-0 bottom-0 h-1 ${photo ? "bg-white/10" : "bg-black/5"}`}>
         <div className={`h-full ${photo ? "bg-white/50" : "bg-black/25"}`}

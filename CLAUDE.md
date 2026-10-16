@@ -100,6 +100,7 @@ Pinsta. Instagram itself can't be installed in the Simulator.
 - **Photos:** a place never goes without one. Web: `lib/photo.ts` (post image → Google photo) on save; a client whose read failed sends `postUnreadable` so the save doesn't pay Apify again.
   iOS: `PhotoRetry` re-reads photo-less posts on launch/foreground, with `Backoff` (6 h doubling to 2 weeks, six tries; the least-tried first) and `photoGaveUp` once `/api/extract` says `permanent: true` (deleted/private post, 404). `PriceLookup` uses the same backoff. No Google there.
   Shown through `PlacePhoto` (downsampled once, off the main thread, cached) — never `UIImage(data:)` in a view body.
+- **The + menu** (web, `AddMenu.tsx`, 2026-10-16): the + fans out labelled pills straight up (Path style, not radial): Instagram post, Google Maps. Google Maps takes a place or a shared list; `/api/extract` answers `{list}` for a list link (`listIdFrom`, free) and the sheet sends it to `/import?url=…`, which reads it at once. Import is no longer in the buddy menu. Both screens have Paste. A post save's success card says "in Instagram, tap Share, then Vicolo" the first 3 times (`vicolo.shareTipShown`). iOS: not yet.
 - **Save flow** (`app/components/AddPlace.tsx` ↔ `ios/Pinsta/Views/AddPlaceView.swift`):
   bottom sheet that fits what it shows (as the `/success` sandbox; scrolls past a cap) whose small label asks the question (Finding the place… / Is this the place? /
   Is it one of these? / Which place is it?). One tag match saves itself; otherwise every row (tag, account

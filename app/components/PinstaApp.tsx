@@ -6,7 +6,8 @@ import { matchesWhat } from "@/lib/subtypes";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, setOwnerKey } from "@/lib/api";
 import type { Place } from "./types";
-import AddPlace from "./AddPlace";
+import AddPlace, { type AddMode } from "./AddPlace";
+import AddMenu from "./AddMenu";
 import Locked from "./Locked";
 import Filters from "./Filters";
 import PlaceCard, { type VisitChange } from "./PlaceCard";
@@ -26,6 +27,9 @@ export default function PinstaApp() {
   const [places, setPlaces] = useState<Place[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  /** The + fans out its choices first; the sheet opens on one (Sarp, 2026-10-16). */
+  const [fan, setFan] = useState(false);
+  const [addMode, setAddMode] = useState<AddMode>("post");
   const [editing, setEditing] = useState<Place | null>(null);
   const [openSwipe, setOpenSwipe] = useState<string | null>(null);
   // Deletes are deferred a few seconds so "Undo" can pull them back. Only the
@@ -331,7 +335,7 @@ export default function PinstaApp() {
             <BrandIllustration />
             <h2 className="mt-5 text-xl font-semibold">Your next favorite starts here</h2>
             <p className="mt-2 text-sm leading-relaxed text-stone-500">Save a place you want to try. Keep it for when you’re nearby.</p>
-            <button type="button" onClick={() => setAdding(true)} className="mt-5 min-h-11 rounded-full bg-stone-900 px-5 py-3 text-sm font-medium text-white active:opacity-80">Save your first place</button>
+            <button type="button" onClick={() => setFan(true)} className="mt-5 min-h-11 rounded-full bg-stone-900 px-5 py-3 text-sm font-medium text-white active:opacity-80">Save your first place</button>
             <p className="mt-3 text-xs leading-relaxed text-stone-500">Paste a link from Instagram, TikTok, or Google Maps.</p>
           </div>
         )}
@@ -439,17 +443,17 @@ export default function PinstaApp() {
         </div>
       )}
 
-      <div className={`pointer-events-none fixed inset-x-0 bottom-0 mx-auto max-w-md ${adding ? "z-30" : ""} px-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-6 ${
+      <div className={`pointer-events-none fixed inset-x-0 bottom-0 mx-auto max-w-md ${adding || fan ? "z-30" : ""} px-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-6 ${
         view === "map" || adding ? "" : "bg-gradient-to-t from-stone-100 via-stone-100/90 to-transparent"
       }`}>
         {/* One row: the view pill centered, a round + at the right edge. */}
         <div className="relative flex h-14 items-center justify-center">
           {places && places.length > 0 && (
-            <div className={`transition-opacity duration-200 ${adding ? "pointer-events-none opacity-0" : "opacity-100"}`}>
+            <div className={`transition-opacity duration-200 ${adding || fan ? "pointer-events-none opacity-0" : "opacity-100"}`}>
               <ViewSwitch view={view} onChange={setView} />
             </div>
           )}
-          {view === "map" && places && places.length > 0 && !adding && !peekId && (
+          {view === "map" && places && places.length > 0 && !adding && !fan && !peekId && (
             <button
               type="button"
               aria-label="Show where I am"
@@ -465,21 +469,33 @@ export default function PinstaApp() {
           )}
           <button
             type="button"
-            aria-label={adding ? "Close" : "Save a place"}
-            onClick={() => setAdding((o) => !o)}
+            aria-label={adding || fan ? "Close" : "Save a place"}
+            aria-expanded={fan}
+            onClick={() => (adding ? setAdding(false) : setFan((o) => !o))}
             className="pinsta-fab pointer-events-auto absolute right-0 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-stone-900 text-white shadow-lg shadow-stone-900/20"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden
               className="transition-transform duration-300 [transition-timing-function:cubic-bezier(.34,1.56,.64,1)]"
-              style={{ transform: adding ? "rotate(135deg)" : "rotate(0deg)" }}>
+              style={{ transform: adding || fan ? "rotate(135deg)" : "rotate(0deg)" }}>
               <path d="M12 5v14M5 12h14" />
             </svg>
           </button>
         </div>
       </div>
 
+      <AddMenu
+        open={fan}
+        onClose={() => setFan(false)}
+        onPick={(m) => {
+          setFan(false);
+          setAddMode(m);
+          setAdding(true);
+        }}
+      />
+
       {(adding || editing) && (
         <AddPlace
+          mode={addMode}
           places={places ?? []}
           editing={editing}
           onClose={() => {

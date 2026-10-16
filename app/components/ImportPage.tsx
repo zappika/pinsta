@@ -42,6 +42,30 @@ export default function ImportPage() {
     return () => window.removeEventListener("pinsta:locked", onLocked);
   }, []);
 
+  // Sent here by the + menu's Google Maps entry with a list link: read it straight away.
+  const [fromMenu, setFromMenu] = useState<string | null>(null);
+  useEffect(() => {
+    const u = new URLSearchParams(location.search).get("url");
+    if (u) {
+      setUrl(u);
+      setFromMenu(u);
+    }
+  }, []);
+  useEffect(() => {
+    if (fromMenu && url === fromMenu) {
+      setFromMenu(null);
+      void read();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromMenu, url]);
+
+  async function paste() {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) setUrl(text);
+    } catch {}
+  }
+
   async function read() {
     if (!url.trim() || reading) return;
     setReading(true);
@@ -55,7 +79,9 @@ export default function ImportPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        if (res.status !== 401) setError(data.error ?? "Couldn't read that list.");
+        // A private list reads as nothing: say so (Sarp, 2026-10-16).
+        const msg: string = data.error ?? "Couldn't read that list.";
+        if (res.status !== 401) setError(/private/i.test(msg) ? msg : `${msg.replace(/\.?$/, ".")} If it's private, share it in Google Maps first.`);
         return;
       }
       setPreview({
@@ -149,6 +175,11 @@ export default function ImportPage() {
         >
           {reading ? "Reading…" : "Read list"}
         </button>
+        {!url && (
+          <button type="button" onClick={paste} className="shrink-0 rounded-xl border border-stone-200 bg-white px-3.5 text-sm font-medium text-stone-700 active:bg-stone-50">
+            Paste
+          </button>
+        )}
       </form>
       {reading && <p className="mt-3 text-sm text-stone-500">Reading the list and finding each place. A long list takes a little while.</p>}
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}

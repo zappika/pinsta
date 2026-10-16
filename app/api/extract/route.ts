@@ -3,6 +3,7 @@ import { fetchInstagramPost } from "@/lib/instagram-post";
 import { fetchTikTokPost } from "@/lib/tiktok";
 import { fetchInstagramProfile } from "@/lib/instagram-profile";
 import { readGoogleLink } from "@/lib/google-link";
+import { listIdFrom } from "@/lib/google-list";
 import { parseSourceUrl, type SourceKind } from "@/lib/sources";
 import { areaOfTag, getPlace, locate, profileMatches, resolveTag, resolveUntagged, searchPlaces, streetOfTag, type PlaceCandidate } from "@/lib/google-places";
 import { storeImage } from "@/lib/blob";
@@ -94,6 +95,11 @@ export async function POST(req: Request) {
   const parsed = parseSourceUrl(typeof body.instagramUrl === "string" ? body.instagramUrl : "");
   if (!parsed) {
     return NextResponse.json({ error: "Not an Instagram, TikTok or Google Maps link, or an @handle" }, { status: 400 });
+  }
+
+  // The + menu's one Google Maps entry takes a place or a shared list: a list goes to /import (free to tell).
+  if (parsed.kind === "google" && (await listIdFrom(parsed.url).catch(() => null))) {
+    return NextResponse.json({ list: parsed.url });
   }
 
   try {
