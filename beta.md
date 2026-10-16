@@ -20,7 +20,7 @@ Newest round first. When something is fixed, strike it through with the build it
 - ~~Pophams `DeeRAfqIuGl`: "Stuart Studio" in Lille first~~: from `@lilliestuart` (a person) in the caption, ranked first by the new mention rule. A mentioned account's results more than 100 km from the poster's own are dropped. For build 27.
 - **Jolene `Deb1PksCAdA` (@jolene_newingtongreen):** failed on Sarp's phone on 26. The search finds Jolene London; the Simulator once got "Couldn't read that post" (the read, not the search) and once worked. Suspect Apify (5 reads at a time on the free plan, many test reads that day). Open: retry on the phone; if it keeps failing, look at the extract logs.
 - ~~casa.lawa `DeW-H5LCsup` (Catania): a laundry and a café from a street photo's signs, ticked next to Bar Popolare~~: names off a slide Vision reads shakily start unticked. Oslo still 5 of 5 ticked. For build 29.
-- **Jolene `Deb1PksCAdA`:** still for Sarp to retry on the phone (2026-10-16).
+- ~~Jolene `Deb1PksCAdA`~~: worked on Sarp's phone on retry (2026-10-16); the earlier failure was the read, likely Apify being busy.
 
 ### 2026-10-16 round (Sarp's own tries)
 Most were "can't read the location" or "Apple Maps doesn't have it". Fixed for build 26 (search on web and iOS):

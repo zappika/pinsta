@@ -15,7 +15,7 @@ How it stays true:
 
 ## Next build (since `ios-29`)
 
-## In TestFlight: 1.0 (29) · 2026-10-16 · `ios-29` · phone ☐
+## In TestFlight: 1.0 (29) · 2026-10-16 · `ios-29` · phone ☑ (Sarp, 2026-10-16)
 - A post that names places only on signs in a street photo no longer ticks them for you: those names are listed unticked, the post's own places stay ticked.
 - Vicolo now also counts how it's used (how often it's opened, which views you pick and how long each is on screen), with no places, links or names. The privacy page says so.
 - *(internal)* `SlideText.Reading.signs`: a slide with any Vision line under 0.5 confidence is a photo of signs (casa.lawa `DeW-H5LCsup`, slide 5); its names start unticked. Vink's Oslo slides all read at 1.0, still 5 of 5 ticked.
@@ -27,8 +27,8 @@ include a commit or two after it).
 
 | Build | Date | What | Phone |
 |---|---|---|---|
-| 28 | 10-16 | Save reports | ☐ |
-| 27 | 10-16 | Locate button, 4.5 km minimum frame, Pophams fix (mentioned accounts' far-off namesakes) | ☐ |
+| 28 | 10-16 | Save reports | ☑ (Sarp, 2026-10-16) |
+| 27 | 10-16 | Locate button, 4.5 km minimum frame, Pophams fix (mentioned accounts' far-off namesakes) | ☑ (Sarp, 2026-10-16) |
 | 26 | 10-16 | + menu, photo pins, place finding from handles and hashtags, list posts with busy covers, English town names | ☑ (Sarp, 2026-10-16) |
 | 25 | 10-15 | What's new in the menu | ☑ |
 | 24 | 10-15 | location primer, caption lists, What sub-rows, Culture | ☑ via 25 |

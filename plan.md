@@ -17,15 +17,15 @@ The friends beta is running (since 2026-10-14). Feedback from it comes first; se
 3. **Save reports** (2026-10-16): from build 28, backoffice → Saves shows how every tester save ended, misses first. Work the misses from there instead of waiting for messages.
 
 ## Waiting on Sarp
-- **Build 28 on the phone** (save reports): tick it in `builds.md`. Before the App Store (not needed for TestFlight): App Store Connect → App Privacy → Product Interaction, not linked to the user, Analytics.
-- **Build 26 on the phone:** tick it in `builds.md` once tried. Before every upload, check `parity.md` for web-only rows (the locate button missed 26 that way).
+- Before the App Store (not needed for TestFlight): App Store Connect → App Privacy → Product Interaction, not linked to the user, Analytics.
+- Before every upload, check `parity.md` for web-only rows (the locate button missed 26 that way).
 - Nudge testers to update and turn on Automatic Updates; ask the iPhone 13 (iOS 26) tester to try the latest build.
 - The tester's tutorial photo (file + permission).
 - Testers list → light CRM in backoffice: later, not started.
 - Rate limiting and usage review: much later (Sarp, 2026-10-08). Don't bring up.
 
 ## To design (Sarp)
-- **Google list import, "we're on it, come back to review"** (Sarp, 2026-10-16): the import runs on its own, a piece of UI says it's working, and the review waits until it's ready. Also fixes a list shared from Google Maps' share sheet (today the extension drops it: the save sheet goes blank) and long lists. First in our own UI, later the first notification. Open: match on the phone (free, only while the app is open) or on the server (Google, ~3¢ a new entry after 5,000 free a month, finishes in a pocket, allows push).
+- **Google list import, "we're on it, come back to review"** (Sarp, 2026-10-16): the import runs on its own, a piece of UI says it's working, and the review waits until it's ready. Also fixes a list shared from Google Maps' share sheet (today the extension drops it: the save sheet goes blank) and long lists. First in our own UI, later the first notification. Matching runs on the server (Sarp, 2026-10-16): Google, ~3¢ a new entry after 5,000 free a month, finishes with the phone in a pocket, allows push later.
 - **Tutorial says what Vicolo is** (Sarp's list, 2026-10-16): next after the easy ones.
 - **Map pins for list imports:** a photo instead of the type icon? (Sarp's list: imports make the map ugly; reverses today's "ratio" call.)
 - **The "This post has N places" picker and the Google list import review, in one pass** (Sarp, 2026-10-15): the slide/caption list picker should look like the list import review.
