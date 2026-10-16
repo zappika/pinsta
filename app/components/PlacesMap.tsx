@@ -25,6 +25,28 @@ const QUIET_PX: Record<Tier, number> = { city: 12, hood: 12, street: 32 };
 /** Exploring (Sarp, 2026-10-16): "tiers" as above, or "text": zoomed out, a post's place is its
  * name on a small dark dot, the photo from neighbourhood level. Temporary switch on the map. */
 type PinStyle = "tiers" | "text";
+/** This few places on screen: no reason to shrink anything, every pin at full size (Sarp: "not much
+ * point of showing things very small where there are only 2–3–4 pins"). */
+const ROOMY = 8;
+/** Post places that would overlap sit side by side, up to this many; more become a count. A photo
+ * with a "2" on it read as one place with two photos (Sarp, 2026-10-16). */
+const FAN_MAX = 4;
+
+/** A type's pastel tint, deeper, for a dot with no icon: the pastels vanished on the grey map. */
+function deepen(hex: string): string {
+  const n = parseInt(hex.slice(1), 16);
+  let r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  let h = 0;
+  if (d) h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  h *= 60;
+  const s = d ? Math.min(0.62, Math.max(0.42, d / (1 - Math.abs(max + min - 1)))) : 0;
+  const l = 0.62;
+  const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m0 = l - c / 2;
+  [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  const to = (v: number) => Math.round((v + m0) * 255).toString(16).padStart(2, "0");
+  return `#${to(r)}${to(g)}${to(b)}`;
+}
 const PIN_STYLE_KEY = "vicolo.pinStyle";
 /** From street level on, never group — two entries at one address would never split. */
 const NO_CLUSTER_ZOOM = 16;
@@ -246,11 +268,13 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     clusterMarkers.current = [];
 
     const z = m.getZoom();
-    const tier = tierAt(z);
+    const view = m.getBounds();
+    const onScreen = placesRef.current.filter((p) => view.contains([p.lng, p.lat])).length;
+    const tier: Tier = onScreen <= ROOMY ? "street" : tierAt(z);
     const text = styleRef.current === "text" && z < 15;
     const loudPx = text ? 10 : LOUD_PX[tier];
     const quietPx = QUIET_PX[tier];
-    type Group = { x: number; y: number; members: Place[]; loud: boolean };
+    type Group = { x: number; y: number; members: Place[]; loud: boolean; fanBy?: number };
     const groups: Group[] = [];
     for (const p of placesRef.current) {
       const loud = fromPost(p) !== null;
@@ -269,15 +293,22 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     const hit = (b: Box) => taken.some((t) => b.x0 < t.x1 && b.x1 > t.x0 && b.y0 < t.y1 && b.y1 > t.y0);
     const named: { el: HTMLElement; x: number; y: number; size: number; name: string; loud: boolean }[] = [];
 
+    // A few post places together sit side by side, centred on the group, each its own photo.
+    const drawn: Group[] = groups.flatMap((g) =>
+      g.loud && g.members.length > 1 && g.members.length <= FAN_MAX
+        ? g.members.map((p, i) => ({ ...g, members: [p], fanBy: i - (g.members.length - 1) / 2 }))
+        : [{ ...g, fanBy: 0 }],
+    );
+
     // Pins that would overlap (only at street level, where grouping stops) fan out sideways.
     const seen: { x: number; y: number; n: number }[] = [];
-    for (const g of groups) {
+    for (const g of drawn) {
       const size = g.loud ? loudPx : quietPx;
       if (g.members.length === 1) {
         const p = g.members[0];
-        const twin = g.loud ? seen.find((q) => Math.hypot(q.x - g.x, q.y - g.y) < size) : undefined;
-        const fan = twin ? ++twin.n : 0;
-        if (g.loud && !twin) seen.push({ x: g.x, y: g.y, n: 0 });
+        const twin = g.loud && !g.fanBy ? seen.find((q) => Math.hypot(q.x - g.x, q.y - g.y) < size) : undefined;
+        const fan = g.fanBy || (twin ? ++twin.n : 0);
+        if (g.loud && !twin) seen.push({ x: g.x + fan * (size + 4), y: g.y, n: 0 });
         const el = document.createElement("div");
         el.style.cssText = `width:${size}px;height:${size}px;cursor:pointer;z-index:${g.loud ? 2 : 1}`;
         const pin = document.createElement("div");
@@ -294,7 +325,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
           img.onerror = () => { img.remove(); pin.style.backgroundColor = tintFor(p.category); };
           pin.append(img);
         } else if (!g.loud) {
-          pin.style.backgroundColor = tintFor(p.category);
+          pin.style.backgroundColor = tier === "street" ? tintFor(p.category) : deepen(tintFor(p.category));
           if (tier === "street") {
             const icon = document.createElement("img");
             icon.src = placeIcon(p);
@@ -325,32 +356,22 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
           open();
         });
         keyboardButton(el, p.name, open);
-        const marker = new lib.Marker({ element: el, offset: [fan * (size + 4), 0] }).setLngLat([p.lng, p.lat]).addTo(m);
+        // Fanned from the group's middle (fanBy), or sideways from a twin at street level.
+        const marker = new lib.Marker({ element: el, offset: [fan * (size + 4) + (g.fanBy ? g.x - m.project([p.lng, p.lat]).x : 0), g.fanBy ? g.y - m.project([p.lng, p.lat]).y : 0] }).setLngLat([p.lng, p.lat]).addTo(m);
         markers.current.set(p.id, { marker, pin });
         continue;
       }
-      // A group of post places: the first one's photo with a count. Of quiet ones, a slightly bigger
-      // dot and no number: counts shouted as loud as the photos (Barcelona, 70 imports).
+      // More post places than fit side by side: a dark count. Quiet ones: a slightly bigger dot and no
+      // number; counts shouted as loud as the photos (Barcelona, 70 imports).
       const el = document.createElement("div");
-      const photo = g.loud && !text ? g.members.map(fromPost).find(Boolean) : null;
       const counts = new Map<string, number>();
       for (const p of g.members) counts.set(p.category ?? "Other", (counts.get(p.category ?? "Other") ?? 0) + 1);
       const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
-      const csize = photo ? size : g.loud ? 24 : tier === "street" ? quietPx : 16;
-      el.className = `pinsta-pin pinsta-cluster${photo ? " pinsta-pin-loud" : g.loud ? " pinsta-pin-text" : " pinsta-cluster-quiet"}`;
+      const csize = g.loud ? (text ? 24 : 30) : tier === "street" ? quietPx : 16;
+      el.className = `pinsta-pin pinsta-cluster${g.loud ? " pinsta-pin-text" : " pinsta-cluster-quiet"}`;
       el.style.cssText = `width:${csize}px;height:${csize}px;z-index:${g.loud ? 3 : 1}`;
-      if (!photo && !g.loud) el.style.backgroundColor = tintFor(top);
-      if (photo) {
-        const img = document.createElement("img");
-        img.src = photo;
-        img.alt = "";
-        img.draggable = false;
-        img.className = "pinsta-pin-photo";
-        const badge = document.createElement("span");
-        badge.className = "pinsta-badge";
-        badge.textContent = String(g.members.length);
-        el.append(img, badge);
-      } else if (g.loud || tier === "street") {
+      if (!g.loud) el.style.backgroundColor = tier === "street" ? tintFor(top) : deepen(tintFor(top));
+      if (g.loud || tier === "street") {
         el.textContent = String(g.members.length);
       }
       taken.push({ x0: g.x - csize / 2, y0: g.y - csize / 2, x1: g.x + csize / 2, y1: g.y + csize / 2 });
@@ -370,7 +391,9 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
 
     // Names: a post's place from city level in "text", from 12.5 in "tiers" (a phone shows all of
     // central Barcelona at ~12.5); the rest from 14.5.
-    const wants = (n: (typeof named)[number]) => (n.loud ? text || z >= 12.5 : z >= 14.5);
+    // With few places on screen, every name.
+    const roomy = onScreen <= ROOMY;
+    const wants = (n: (typeof named)[number]) => roomy || (n.loud ? text || z >= 12.5 : z >= 14.5);
     for (const n of named.filter(wants).sort((a, b) => Number(b.loud) - Number(a.loud))) {
       const w = n.name.length * (n.loud ? 7.2 : 6.4) + 4;
       const box = { x0: n.x + n.size / 2 + 3, y0: n.y - 9, x1: n.x + n.size / 2 + 5 + w, y1: n.y + 9 };

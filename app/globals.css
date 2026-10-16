@@ -53,8 +53,7 @@
 :root[data-theme="dark"] .pinsta-pin-label.quiet {
     color: #c4bfbb;
   }
-:root[data-theme="dark"] .pinsta-pin-text,
-:root[data-theme="dark"] .pinsta-badge {
+:root[data-theme="dark"] .pinsta-pin-text {
     background-color: #f5f5f4;
     color: #1c1917;
     border-color: #2a2623;
@@ -100,8 +99,7 @@
   :root:not([data-theme="light"]) .pinsta-pin-label.quiet {
       color: #c4bfbb;
     }
-  :root:not([data-theme="light"]) .pinsta-pin-text,
-  :root:not([data-theme="light"]) .pinsta-badge {
+  :root:not([data-theme="light"]) .pinsta-pin-text {
       background-color: #f5f5f4;
       color: #1c1917;
       border-color: #2a2623;
@@ -181,22 +179,6 @@ body {
 }
 .pinsta-cluster-quiet {
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.25), 0 0 0 1px rgb(0 0 0 / 0.08);
-}
-.pinsta-badge {
-  position: absolute;
-  top: -5px;
-  right: -7px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  border-radius: 9999px;
-  background: #1c1917;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 18px;
-  text-align: center;
-  border: 1.5px solid #fff;
 }
 /* A dot is drawn small but tapped big. */
 .pinsta-pin-tap::before {
