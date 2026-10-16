@@ -14,6 +14,9 @@ How it stays true:
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
 ## Next build (since `ios-26`)
+- A round arrow above the + on the map shows where you are: one tap and the map frames you and your surroundings, with the blue dot.
+- The map never zooms in tighter than a neighbourhood, so a single place shows the streets around it.
+- *(internal)* Locate button and 4.5 km frame ported from the web (they were waiting on Sarp's look and missed build 26). Checked in the Simulator from Barcelona.
 - A person tagged in a venue's post no longer pulls in namesakes from another country (Pophams' London post offered places in Lille).
 
 ## In TestFlight: 1.0 (26) · 2026-10-16 · `ios-26` · phone ☐

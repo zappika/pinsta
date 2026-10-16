@@ -15,6 +15,12 @@ struct PlacesMapView: View {
     /// Where you are, once location is allowed: the frame takes you in when you're among
     /// the places. The dot itself is the system's live one (`UserAnnotation`), like Google Maps.
     var here: CLLocation? = nil
+    /// Bumped by the locate button: frame you (`here`) at town size, whatever the selection.
+    var goHere = 0
+
+    /// No frame tighter than this, across: one place or a few on one street show their
+    /// neighbourhood, not a street map (Sarp, 2026-10-15, as the web's MIN_FRAME_KM).
+    static let minFrameKm: Double = 4.5
 
     @State private var camera: MapCameraPosition = .automatic
     @State private var groups: [PinGroup] = []
@@ -57,6 +63,10 @@ struct PlacesMapView: View {
             .onAppear { frame(animated: false) }
             .onChange(of: focus?.map(\.id)) { _, _ in frame(animated: true) }
             .onChange(of: here != nil) { _, _ in frame(animated: true) }
+            .onChange(of: goHere) { _, _ in
+                guard let here else { return }
+                withAnimation(.easeInOut(duration: 0.6)) { camera = .region(region(fitting: [here.coordinate], minKm: Self.minFrameKm)) }
+            }
             .onChange(of: places.map(\.id)) { _, _ in
                 // Pins follow the selection at once; the camera may not move at all
                 // (a pin removed from the middle), so don't wait for it to settle.
@@ -93,7 +103,7 @@ struct PlacesMapView: View {
     }
 
     private func zoom(to members: [Place]) {
-        withAnimation(.easeInOut(duration: 0.5)) { camera = .region(region(fitting: members.map(\.coordinate), minDelta: 0.004)) }
+        withAnimation(.easeInOut(duration: 0.5)) { camera = .region(region(fitting: members.map(\.coordinate), minKm: 0.45)) }
     }
 
     private func select(_ place: Place) {
@@ -118,7 +128,7 @@ struct PlacesMapView: View {
         if let here, framed.contains(where: { here.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude)) <= NearMe.km * 1000 }) {
             points.append(here.coordinate)
         }
-        let r = region(fitting: points, minDelta: 0.012)
+        let r = region(fitting: points, minKm: Self.minFrameKm)
         if animated {
             withAnimation(.easeInOut(duration: 0.6)) { camera = .region(r) }
         } else {
@@ -126,11 +136,14 @@ struct PlacesMapView: View {
         }
     }
 
-    private func region(fitting ps: [CLLocationCoordinate2D], minDelta: CLLocationDegrees) -> MKCoordinateRegion {
+    /// `minKm`: the frame is at least this wide and tall.
+    private func region(fitting ps: [CLLocationCoordinate2D], minKm: Double) -> MKCoordinateRegion {
         let lats = ps.map(\.latitude), lngs = ps.map(\.longitude)
         let minLat = lats.min()!, maxLat = lats.max()!, minLng = lngs.min()!, maxLng = lngs.max()!
-        let latDelta = max((maxLat - minLat) * 1.35, minDelta)
-        let lngDelta = max((maxLng - minLng) * 1.25, minDelta)
+        let minLatDelta = minKm / 111.32
+        let minLngDelta = minLatDelta / max(cos((minLat + maxLat) / 2 * .pi / 180), 0.1)
+        let latDelta = max((maxLat - minLat) * 1.35, minLatDelta)
+        let lngDelta = max((maxLng - minLng) * 1.25, minLngDelta)
         return MKCoordinateRegion(
             // Bias south a little: the bottom ~30 % is under the pill and button.
             center: CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2 - latDelta * 0.08, longitude: (minLng + maxLng) / 2),

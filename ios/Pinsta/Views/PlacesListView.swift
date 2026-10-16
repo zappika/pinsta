@@ -124,6 +124,9 @@ private struct PlacesContent: View {
     /// The + fans out its choices first; the save sheet opens on one (Sarp, 2026-10-16).
     @State private var fan = false
     @State private var addMode: AddPlaceView.AddMode = .post
+    /// The locate button (Sarp, 2026-10-15, as the web): you at town size.
+    @State private var goHere = 0
+    @State private var locating = false
 
     private var labels: [UUID: String] { Grouping.destinationLabels(places) }
     private var shown: [Place] { places.filter { !hidden.contains($0.id) } }
@@ -356,7 +359,7 @@ private struct PlacesContent: View {
             )
                 .ignoresSafeArea(.keyboard)
         } else if v == .map {
-            PlacesMapView(places: visible, selected: $peek, focus: framed?.places, here: here)
+            PlacesMapView(places: visible, selected: $peek, focus: framed?.places, here: here, goHere: goHere)
                 .ignoresSafeArea(edges: .bottom)
         } else if visible.isEmpty {
             ScrollView { noMatchState }
@@ -604,8 +607,39 @@ private struct PlacesContent: View {
     private var plusLayer: some View {
         ZStack(alignment: .bottomTrailing) {
             addMenu
-            if (peek == nil || view == .cards) && (adding || editing != nil || !shown.isEmpty) { plusButton }
+            VStack(alignment: .trailing, spacing: 12) {
+                if view == .map, !shown.isEmpty, !adding, !fan, editing == nil, peek == nil { locateButton }
+                if (peek == nil || view == .cards) && (adding || editing != nil || !shown.isEmpty) { plusButton }
+            }
         }
+    }
+
+    /// Round arrow above the +, like Google Maps: frames you and your surroundings. Location not
+    /// asked yet → this tap is the ask, at any list size (the person asked for it).
+    private var locateButton: some View {
+        Button {
+            guard !locating else { return }
+            locating = true
+            Task {
+                defer { locating = false }
+                if let fix = await nearMe.locate() {
+                    here = fix
+                    goHere += 1
+                } else {
+                    showNotice("Location is off for Vicolo. Turn it on in Settings → Vicolo → Location to see where you are.")
+                }
+            }
+        } label: {
+            Image(systemName: "location.fill")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Color(red: 0.10, green: 0.45, blue: 0.91))
+                .symbolEffect(.pulse, isActive: locating)
+                .frame(width: 44, height: 44)
+                .modifier(LocateLook())
+        }
+        .buttonStyle(PressSpring())
+        .accessibilityLabel("Show where I am")
+        .padding(.trailing, 26)
     }
 
     private var addMenu: AddMenu {
@@ -707,6 +741,18 @@ private struct PlusLook: ViewModifier {
                 .frame(width: 56, height: 56)
                 .background(Color.primary, in: Circle())
                 .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
+        }
+    }
+}
+
+/// The locate button: a small glass circle on iOS 26+, a white one below.
+private struct LocateLook: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content.glassEffect(.regular.interactive(), in: .circle)
+        } else {
+            content.background(Color(.systemBackground), in: Circle()).shadow(color: .black.opacity(0.12), radius: 8, y: 3)
         }
     }
 }

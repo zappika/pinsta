@@ -16,7 +16,7 @@ The friends beta is running (since 2026-10-14). Feedback from it comes first; se
 2. **Design pass, list pickers:** see "To design".
 
 ## Waiting on Sarp
-- **On the other Mac:** the owner key (`.env.local`) to unlock the web list on the phone, then look at the locate button and the wider town view. Your verdict → port both to iOS. Also build 26 there (this Mac has no Xcode), see `builds.md`.
+- **Build 26 on the phone:** tick it in `builds.md` once tried. Before every upload, check `parity.md` for web-only rows (the locate button missed 26 that way).
 - Nudge testers to update and turn on Automatic Updates; ask the iPhone 13 (iOS 26) tester to try the latest build.
 - The tester's tutorial photo (file + permission).
 - Testers list → light CRM in backoffice: later, not started.
