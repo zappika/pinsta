@@ -25,8 +25,9 @@ How it stays true:
 - The + now opens a small menu: Instagram post or Google Maps. Google Maps takes a single place or a whole shared list; a list goes straight to the import. Import from Google left the menu top right (it still shows there while a list is importing).
 - The first few times you save a post by pasting its link, the success card mentions you can share straight from Instagram.
 - Places saved from a post show the post's photo on the map; list imports keep their icons.
+- Carousels with a busy cover slide still find every place on the later slides (a Berlin hotel's "3 Berlin spots" post: Julius Ernst, Hard Wax, Renate). A hashtag like #BerlinGuide now says the city.
 - *(internal)* 2026-10-16: compiled with xcodebuild (device, unsigned) and the search checked with swiftc + real MapKit on Sarp's five links and Mert's cases; then run in the Simulator after `sudo xcodebuild -runFirstLaunch`: English town name and the delete-then-leave fix both checked on iPhone 17.
-- *(internal)* Not built or run yet: this Mac has no Xcode. Swift type-checked with swiftc only. Check on the other Mac: Vink's Oslo carousel `C_OOWiDS7Gh` should give 6 of 6 (Tranen from Google), and the opening map with places in two far-apart cities.
+- *(internal)* List posts checked in the Simulator: gatrooms `DZFfxgUCL8I` 3 of 3; Vink's Oslo `C_OOWiDS7Gh` 5 of 6 (Tranen from Google as "Åpent Bakeri Tranen"; Hyde is on neither Apple nor Google now). Swift type-checked with swiftc only. Check on the other Mac: Vink's Oslo carousel `C_OOWiDS7Gh` should give 6 of 6 (Tranen from Google), and the opening map with places in two far-apart cities.
 
 ## In TestFlight: 1.0 (25) · 2026-10-15 · `ios-25` · phone ☑ (Sarp, 2026-10-15)
 - Menu → What's new opens vicolo.space/changelog; a red dot on the menu button until it's opened for a new build.

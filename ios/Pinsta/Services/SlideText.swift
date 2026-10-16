@@ -36,14 +36,19 @@ enum SlideText {
         }
         // Each name keeps where it came from: its slide (0…), or its caption line (-1, -2…).
         var names: [(String, Data?, Int)] = listed.enumerated().map { ($0.element, nil, -1 - $0.offset) }
-        for (i, data, lines) in read where slides.count >= 2 {
-            let mine = account.map { fold($0).filter { $0.isLetter || $0.isNumber } }.filter { !$0.isEmpty }
-            for l in lines where !names.contains(where: { fold($0.0) == fold(l) }) {
+        let mine = account.map { fold($0).filter { $0.isLetter || $0.isNumber } }.filter { !$0.isEmpty }
+        let perSlide: [(Int, Data, [String])] = slides.count >= 2 ? read.map { i, data, lines in
+            (i, data, lines.filter { l in
                 let letters = fold(l).filter { $0.isLetter || $0.isNumber }
-                if mine.contains(where: { $0 == letters || $0.hasPrefix(letters) }) { continue }
-                names.append((l, data, i))
-            }
-        }
+                return !mine.contains(where: { $0 == letters || $0.hasPrefix(letters) }) && !PlaceSearch.isCityName(l)
+            })
+        } : []
+        // Every slide's first line, then the rest in slide order: a busy cover (twelve lines of logos
+        // and taglines) used to fill the searches before slide 4's "Hard Wax" (gatrooms, 2026-10-16),
+        // and Vink's Oslo slides carry several names each, read in order.
+        let firsts = perSlide.compactMap { i, data, lines in lines.first.map { ($0, data as Data?, i) } }
+        let rest = perSlide.flatMap { i, data, lines in lines.dropFirst().map { ($0, data as Data?, i) } }
+        for n in firsts + rest where !names.contains(where: { fold($0.0) == fold(n.0) }) { names.append(n) }
         guard names.count >= 2 else { return [] }
 
         let near = await city.asyncFlatMap { await PlaceSearch.locate($0) }
@@ -53,23 +58,30 @@ enum SlideText {
             guard !account.contains(where: { named(c.name, $0) }), !found.contains(where: { $0.0.candidate.id == c.id }) else { return }
             found.append((Found(candidate: c, image: data), from))
         }
-        for (name, data, from) in names.prefix(14) {
+        var answered = Set<String>()
+        for (name, data, from) in names.prefix(maxSearches) {
             let hits = (try? await search(name, near: near)) ?? []
-            if let c = hits.first(where: { named($0.name, name) && PlaceSearch.isNear($0, near) }) { keep(c, data, from) }
+            if let c = hits.first(where: { named($0.name, name) && PlaceSearch.isNear($0, near) }) { keep(c, data, from); answered.insert(name) }
         }
 
         // Apple Maps lags on some places (Tranen, Oslo, 2026-10-14: the one of six it missed).
-        // Once Apple has found the list's area, the slides (and caption lines) it found nothing on
-        // are asked of Google there: a slide's lines in order until one is a place, at most
-        // `googleAsks` queries a post (paid, counted on the server's daily cap).
+        // Once Apple has found the list's area, the lines it found nothing for are asked of Google
+        // there, at most `googleAsks` queries a post (paid, counted on the server's daily cap). By line,
+        // not by slide: Tranen and Hyde shared their slides with names Apple had (Oslo, 2026-10-16).
         if !found.isEmpty, let area = near ?? centre(found.map(\.0)) {
-            let missed = Dictionary(grouping: names.prefix(14).filter { n in !found.contains { $0.1 == n.2 } }, by: \.2)
+            let missed = Dictionary(grouping: names.prefix(maxSearches).filter { !answered.contains($0.0) }, by: \.2)
             var asked = 0
-            for from in missed.keys.sorted(by: { ($0 < 0 ? -100 - $0 : $0) < ($1 < 0 ? -100 - $1 : $1) }) {
-                for (name, data, _) in missed[from] ?? [] where asked < googleAsks {
+            var done = Set<Int>()
+            let order = missed.keys.sorted(by: { ($0 < 0 ? -100 - $0 : $0) < ($1 < 0 ? -100 - $1 : $1) })
+            // Each missed slide's first line before any second one, as for Apple: the cover's taglines
+            // used up all six asks before slide 1's "Julius Ernst" (gatrooms, 2026-10-16).
+            for round in 0..<(missed.values.map(\.count).max() ?? 0) {
+                for from in order where !done.contains(from) && asked < googleAsks {
+                    guard let lines = missed[from], round < lines.count else { continue }
+                    let (name, data, _) = lines[round]
                     asked += 1
                     let hits = await GoogleFallback.search([name], near: area)
-                    if let c = hits.first(where: { calls($0.name, name) && PlaceSearch.isNear($0, area) }) { keep(c, data, from); break }
+                    if let c = hits.first(where: { calls($0.name, name) && PlaceSearch.isNear($0, area) }) { keep(c, data, from); done.insert(from) }
                 }
             }
             found.sort { ($0.1 < 0 ? -100 - $0.1 : $0.1) < ($1.1 < 0 ? -100 - $1.1 : $1.1) }
@@ -78,6 +90,9 @@ enum SlideText {
         let kept = biggestCluster(found.map(\.0))
         return kept.count >= 2 ? kept : []
     }
+
+    /// Apple searches one list post may make, one after another (~0.2 s each).
+    static let maxSearches = 24
 
     /// The most Google queries one list post may make for names Apple Maps missed.
     static let googleAsks = 6

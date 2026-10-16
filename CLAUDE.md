@@ -83,7 +83,7 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   carousel's pictures); the app reads their text with Apple's Vision (on the phone, free), keeps short label-like
   lines (not the poster's own name/logo), searches each near the post's city (town tag, handle city, TikTok
   city) one after another — Apple throttles a burst — and keeps exact name matches within 30 km, biggest
-  40 km cluster. A numbered/bulleted list in the caption (`captionList`: "1. paon bali (@…)", reel DAblyc9ICgR, five Amsterdam places) is read the same way, those places get the post photo. Two or more → "This post has N places", all ticked, a pinned "Save N places"; each place
+  40 km cluster. Order: every slide's first line, then the rest in slide order, 24 searches at most (a busy cover filled the old 14, gatrooms 2026-10-16); a line that is only a city's name is skipped; Google is asked per line Apple missed (first lines first, 6 at most). The city also comes from a hashtag starting with one (#BerlinGuide). A numbered/bulleted list in the caption (`captionList`: "1. paon bali (@…)", reel DAblyc9ICgR, five Amsterdam places) is read the same way, those places get the post photo. Two or more → "This post has N places", all ticked, a pinned "Save N places"; each place
   gets the slide its name was on as its photo, one success card ("N places saved"). Runs alongside the usual
   search. Web: not yet (needs server-side text reading).
 - **First field of the save sheet** takes a link *or* a place name / @handle (search from 3 letters; `@handle` reads the profile).

@@ -570,8 +570,10 @@ export function postCity(input: { ownerUsername: string | null; coauthors: strin
     if (city) return city;
   }
   if (input.town) return input.town;
+  // #tokyo, or a city at the start of a longer tag: #BerlinGuide, #VisitBerlin's sibling #BerlinSpots (gatrooms, 2026-10-16).
   for (const h of input.hashtags ?? []) {
-    const city = HANDLE_CITIES_GLUED[fold(h).replace(/[^a-z]/g, "")];
+    const key = fold(h).replace(/[^a-z]/g, "");
+    const city = HANDLE_CITIES_GLUED[key] ?? Object.entries(HANDLE_CITIES_GLUED).find(([k]) => k.length >= 5 && key.startsWith(k))?.[1];
     if (city) return city;
   }
   return null;

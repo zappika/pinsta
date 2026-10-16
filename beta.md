@@ -27,6 +27,7 @@ Most were "can't read the location" or "Apple Maps doesn't have it". Fixed for b
 - ~~Japanese town names (`DegsdXSFG26`, 楽園 in Kyōdō)~~: asked again in English (checked in the Simulator: "Fukuoka").
 - 楽園 itself: the tag saved "Rakusuien" in Fukuoka by itself. Now a hashtag naming a city (#tokyo) keeps a tag search there: offers Tokyo-area "Rakuen"s, saves nothing by itself. Still not the curry shop: Apple finds it only as "rakuen curry Tokyo" (Latin letters, from @rakuen_curry); adding co-authors to tag searches put JaJa's photographer @gushy.me above JaJa, so left out.
 - ~~Elena `@elenamontreal`: hotels in Spain and Italy~~: Montreal is a known handle city now; "Elena" in Montréal first.
+- ~~gatrooms `DZFfxgUCL8I` (Dua Lipa's 3 Berlin spots): offered the hotel itself~~: no city (only #BerlinGuide) and the cover's twelve lines used up the slide searches. Hashtag prefixes give the city; every slide's first line is searched first; Google asked per unfound line. 3 of 3. Oslo now 5 of 6 (Tranen via Google; Hyde gone from both maps).
 - **Map pins:** places saved from a post show the post's photo again (web now; iOS after Sarp's look). List imports and Maps links keep the type icon.
 
 ### 2026-10-14 round (Mert + testers)

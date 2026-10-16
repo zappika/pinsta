@@ -383,9 +383,10 @@ struct AddPlaceView: View {
             defer { withAnimation(.snappy) { finding = false } }
             let cityHints = Set((try? context.fetch(FetchDescriptor<Place>()))?.compactMap(\.city) ?? [])
             // A carousel may name several places on its slides; read them while the usual search runs.
-            // Their city: a town tag, the handle's ("vinkoslo"), or TikTok's.
+            // Their city: a town tag, a handle's ("vinkoslo"), a hashtag's (#BerlinGuide), or TikTok's.
             let slideCity = PlaceSearch.areaOfTag(post.locationName)
-                ?? PlaceSearch.cityOfHandle(post.ownerUsername) ?? post.city
+                ?? PlaceSearch.postCity(ownerUsername: post.ownerUsername, coauthors: post.coauthors ?? [], town: nil, hashtags: post.hashtags ?? [])
+                ?? post.city
             async let onSlides = SlideText.places(
                 slides: post.slides ?? [], caption: post.caption, city: slideCity, account: [post.ownerFullName, post.ownerUsername].compactMap { $0 }
             )

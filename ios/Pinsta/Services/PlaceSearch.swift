@@ -247,9 +247,11 @@ extension PlaceSearch {
     static func postCity(ownerUsername: String?, coauthors: [String], town: String?, hashtags: [String] = []) -> String? {
         for u in coauthors + [ownerUsername].compactMap({ $0 }) { if let city = cityOfHandle(u) { return city } }
         if let town { return town }
+        // #tokyo, or a city at the start of a longer tag: #BerlinGuide, #BerlinSpots (gatrooms, 2026-10-16).
         for h in hashtags {
             let key = fold(h).filter { ("a"..."z").contains($0) }
-            if let city = handleCitiesGlued.first(where: { $0.0 == key })?.1 { return city }
+            if let city = handleCitiesGlued.first(where: { $0.0 == key })?.1
+                ?? handleCitiesGlued.first(where: { $0.0.count >= 5 && key.hasPrefix($0.0) })?.1 { return city }
         }
         return nil
     }
@@ -380,6 +382,12 @@ extension PlaceSearch {
         ("tlv", "Tel Aviv"), ("hk", "Hong Kong"), ("sg", "Singapore"), ("syd", "Sydney"), ("mel", "Melbourne"), ("la", "Los Angeles"),
         ("nola", "New Orleans"), ("sf", "San Francisco"), ("mtl", "Montréal"), ("atx", "Austin"), ("bsas", "Buenos Aires"), ("cpt", "Cape Town"),
     ])
+    /// "Tokyo", "BERLIN": a line that is only a city's name names no place (a slide's cover, gatrooms 2026-10-16).
+    static func isCityName(_ s: String) -> Bool {
+        let key = fold(s).filter { $0.isLetter }
+        return handleCitiesGlued.contains { $0.0 == key || fold($0.1).filter(\.isLetter) == key }
+    }
+
     /// Every city a handle can name, for telling a city word from a name word.
     private static let handleCityNames: Set<String> = Set((handleCitiesGlued.map(\.1) + handleCitiesLast.values).flatMap { fold($0).split(separator: " ").map(String.init) })
 
