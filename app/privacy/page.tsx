@@ -64,6 +64,10 @@ export default function Privacy() {
           places, links, names or where you are. They are used only to decide what to improve.
         </li>
         <li>
+          <strong>Turning those two off.</strong> In Vicolo’s Settings, switch off “Help improve Vicolo”: save reports
+          and usage counts stop, and any not yet sent are deleted from your phone.
+        </li>
+        <li>
           <strong>Directions.</strong> When you ask for directions, Vicolo opens Apple Maps or Google Maps with that
           place, and that app’s own privacy policy applies.
         </li>

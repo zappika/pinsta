@@ -11,6 +11,7 @@ struct PeekCardView: View {
     var onDelete: (() -> Void)? = nil
 
     @State private var drag: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         PlaceCardView(place: place, expanded: true, onEdit: onEdit, onDelete: onDelete)
@@ -36,7 +37,7 @@ struct PeekCardView: View {
         .offset(y: drag)
         // The swipe belongs to the photo, the top of the card: the rest scrolls and taps.
         .simultaneousGesture(swipe)
-        .transition(.asymmetric(
+        .transition(reduceMotion ? .opacity : .asymmetric(
             insertion: .opacity.combined(with: .offset(y: 24)).combined(with: .scale(scale: 0.97, anchor: .bottom)),
             removal: .opacity.combined(with: .offset(y: 24))
         ))

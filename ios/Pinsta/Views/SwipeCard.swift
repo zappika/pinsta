@@ -18,13 +18,15 @@ struct SwipeCard<Content: View>: View {
     @State private var gone = false
 
     @State private var width: CGFloat = 360
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack(alignment: .trailing) {
             HStack(spacing: 12) {
-                roundButton("pencil", tint: Color(.secondarySystemFill), foreground: .primary, action: onEdit)
-                roundButton("trash", tint: .red, foreground: .white) { fly() }
+                roundButton("pencil", label: "Change place", tint: Color(.secondarySystemFill), foreground: .primary, action: onEdit)
+                roundButton("trash", label: "Remove", tint: .red, foreground: .white) { fly() }
             }
+            .accessibilityHidden(!isOpen)
             .padding(.trailing, 16)
             .frame(width: rail, alignment: .trailing)
             .opacity(min(1, -offset / (rail * 0.6)))
@@ -60,6 +62,9 @@ struct SwipeCard<Content: View>: View {
                 )
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
                 .offset(x: offset)
+                // VoiceOver can't swipe: the same two choices as actions on the card.
+                .accessibilityAction(named: "Change place", onEdit)
+                .accessibilityAction(named: "Remove") { fly() }
         }
         .frame(maxHeight: gone ? 0 : nil)
         .opacity(gone ? 0 : 1)
@@ -75,14 +80,14 @@ struct SwipeCard<Content: View>: View {
     }
 
     private func fly() {
-        withAnimation(.easeIn(duration: 0.2)) { offset = -width * 1.2 }
+        withAnimation(.motion(.easeIn(duration: 0.2), reduceMotion: reduceMotion)) { offset = reduceMotion ? 0 : -width * 1.2 }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             withAnimation(.snappy) { gone = true }
             onDelete()
         }
     }
 
-    private func roundButton(_ symbol: String, tint: Color, foreground: Color, action: @escaping () -> Void) -> some View {
+    private func roundButton(_ symbol: String, label: String, tint: Color, foreground: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.body.weight(.medium))
@@ -91,6 +96,7 @@ struct SwipeCard<Content: View>: View {
                 .background(tint, in: Circle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(label)
         .disabled(!isOpen)
     }
 }

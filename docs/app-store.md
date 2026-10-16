@@ -95,7 +95,7 @@ rejection reason and also a trust problem.
 Also:
 - ✅ Both `PrivacyInfo.xcprivacy` list these three types (2026-10-16). Keep the App Store Connect answers identical.
 - ✅ **`/privacy` page** rewritten 2026-10-16: every server call (incl. Google fallback, photos, list import), who processes it, retention, how to ask for deletion, children, contact. Edit it with any new data flow.
-- **Consent** (5.1.1 ii: usage data needs consent "even if anonymous"): save reports and usage counts run without asking today. Most apps with anonymous analytics pass with disclosure alone, but a reviewer can cite this. A safe pattern is a "Share anonymous usage to improve Vicolo" switch in Settings, on by default and disclosed. 🎨
+- ✅ **Consent** (5.1.1 ii: usage data needs a way to say no "even if anonymous"): Settings → **Help improve Vicolo**, on by default, stops save reports and usage counts and drops whatever hadn't gone out (`SaveReport.sharing`, also read by the share extension). The privacy page says so (2026-10-16).
 
 **Age assurance** (Texas SB 2420 in force since 2026-06-04; similar laws elsewhere): Apple
 collects the age and parental consent for downloads. The developer's part is mainly
@@ -110,16 +110,16 @@ These aren't required, but they're what Apple's reviewers and editors notice.
 **Accessibility.** "Accessibility Nutrition Labels" on the product page are voluntary for now
 (Apple says it will become required "over time" with notice). Claim only what passes Apple's
 evaluation criteria.
-- VoiceOver: 20 `accessibilityLabel`s across ~6,900 lines. Every icon-only button, map pin, photo tile and the + menu needs a label. Run Accessibility Inspector's audit on each screen.
-- Dynamic Type: 105 semantic text styles, good. 15 fixed `.font(.system(size:))` don't scale. Use `@ScaledMetric` or text styles; test at the largest size.
-- Reduce Motion: honoured in 2 of the files with 27 `withAnimation` calls. The splash fade, success card and sheets should respect it.
+- ✅ VoiceOver (2026-10-16): icon buttons were already labelled; added the card swipe's Change place / Remove (as buttons and as VoiceOver actions on the card, since VoiceOver can't swipe) and "Where: …" / "What: …" on the header. ⬜ Run Accessibility Inspector's audit once on each screen before claiming the label.
+- ✅ Dynamic Type: text uses text styles (the + menu labels and the success card's name moved off fixed sizes). Fixed sizes remain only on glyphs inside fixed round buttons, which is normal. At the accessibility sizes the header stacks Where above What (it truncated to "Every… E"). The tutorial caps at Large on purpose (artwork).
+- ✅ Reduce Motion: the + fan, place card, save sheet, notices and toasts fade instead of sliding or springing, the + doesn't bounce, the map jumps instead of flying, a removed card fades instead of flying off (`Views/Motion.swift`). Short state changes still animate.
 - Dark Mode: ✅ throughout. Contrast: check the type tints and grey secondary text.
 - Labels then to claim: VoiceOver, Larger Text, Dark Interface, Reduced Motion, Sufficient Contrast. Leave out Captions and Audio Descriptions (not applicable).
 
 **iPhone Duo** (ships 2026-10-23; builds with the iOS 27.1 SDK resize to the inner display).
-- The app is portrait-only with `UIRequiresFullScreen`. Test it in Xcode 27.1's iPhone Duo simulator and the resizable simulator in Device Hub.
+- The app is portrait-only with `UIRequiresFullScreen`. ⬜ Not tested: the iPhone Duo simulator needs the iOS 27.1 runtime (only 26.5 is installed, and the disk had 13 GB free, below the 10 GB-after-download line). A code review found no screen-size, orientation or idiom checks; layouts are flexible; the save sheet and cards will just be wide on the inner display.
 - Map, cards and tiles should use the extra width. Watch the aspect-fill photos (`PlacePhoto`), which Apple names as a crop risk.
-- The only `UIScreen.main` use is a theme read in `SplashView.swift:22`. That's fine, but switch it to the scene's traits.
+- The only `UIScreen.main` use reads the launch appearance in `SplashView.swift:22`, not bounds; Apple's Duo checklist is about bounds, so it stays.
 - Not a gate until April 2027, but launch-week apps that look good on Duo are what Apple features.
 
 **Ship-clean build.**
@@ -201,14 +201,19 @@ Roughly in order. The first block has waiting times, so start it now.
 - [ ] App Review Information: your phone and email, "sign-in not required", the notes from §6 (test links checked that day).
 - [ ] Optional: Accessibility Nutrition Labels, after the accessibility pass (§5) — claim only what passes Apple's criteria.
 
+**Testing that needs your Mac (not code)**
+- [ ] Free disk, then Xcode → Settings → Components → iOS 27.1 simulator; open the app on iPhone Duo folded and unfolded, and in Device Hub's resizable simulator.
+- [ ] Accessibility Inspector (Xcode → Open Developer Tool) → Audit on map, list, cards, tiles, save sheet, place card; VoiceOver once through a save.
+- [ ] Xcode → Organizer → Crashes (and TestFlight → Crashes) for 1.0 (29): fix anything before submitting.
+
 **Design work (yours)**
-- [ ] Screenshots: 5–6 frames (story in §3). I can take the raw simulator shots at the right sizes with a nice demo list; framing and headlines are yours.
+- [ ] Screenshots and texts: briefed for GPT6 in `docs/tasks/app-store-listing.md`; you approve the result.
 - [ ] Icon in Icon Composer, with a tinted look.
 - [ ] Optional: app preview video (share → saved), product page header.
 
 **Decisions (yours)**
 - [ ] What's new in the menu for store users (keep the changelog, rewrite it for users, or hide it in 1.0).
-- [ ] Usage counts and save reports: disclose only (today), or a Settings switch to turn them off (§4, 5.1.1 ii).
+- [x] Usage counts and save reports: a Settings switch, on by default (done 2026-10-16).
 - [ ] How far to go on the third-party content risk before 1.0 (§7.1).
 - [ ] Tutorial photo: rights to the stand-in, or the tester's photo with permission (2.3.9).
 - [ ] Marketing page: real text, or leave the Marketing URL empty for now.

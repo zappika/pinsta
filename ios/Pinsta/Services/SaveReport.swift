@@ -36,6 +36,17 @@ enum SaveReport {
     private static let maxPending = 100
     private static var defaults: UserDefaults? { UserDefaults(suiteName: Persistence.appGroup) }
 
+    /// Settings → "Help improve Vicolo" (on unless turned off): save reports and `Uses` both stop,
+    /// and whatever waited is dropped. App Group defaults, so the share extension sees it too.
+    static let sharingKey = "shareImprovements"
+    static var sharing: Bool { defaults?.object(forKey: sharingKey) as? Bool ?? true }
+
+    /// Turned off: forget what hasn't gone out yet.
+    static func dropPending() {
+        defaults?.removeObject(forKey: pendingKey)
+        Uses.dropPending()
+    }
+
     /// One random id per install, shared by the app and the extension. Says "the same phone", not who.
     static var install: String {
         if let id = defaults?.string(forKey: "installID") { return id }
@@ -45,6 +56,7 @@ enum SaveReport {
     }
 
     static func send(_ outcome: Outcome, url: String?, detail: Detail) {
+        guard sharing else { return }
         let entry = Entry(
             id: UUID().uuidString, install: install,
             build: (Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String).flatMap(Int.init),
@@ -59,6 +71,7 @@ enum SaveReport {
     /// Sends whatever waits; on launch and after each report. A report the server took or
     /// refused (400: it never will) leaves the queue; one that didn't get through stays.
     static func flush() async {
+        guard sharing else { return }
         for entry in load() {
             var request = URLRequest(url: PostReader.baseURL.appending(path: "api/saves"))
             request.httpMethod = "POST"

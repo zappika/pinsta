@@ -23,6 +23,8 @@ struct PlacesMapView: View {
     static let minFrameKm: Double = 4.5
 
     @State private var camera: MapCameraPosition = .automatic
+    /// Reduce Motion: the map jumps to a new frame instead of flying there.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var groups: [PinGroup] = []
     /// Where the map last came to rest; `camera.region` is nil once the user pans or zooms.
     @State private var lastRegion: MKCoordinateRegion?
@@ -65,7 +67,7 @@ struct PlacesMapView: View {
             .onChange(of: here != nil) { _, _ in frame(animated: true) }
             .onChange(of: goHere) { _, _ in
                 guard let here else { return }
-                withAnimation(.easeInOut(duration: 0.6)) { camera = .region(region(fitting: [here.coordinate], minKm: Self.minFrameKm)) }
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.6)) { camera = .region(region(fitting: [here.coordinate], minKm: Self.minFrameKm)) }
             }
             .onChange(of: places.map(\.id)) { _, _ in
                 // Pins follow the selection at once; the camera may not move at all
@@ -103,7 +105,7 @@ struct PlacesMapView: View {
     }
 
     private func zoom(to members: [Place]) {
-        withAnimation(.easeInOut(duration: 0.5)) { camera = .region(region(fitting: members.map(\.coordinate), minKm: 0.45)) }
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.5)) { camera = .region(region(fitting: members.map(\.coordinate), minKm: 0.45)) }
     }
 
     private func select(_ place: Place) {
@@ -130,7 +132,7 @@ struct PlacesMapView: View {
         }
         let r = region(fitting: points, minKm: Self.minFrameKm)
         if animated {
-            withAnimation(.easeInOut(duration: 0.6)) { camera = .region(r) }
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.6)) { camera = .region(r) }
         } else {
             camera = .region(r)
         }

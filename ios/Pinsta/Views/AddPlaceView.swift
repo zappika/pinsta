@@ -811,7 +811,7 @@ private struct SavedCard: View {
                     if let line {
                         Text(line.uppercased()).font(.caption.weight(.semibold)).tracking(0.8).opacity(0.8).padding(.bottom, 2)
                     }
-                    Text(place.name).font(.system(size: 28, weight: .semibold)).lineLimit(2)
+                    Text(place.name).font(.title.weight(.semibold)).lineLimit(2).minimumScaleFactor(0.6)
                     Text([place.category.rawValue, place.city ?? place.country].compactMap { $0 }.joined(separator: " · "))
                         .font(.body).opacity(0.8).lineLimit(1)
                     if shareTip {

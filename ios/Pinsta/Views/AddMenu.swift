@@ -7,6 +7,7 @@ struct AddMenu: View {
     let open: Bool
     let onClose: () -> Void
     let onPick: (AddPlaceView.AddMode) -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private struct Item: Identifiable {
         let mode: AddPlaceView.AddMode
@@ -36,9 +37,10 @@ struct AddMenu: View {
                     let order = items.count - 1 - i
                     pill(item)
                         .opacity(open ? 1 : 0)
-                        .scaleEffect(open ? 1 : 0.6, anchor: .bottomTrailing)
-                        .offset(y: open ? 0 : CGFloat(order + 1) * 24)
-                        .animation(.spring(response: 0.38, dampingFraction: 0.68).delay(Double(open ? order : i) * 0.045), value: open)
+                        // Reduce Motion: they fade in where they stand.
+                        .scaleEffect(open || reduceMotion ? 1 : 0.6, anchor: .bottomTrailing)
+                        .offset(y: open || reduceMotion ? 0 : CGFloat(order + 1) * 24)
+                        .animation(.motion(.spring(response: 0.38, dampingFraction: 0.68).delay(Double(open ? order : i) * 0.045), reduceMotion: reduceMotion), value: open)
                         .allowsHitTesting(open)
                 }
             }
@@ -53,7 +55,7 @@ struct AddMenu: View {
         Button { onPick(item.mode) } label: {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(item.label).font(.system(size: 15, weight: .semibold)).foregroundStyle(Color(.label))
+                    Text(item.label).font(.subheadline.weight(.semibold)).foregroundStyle(Color(.label))
                     Text(item.hint).font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)

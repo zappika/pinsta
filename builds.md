@@ -14,6 +14,10 @@ How it stays true:
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
 ## Next build (since `ios-29`)
+- Settings → Help improve Vicolo: switch off sending how saves went and how the app is used.
+- With larger text, the Where and What titles sit one above the other instead of being cut short.
+- With Reduce Motion on, menus, cards and sheets fade instead of sliding and bouncing, and the map jumps instead of flying.
+- VoiceOver can change or remove a card (actions on the card) and reads the Where and What titles.
 - Menu → Help and Privacy: how to save, common questions, how to reach us, and what Vicolo does with your data.
 - *(internal)* Privacy manifests (app + extension) declare UserDefaults (CA92.1, 1C8F.1) and the data that leaves the phone: links/places (Other User Content), usage counts, read errors. For the App Store.
 - *(internal)* Testing launch arguments (`-addURL`, `-importURL`, `-slowNotices`, `-splashHold`) work in Debug builds only (`Views/TestArgs.swift`).

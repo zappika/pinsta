@@ -3,7 +3,7 @@ import Foundation
 /// How the app is used, for the backoffice (Sarp, 2026-10-16: "I catch myself using the other
 /// views a lot less than the map"). Per day, running totals: `open`, `pick.<view>` (a tap on the
 /// view pill), `sec.<screen>` (seconds on screen). Sent to `POST /api/uses` with the same random
-/// install id as `SaveReport`: no names, no list, no places.
+/// install id as `SaveReport`: no names, no list, no places. Off with `SaveReport.sharing`.
 ///
 /// Totals live in the App Group defaults until the server has them; a day is resent while it
 /// grows (the server keeps the larger count) and dropped once it's over and sent.
@@ -12,7 +12,7 @@ enum Uses {
     private static var defaults: UserDefaults? { UserDefaults(suiteName: Persistence.appGroup) }
 
     static func count(_ event: String, by n: Int = 1) {
-        guard n > 0 else { return }
+        guard n > 0, SaveReport.sharing else { return }
         var all = load()
         all[today, default: [:]][event, default: 0] += n
         // A month at most, if the server is never reached.
@@ -21,6 +21,7 @@ enum Uses {
 
     /// On launch and when the app goes to the background.
     static func flush() async {
+        guard SaveReport.sharing else { return }
         for (day, counts) in load().sorted(by: { $0.key < $1.key }) {
             var request = URLRequest(url: PostReader.baseURL.appending(path: "api/uses"))
             request.httpMethod = "POST"
@@ -35,6 +36,9 @@ enum Uses {
             if day < today { store(load().filter { $0.key != day }) }
         }
     }
+
+    /// Settings turned sharing off (`SaveReport.dropPending`).
+    static func dropPending() { defaults?.removeObject(forKey: key) }
 
     private static var today: String { day(daysAgo: 0) }
 

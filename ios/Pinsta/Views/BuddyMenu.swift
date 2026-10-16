@@ -79,6 +79,9 @@ struct BuddyMenu: View {
 struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     private let settings = Settings.shared
+    /// Save reports and usage counts (`SaveReport.sharing`), on unless turned off. The App Group
+    /// store, so the share extension reads the same switch.
+    @AppStorage(SaveReport.sharingKey, store: UserDefaults(suiteName: Persistence.appGroup)) private var sharing = true
 
     /// "1.0 (8)", from the bundle, so it can't go stale.
     private static let version: String = {
@@ -112,6 +115,13 @@ struct SettingsSheet: View {
                 } footer: {
                     Text("Which app opens when you tap Directions on a place.")
                 }
+                // Guideline 5.1.1 (ii): anonymous usage data still needs a way to say no.
+                Section {
+                    Toggle("Help improve Vicolo", isOn: $sharing)
+                        .onChange(of: sharing) { _, on in if !on { SaveReport.dropPending() } }
+                } footer: {
+                    Text("Sends how each save went (the link and the place found) and how often each view is used. Never your name, your list or where you are.")
+                }
                 Section {
                     HStack(spacing: 12) {
                         Image("ElephantResin")
@@ -135,7 +145,7 @@ struct SettingsSheet: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
         // The sheet sits outside the app's root, so it takes the chosen appearance itself.
         .preferredColorScheme(settings.appearance.scheme)
     }

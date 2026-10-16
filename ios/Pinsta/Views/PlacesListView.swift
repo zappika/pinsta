@@ -89,6 +89,8 @@ struct PlacesListView: View {
 
 private struct PlacesContent: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \Place.createdAt, order: .reverse) private var places: [Place]
 
@@ -189,11 +191,11 @@ private struct PlacesContent: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(Color(white: 0.15), in: RoundedRectangle(cornerRadius: 16))
                         .padding(.horizontal, 20)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .transition(.fromBottom(reduceMotion: reduceMotion))
                 }
                 if let toast {
                     undoToast(toast)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .transition(.fromBottom(reduceMotion: reduceMotion))
                 }
                 // One row: the view pill centred, the round + at the right edge (drawn
                 // in an overlay above the save sheet, so it can turn into its ×).
@@ -514,24 +516,46 @@ private struct PlacesContent: View {
                     .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 8 }
             }
             .padding(.top, 12)
+        } else if dynamicTypeSize.isAccessibilitySize {
+            // The largest text sizes: Where above What, or both shrank to "Every… E".
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    whereButton
+                    whatButton
+                }
+                Spacer(minLength: 0)
+                BuddyMenu()
+            }
+            .padding(.top, 12)
         } else {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Button { picking = .city } label: {
-                    headerLabel(city ?? "Everywhere", muted: false)
-                }
-                .buttonStyle(.plain)
-                .layoutPriority(1)
-
-                Button { picking = .category } label: {
-                    headerLabel(subtype.map { Subtypes.label($0) + "s" } ?? category?.plural ?? "Everything", muted: true)
-                }
-                .buttonStyle(.plain)
+                whereButton
+                    .layoutPriority(1)
+                whatButton
                 Spacer(minLength: 0)
                 BuddyMenu()
                     .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 8 }
             }
             .padding(.top, 12)
         }
+    }
+
+    private var whatLabel: String { subtype.map { Subtypes.label($0) + "s" } ?? category?.plural ?? "Everything" }
+
+    private var whereButton: some View {
+        Button { picking = .city } label: {
+            headerLabel(city ?? "Everywhere", muted: false)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Where: \(city ?? "Everywhere")")
+    }
+
+    private var whatButton: some View {
+        Button { picking = .category } label: {
+            headerLabel(whatLabel, muted: true)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("What: \(whatLabel)")
     }
 
     @ViewBuilder
@@ -582,7 +606,7 @@ private struct PlacesContent: View {
         }
         // Scales down a little before truncating, so the buddy button fits beside it.
         .font(.title.weight(.semibold))
-        .minimumScaleFactor(0.8)
+        .minimumScaleFactor(dynamicTypeSize.isAccessibilitySize ? 0.6 : 0.8)
         .foregroundStyle(muted ? Color.secondary : Color.primary)
         .layoutPriority(muted ? 0 : 1)
     }
@@ -693,7 +717,7 @@ private struct PlacesContent: View {
             Image(systemName: "plus")
                 .font(.system(size: 22, weight: .semibold))
                 .rotationEffect(.degrees(adding || editing != nil || fan ? 135 : 0))
-                .animation(.spring(response: 0.35, dampingFraction: 0.55), value: adding || fan)
+                .animation(.motion(.spring(response: 0.35, dampingFraction: 0.55), reduceMotion: reduceMotion), value: adding || fan)
                 .modifier(PlusLook())
         }
         .buttonStyle(PressSpring())
@@ -727,6 +751,7 @@ private struct PlacesContent: View {
 private struct FloatingSheet<Content: View>: View {
     let onClose: () -> Void
     @ViewBuilder let content: () -> Content
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -740,7 +765,7 @@ private struct FloatingSheet<Content: View>: View {
                 .padding(.horizontal, 12)
                 // Sits above the + (now ×), which stays on top to close it.
                 .padding(.bottom, 76)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .transition(.fromBottom(reduceMotion: reduceMotion))
         }
     }
 }
