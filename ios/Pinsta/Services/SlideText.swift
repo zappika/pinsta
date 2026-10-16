@@ -12,6 +12,8 @@ enum SlideText {
         let candidate: PlaceCandidate
         /// The slide the name was on: that place's photo.
         let image: Data?
+        /// Read off signs in a photo, not text laid over it: starts unticked.
+        var unsure = false
     }
 
     /// The places named on the slides, in slide order. Empty when fewer than two: one
@@ -23,22 +25,23 @@ enum SlideText {
         let listed = captionList(caption)
         guard slides.count >= 2 || listed.count >= 2 else { return [] }
         // Downloaded and read together; a slide that fails is just skipped.
-        let read: [(Int, Data, [String])] = await withTaskGroup(of: (Int, Data, [String])?.self) { group in
+        let read: [(Int, Data, Reading)] = await withTaskGroup(of: (Int, Data, Reading)?.self) { group in
             for (i, link) in slides.prefix(10).enumerated() {
                 group.addTask {
                     guard let data = await ImageLoader.data(from: link) else { return nil }
                     return (i, data, lines(in: data))
                 }
             }
-            var out: [(Int, Data, [String])] = []
+            var out: [(Int, Data, Reading)] = []
             for await r in group { if let r { out.append(r) } }
             return out.sorted { $0.0 < $1.0 }
         }
         // Each name keeps where it came from: its slide (0…), or its caption line (-1, -2…).
         var names: [(String, Data?, Int)] = listed.enumerated().map { ($0.element, nil, -1 - $0.offset) }
         let mine = account.map { fold($0).filter { $0.isLetter || $0.isNumber } }.filter { !$0.isEmpty }
-        let perSlide: [(Int, Data, [String])] = slides.count >= 2 ? read.map { i, data, lines in
-            (i, data, lines.filter { l in
+        let signs = Set(read.filter(\.2.signs).map(\.0))
+        let perSlide: [(Int, Data, [String])] = slides.count >= 2 ? read.map { i, data, reading in
+            (i, data, reading.lines.filter { l in
                 let letters = fold(l).filter { $0.isLetter || $0.isNumber }
                 return !mine.contains(where: { $0 == letters || $0.hasPrefix(letters) }) && !PlaceSearch.isCityName(l)
             })
@@ -56,7 +59,7 @@ enum SlideText {
         var found: [(Found, Int)] = []
         func keep(_ c: PlaceCandidate, _ data: Data?, _ from: Int) {
             guard !account.contains(where: { named(c.name, $0) }), !found.contains(where: { $0.0.candidate.id == c.id }) else { return }
-            found.append((Found(candidate: c, image: data), from))
+            found.append((Found(candidate: c, image: data, unsure: signs.contains(from)), from))
         }
         var answered = Set<String>()
         for (name, data, from) in names.prefix(maxSearches) {
@@ -135,15 +138,24 @@ enum SlideText {
         return items.count >= 2 ? items : []
     }
 
+    struct Reading {
+        var lines: [String] = []
+        /// Some of the slide's text could barely be read: shop signs in a street photo (casa.lawa,
+        /// Catania, 2026-10-16: a laundry and a café next to Bar Popolare). Text laid over a picture
+        /// reads cleanly (every line of Vink's Oslo slides at full confidence).
+        var signs = false
+    }
+
     /// Short label-like lines: 3–40 characters, four words at most, not a sentence,
     /// a handle, a hashtag, a link or a number.
-    static func lines(in data: Data) -> [String] {
+    static func lines(in data: Data) -> Reading {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = false
-        guard (try? VNImageRequestHandler(data: data).perform([request])) != nil else { return [] }
-        return (request.results ?? []).compactMap { obs -> String? in
-            guard let top = obs.topCandidates(1).first, top.confidence >= 0.5 else { return nil }
+        guard (try? VNImageRequestHandler(data: data).perform([request])) != nil else { return Reading() }
+        let tops = (request.results ?? []).compactMap { $0.topCandidates(1).first }
+        let lines = tops.compactMap { top -> String? in
+            guard top.confidence >= 0.5 else { return nil }
             let s = top.string.trimmingCharacters(in: CharacterSet.alphanumerics.inverted.subtracting(CharacterSet(charactersIn: "&'’")))
             guard (3...40).contains(s.count), s.split(separator: " ").count <= 4,
                   s.rangeOfCharacter(from: .letters) != nil,
@@ -151,6 +163,7 @@ enum SlideText {
                   !top.string.hasSuffix("?"), !top.string.hasSuffix("!"), !top.string.hasSuffix(".") else { return nil }
             return s
         }
+        return Reading(lines: lines, signs: tops.contains { $0.confidence < 0.5 })
     }
 
     private static func search(_ name: String, near: CLLocationCoordinate2D?) async throws -> [PlaceCandidate] {

@@ -471,7 +471,8 @@ struct AddPlaceView: View {
                 tried.source = "slides"
                 withAnimation(.snappy) {
                     many = listed
-                    picked = Set(listed.map(\.candidate.id))
+                    // Names off a street photo's signs wait for a tick (casa.lawa).
+                    picked = Set(listed.filter { !$0.unsure }.map(\.candidate.id))
                 }
                 return
             }
@@ -726,7 +727,7 @@ struct AddPlaceView: View {
 
 // MARK: - Pieces
 
-/// A list post's places, all ticked: untick the ones to skip, then one Save.
+/// A list post's places, ticked but for names off a photo's signs: untick the ones to skip, then one Save.
 private struct ManyList: View {
     let many: [SlideText.Found]
     @Binding var picked: Set<String>
