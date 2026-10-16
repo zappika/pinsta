@@ -311,9 +311,10 @@ export async function resolveAccount(input: {
   const glued = (input.ownerUsername ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
   // The city glued to the handle ("batasthlm" → Stockholm) and a name exactly the account's rank first:
   // the untagged Bata post put a Barcelona uniform shop ahead of BATA (2026-10-14).
-  const exact = new Set([full, input.ownerUsername].filter(Boolean).map((n) => letters(n!)));
+  // The handle without its city counts too: @elenamontreal is "Elena", not "Pizzéria Elena" (2026-10-16).
+  const exact = new Set([full, input.ownerUsername, splitHandleCity(input.ownerUsername)?.name].filter(Boolean).map((n) => letters(n!)));
   const rank = (c: PlaceCandidate) =>
-    (handleCity && c.city?.toLowerCase() === handleCity.toLowerCase() ? 0 : 2) + (exact.has(letters(c.name)) ? 0 : 1);
+    (handleCity && fold(c.city ?? "") === fold(handleCity) ? 0 : 2) + (exact.has(letters(c.name)) ? 0 : 1);
   return merged
     .filter(
       (c) =>

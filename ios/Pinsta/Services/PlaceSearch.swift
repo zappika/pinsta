@@ -128,9 +128,10 @@ extension PlaceSearch {
             .filter { !cityWords.contains($0) && !categoryWords.contains($0) }
         let glued = (ownerUsername ?? "").lowercased().filter { $0.isLetter || $0.isNumber }
         // The city glued to the handle ("batasthlm" → Stockholm) and a name exactly the account's rank first.
-        let exact = Set([ownerFullName, ownerUsername].compactMap { $0 }.map(letters))
+        // The handle without its city counts too: @elenamontreal is "Elena", not "Pizzéria Elena" (2026-10-16).
+        let exact = Set([ownerFullName, ownerUsername, splitHandleCity(ownerUsername)?.name].compactMap { $0 }.map(letters))
         func rank(_ c: PlaceCandidate) -> Int {
-            (handleCity != nil && c.city?.lowercased() == handleCity?.lowercased() ? 0 : 2) + (exact.contains(letters(c.name)) ? 0 : 1)
+            (handleCity != nil && fold(c.city ?? "") == fold(handleCity ?? "") ? 0 : 2) + (exact.contains(letters(c.name)) ? 0 : 1)
         }
         return merged.filter { c in
             isVenue(c) && isNear(c, near)

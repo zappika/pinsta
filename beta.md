@@ -26,6 +26,7 @@ Most were "can't read the location" or "Apple Maps doesn't have it". Fixed for b
 - ~~Deleted a place, shared again: "Already in Vicolo"~~: the Undo timer stopped when the app went to the background; leaving now commits the delete.
 - ~~Japanese town names (`DegsdXSFG26`, 楽園 in Kyōdō)~~: asked again in English (checked in the Simulator: "Fukuoka").
 - 楽園 itself: the tag saved "Rakusuien" in Fukuoka by itself. Now a hashtag naming a city (#tokyo) keeps a tag search there: offers Tokyo-area "Rakuen"s, saves nothing by itself. Still not the curry shop: Apple finds it only as "rakuen curry Tokyo" (Latin letters, from @rakuen_curry); adding co-authors to tag searches put JaJa's photographer @gushy.me above JaJa, so left out.
+- ~~Elena `@elenamontreal`: hotels in Spain and Italy~~: Montreal is a known handle city now; "Elena" in Montréal first.
 - **Map pins:** places saved from a post show the post's photo again (web now; iOS after Sarp's look). List imports and Maps links keep the type icon.
 
 ### 2026-10-14 round (Mert + testers)
