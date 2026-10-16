@@ -16,6 +16,12 @@ How it stays true:
 ## Next build (since `ios-25`)
 - With no places near you, the map opens on all your places, not on the nearest country. Only places worlds apart (say Tokyo and Barcelona) still open on one country, the one with the most places.
 - A carousel or caption list now also finds the places Apple Maps doesn't know, by asking Google.
+- Posts whose account names its city (criollo_oax, jaja.berlin, strakers_nyc, selma__paris) find the place there, not a namesake abroad. Many more city shorthands are known: Oaxaca, Lisbon (lx), Milan, Vienna, Athens, Tokyo, Mexico City and the like.
+- When Apple Maps only has far-off guesses for a post's city, Google is asked straight away.
+- A restaurant @mentioned in the caption or a co-author comes first; airports, ferries and stations no longer show up just because they share the city's name.
+- Removing a place and leaving the app right away removes it for real: sharing the post again no longer says "Already in Vicolo".
+- Towns in Japan (and anywhere written in another alphabet) show in English; places already saved are fixed on the next launch.
+- *(internal)* 2026-10-16: compiled with xcodebuild (device, unsigned) and the search checked with swiftc + real MapKit on Sarp's five links and Mert's cases; not run in the Simulator (CoreSimulator out of date, needs `sudo xcodebuild -runFirstLaunch`). English names: check the brutusmag post `DegsdXSFG26` on the phone.
 - *(internal)* Not built or run yet: this Mac has no Xcode. Swift type-checked with swiftc only. Check on the other Mac: Vink's Oslo carousel `C_OOWiDS7Gh` should give 6 of 6 (Tranen from Google), and the opening map with places in two far-apart cities.
 
 ## In TestFlight: 1.0 (25) · 2026-10-15 · `ios-25` · phone ☑ (Sarp, 2026-10-15)

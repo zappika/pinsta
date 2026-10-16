@@ -200,6 +200,7 @@ export async function resolveTag(input: {
   tag: string;
   ownerFullName?: string | null;
   ownerUsername?: string | null;
+  coauthors?: string[];
   caption?: string | null;
   hashtags?: string[];
   cityHints?: string[];
@@ -225,6 +226,9 @@ export async function resolveTag(input: {
     .find((h) => (input.cityHints ?? []).map((c) => c.toLowerCase().replace(/\s+/g, "")).includes(h));
   if (city) queries.add(`${tag} ${city}`);
   for (const q of input.extraQueries ?? []) if (q.trim()) queries.add(q.trim());
+  // A city in a handle says where the tag is: "Criollo" from @criollo_oax, "JAJA" from @jaja.berlin (2026-10-16).
+  const where = postCity({ ownerUsername: input.ownerUsername ?? null, coauthors: input.coauthors ?? [], town: null });
+  if (where) queries.add(`${tag} ${where}`);
 
   const results = await Promise.all(
     [...queries].map((q) => searchPlaces(q).catch(() => [] as PlaceCandidate[])),
@@ -248,9 +252,11 @@ export async function resolveTag(input: {
     return 3;
   };
   // A result in a town named like the tag matched the town, not the venue ("VRÅ" → Vrå, Denmark).
-  return merged
-    .filter((c) => isVenue(c, tag) && fold(c.city ?? "") !== fold(tag))
-    .sort((a, b) => score(a) - score(b));
+  const venues = merged.filter((c) => isVenue(c, tag) && fold(c.city ?? "") !== fold(tag)).sort((a, b) => score(a) - score(b));
+  // Something in the handle's city: only those. Nothing there: a blog can tag a place elsewhere, keep all.
+  const near = where ? await locate(where) : null;
+  const local = venues.filter((c) => near && isNear(c, near));
+  return local.length ? local : venues;
 }
 
 /**
@@ -278,7 +284,7 @@ export async function resolveAccount(input: {
   if (input.town) for (const q of [...queries]) if (q !== split) queries.add(`${q} ${input.town}`);
   if (queries.size === 0) return [];
   // A city glued to the handle pins the search there ("batasthlm": Bata the shoe shop in Spain is not it).
-  const handleCity = split?.split(" ").pop() ?? null;
+  const handleCity = cityOfHandle(input.ownerUsername);
   const near = input.near ?? (handleCity ? await locate(handleCity) : null);
 
   const results = await Promise.all(
@@ -365,16 +371,43 @@ export function areaOfTag(tag: string | null | undefined): string | null {
   return null;
 }
 
-// Cities restaurants glue onto their handle: "barabbacph", "joe_nyc", "cafe.sthlm".
-// Only codes that don't end ordinary words ("ber" would split "amber"). Same list in PlaceSearch.swift.
-const HANDLE_CITIES: Record<string, string> = {
-  oslo: "Oslo",
-  cph: "Copenhagen", copenhagen: "Copenhagen", kbh: "Copenhagen",
-  nyc: "New York", ldn: "London", london: "London", bcn: "Barcelona", barcelona: "Barcelona",
-  sthlm: "Stockholm", stockholm: "Stockholm", gbg: "Gothenburg", malmo: "Malmö",
-  cdmx: "Mexico City", paris: "Paris", berlin: "Berlin", istanbul: "Istanbul", lisbon: "Lisbon",
-  lisboa: "Lisbon", madrid: "Madrid", milano: "Milano", roma: "Rome", tokyo: "Tokyo", hki: "Helsinki",
+// Cities restaurants put in their handle: "barabbacph", "joe_nyc", "cafe.sthlm", "criollo_oax".
+// The cities a Monocle reader travels to (Sarp, 2026-10-16). Same lists in PlaceSearch.swift.
+// GLUED: also found stuck to the end of the name ("barabbacph"): full names and codes that end no ordinary word.
+const HANDLE_CITIES_GLUED: Record<string, string> = {
+  oslo: "Oslo", osl: "Oslo",
+  copenhagen: "Copenhagen", cph: "Copenhagen", kbh: "Copenhagen", kobenhavn: "Copenhagen",
+  stockholm: "Stockholm", sthlm: "Stockholm", gothenburg: "Gothenburg", goteborg: "Gothenburg", gbg: "Gothenburg", malmo: "Malmö",
+  helsinki: "Helsinki", hki: "Helsinki", reykjavik: "Reykjavík",
+  london: "London", ldn: "London", dublin: "Dublin", edinburgh: "Edinburgh",
+  paris: "Paris", lyon: "Lyon", marseille: "Marseille", bordeaux: "Bordeaux",
+  amsterdam: "Amsterdam", brussels: "Brussels", bruxelles: "Brussels", antwerp: "Antwerp",
+  berlin: "Berlin", hamburg: "Hamburg", munich: "Munich", munchen: "Munich", vienna: "Vienna", wien: "Vienna",
+  zurich: "Zürich", zuerich: "Zürich", geneva: "Geneva", prague: "Prague", praha: "Prague", budapest: "Budapest",
+  copenhague: "Copenhagen", warsaw: "Warsaw", krakow: "Kraków",
+  barcelona: "Barcelona", bcn: "Barcelona", madrid: "Madrid", sevilla: "Seville", seville: "Seville", valencia: "Valencia",
+  donostia: "San Sebastián", sansebastian: "San Sebastián", mallorca: "Mallorca", ibiza: "Ibiza",
+  lisbon: "Lisbon", lisboa: "Lisbon", porto: "Porto",
+  milano: "Milan", milan: "Milan", roma: "Rome", rome: "Rome", napoli: "Naples", firenze: "Florence", florence: "Florence",
+  venezia: "Venice", venice: "Venice", torino: "Turin", bologna: "Bologna",
+  athens: "Athens", athina: "Athens", istanbul: "Istanbul", tbilisi: "Tbilisi", beirut: "Beirut", telaviv: "Tel Aviv",
+  marrakech: "Marrakech", marrakesh: "Marrakech", capetown: "Cape Town", dubai: "Dubai",
+  tokyo: "Tokyo", kyoto: "Kyoto", osaka: "Osaka", seoul: "Seoul", taipei: "Taipei", hongkong: "Hong Kong",
+  singapore: "Singapore", bangkok: "Bangkok", bkk: "Bangkok", melbourne: "Melbourne", sydney: "Sydney",
+  nyc: "New York", brooklyn: "Brooklyn", losangeles: "Los Angeles", sanfrancisco: "San Francisco", chicago: "Chicago",
+  miami: "Miami", portland: "Portland", toronto: "Toronto", montreal: "Montréal", vancouver: "Vancouver",
+  cdmx: "Mexico City", oaxaca: "Oaxaca", oax: "Oaxaca", buenosaires: "Buenos Aires", saopaulo: "São Paulo", lima: "Lima",
+  bogota: "Bogotá", medellin: "Medellín", havana: "Havana",
 };
+// LAST: short codes, counted only as the handle's last part of their own ("cafe_lx", not "felix").
+const HANDLE_CITIES_LAST: Record<string, string> = {
+  lx: "Lisbon", lis: "Lisbon", par: "Paris", ber: "Berlin", ams: "Amsterdam", mil: "Milan", mi: "Milan", rom: "Rome",
+  ath: "Athens", ist: "Istanbul", tyo: "Tokyo", zrh: "Zürich", vie: "Vienna", muc: "Munich", prg: "Prague", bxl: "Brussels",
+  edi: "Edinburgh", dub: "Dublin", tlv: "Tel Aviv", hk: "Hong Kong", sg: "Singapore", syd: "Sydney", mel: "Melbourne",
+  la: "Los Angeles", nola: "New Orleans", sf: "San Francisco", mtl: "Montréal", atx: "Austin", bsas: "Buenos Aires", cpt: "Cape Town",
+};
+/** Every city a handle can name, for telling a city word from a name word. */
+const HANDLE_CITY_NAMES = new Set([...Object.values(HANDLE_CITIES_GLUED), ...Object.values(HANDLE_CITIES_LAST)].flatMap((c) => fold(c).split(/\s+/)));
 
 /** "restaurangvra" → "restaurang vra", "barbrutal" → "bar brutal": a category word glued on. Same rule in PlaceSearch.swift. */
 export function handleWithKind(username: string | null | undefined): string | null {
@@ -388,13 +421,26 @@ export function handleWithKind(username: string | null | undefined): string | nu
 
 /** "barabbacph" → "barabba Copenhagen"; null when the handle carries no city. */
 export function handleWithCity(username: string | null | undefined): string | null {
+  const s = splitHandleCity(username);
+  return s ? [s.name, s.city].filter(Boolean).join(" ") : null;
+}
+
+/** "strakers_nyc" → "New York"; null when the handle carries no city. */
+export function cityOfHandle(username: string | null | undefined): string | null {
+  return splitHandleCity(username)?.city ?? null;
+}
+
+function splitHandleCity(username: string | null | undefined): { name: string; city: string } | null {
   const parts = (username ?? "").toLowerCase().split(/[._-]+/).filter(Boolean);
+  const last = parts.length > 1 ? HANDLE_CITIES_LAST[parts[parts.length - 1]] : undefined;
+  if (last) return { name: parts.slice(0, -1).join(" "), city: last };
   for (let i = parts.length - 1; i >= 0; i--) {
     const p = parts[i];
-    if (HANDLE_CITIES[p] && i > 0) return [...parts.slice(0, i), ...parts.slice(i + 1), HANDLE_CITIES[p]].join(" ");
-    for (const [code, city] of Object.entries(HANDLE_CITIES)) {
+    const city = HANDLE_CITIES_GLUED[p];
+    if (city && i > 0) return { name: [...parts.slice(0, i), ...parts.slice(i + 1)].join(" "), city };
+    for (const [code, city] of Object.entries(HANDLE_CITIES_GLUED)) {
       if (p.length >= code.length + 3 && p.endsWith(code)) {
-        return [...parts.slice(0, i), p.slice(0, -code.length), ...parts.slice(i + 1), city].join(" ");
+        return { name: [...parts.slice(0, i), p.slice(0, -code.length), ...parts.slice(i + 1)].join(" "), city };
       }
     }
   }
@@ -490,7 +536,9 @@ export function collabNames(caption: string | null | undefined): string[] {
 // What a search returns that isn't somewhere to go: streets, areas, addresses.
 const NOT_VENUE = /^(route|street_address|street_number|premise|subpremise|locality|sublocality.*|neighborhood|administrative_area.*|country|postal_code|plus_code|political|geocode|intersection)$/;
 // Real places, but almost never what a post means: kept only when the name was asked for.
-const TRANSIT = /^(transit_station|train_station|subway_station|bus_station|bus_stop|light_rail_station|parking|parking_lot)$/;
+const TRANSIT = /^(transit_station|train_station|subway_station|bus_station|bus_stop|light_rail_station|parking|parking_lot|airport|international_airport|ferry_terminal)$/;
+// …and the ones that come back untyped, known by their name ("Ferry de Barcelona"). Same list in PlaceSearch.swift.
+const TRANSIT_NAME = /(^|[^\p{L}])(airport|aeropuerto|aeroport|aéroport|aeroporto|flughafen|lufthavn|flygplats|lentoasema|havalimanı|ferry|ferries|ferri|terminal|estación|estació|gare|bahnhof|station)([^\p{L}]|$)/iu;
 
 /** Somewhere to go, not a street or a station ("vR" offered Stockholm Central). `asked`: the words searched. */
 export function isVenue(c: PlaceCandidate, asked?: string): boolean {
@@ -500,8 +548,24 @@ export function isVenue(c: PlaceCandidate, asked?: string): boolean {
   if (!t && ((c.city && c.name.toLowerCase() === c.city.toLowerCase()) || streetOfTag(c.name))) return false;
   // Searched "VRÅ", got Vrå the Danish town, its station and its school: a result in a town named like the search.
   if (asked && c.city && fold(c.city) === fold(asked.trim())) return false;
-  if (TRANSIT.test(t)) return !!asked && overlaps(words(c.name), words(asked));
+  // The name has to be asked for, not the city it's in: "Barcelona-El Prat Airport" for an account in Barcelona (Arraval, 2026-10-16).
+  if (TRANSIT.test(t) || TRANSIT_NAME.test(c.name)) return !!asked && overlaps(nameWords(c.name, c), nameWords(asked, c));
   return true;
+}
+
+/** A name's words that say who, not where: no city a handle can name, nor the result's own town or region. */
+function nameWords(s: string, c?: PlaceCandidate) {
+  const where = new Set([...words(c?.city ?? ""), ...words(c?.region ?? "")]);
+  return words(s).filter((w) => !HANDLE_CITY_NAMES.has(w) && !where.has(w));
+}
+
+/** Where a post is, when it says: a city in a co-author's or the poster's handle ("strakers_nyc", "selma__paris"), else a town tag. */
+export function postCity(input: { ownerUsername: string | null; coauthors: string[]; town: string | null }): string | null {
+  for (const u of [...input.coauthors, input.ownerUsername]) {
+    const city = cityOfHandle(u);
+    if (city) return city;
+  }
+  return input.town;
 }
 
 /** Within 30 km of a street tag's pin, or anywhere without one ("Bata, Ragusa" for a Stockholm post). */
@@ -535,23 +599,31 @@ export async function resolveUntagged(input: {
   near: { lat: number; lng: number } | null;
   /** A tag that found nothing by itself ("VRÅ"): what carries its words ranks first. */
   hint?: string | null;
-}): Promise<{ candidates: PlaceCandidate[]; pinned: boolean }> {
+}): Promise<{ candidates: PlaceCandidate[]; pinned: boolean; near: { lat: number; lng: number } | null }> {
+  // The post's city keeps every search there: without it "Thomas Straker" found Thomas Strake in Hanau
+  // for a New York collab, and Apple's far-off junk kept Google from being asked (2026-10-16).
+  const city = input.near ? null : postCity(input);
+  const near = input.near ?? (city ? await locate(city) : null);
   const search = async (q: string | null) =>
-    q ? (await searchPlaces(q, input.near).catch(() => [] as PlaceCandidate[])).filter((c) => isVenue(c, q) && isNear(c, input.near)) : [];
+    q ? (await searchPlaces(q, near).catch(() => [] as PlaceCandidate[])).filter((c) => isVenue(c, q) && isNear(c, near)) : [];
   const pin = pinnedPlaceQuery(input.caption);
   const [fromPin, fromCaption, fromCollab, fromAccounts] = await Promise.all([
     search(pin),
-    search(captionPlaceQuery(input.caption)),
+    // "at Selma, …": a guess at a name, so the result has to carry it (not LittleBig in Bratislava).
+    (async () => {
+      const q = captionPlaceQuery(input.caption);
+      return (await search(q)).filter((c) => overlaps(nameWords(c.name, c), nameWords(q ?? "", c)));
+    })(),
     // A collab name is a guess at a venue: the result has to carry one of its words.
     Promise.all(collabNames(input.caption).map(async (n) => (await search(n)).filter((c) => overlaps(words(c.name), words(n))))),
     Promise.all(
       [
         { ownerFullName: input.ownerFullName, ownerUsername: input.ownerUsername },
         ...input.coauthors.filter((u) => u !== input.ownerUsername).map((u) => ({ ownerFullName: null, ownerUsername: u })),
-      ].map((a) => resolveAccount({ ...a, town: input.town, near: input.near }).then((r) => r.slice(0, 3))),
+      ].map((a) => resolveAccount({ ...a, town: input.town, near }).then((r) => r.slice(0, 3))),
     ),
   ]);
-  if (fromPin.length) return { candidates: fromPin.slice(0, 3), pinned: true };
+  if (fromPin.length) return { candidates: fromPin.slice(0, 3), pinned: true, near };
   // Co-authors before the poster: on a collab the venue is rarely the one who posted.
   const accounts = [...fromAccounts.slice(1).flat(), ...fromAccounts[0]];
   const seen = new Set<string>();
@@ -559,10 +631,14 @@ export async function resolveUntagged(input: {
     (c) => !seen.has(c.placeId) && seen.add(c.placeId),
   );
   // On a collab, the venue carries the tag's or a collab name's words (VRÅ, not the Clarion Hotel it's in).
-  const hints = [...words(input.hint ?? ""), ...collabNames(input.caption).flatMap(words)];
+  // An account the post names (a co-author, an @mention) is the strongest lead: @arraval → Arraval first (2026-10-16).
+  const handles = input.coauthors.filter((u) => u !== input.ownerUsername).flatMap((u) => words(splitHandleCity(u)?.name ?? u.replace(/[._-]+/g, " ")));
+  const hints = [...words(input.hint ?? ""), ...collabNames(input.caption).flatMap(words), ...handles].filter(
+    (w) => !HANDLE_CITY_NAMES.has(w) && !CATEGORY_WORDS.includes(w),
+  );
   const hit = (c: PlaceCandidate) => (hints.length && overlaps(words(c.name), hints) ? 0 : 1);
   const ranked = merged.map((c, i) => ({ c, i })).sort((a, b) => hit(a.c) - hit(b.c) || a.i - b.i).map(({ c }) => c);
-  return { candidates: ranked.slice(0, 4), pinned: false };
+  return { candidates: ranked.slice(0, 4), pinned: false, near };
 }
 
 const CATEGORY_WORDS = [

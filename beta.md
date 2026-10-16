@@ -16,6 +16,17 @@ What's new for testers: `changelog.md` → vicolo.space/changelog (menu → What
 ## Open from feedback
 Newest round first. When something is fixed, strike it through with the build it shipped in, then drop it next round.
 
+### 2026-10-16 round (Sarp's own tries)
+Most were "can't read the location" or "Apple Maps doesn't have it". Fixed for build 26 (search on web and iOS):
+- ~~Criollo `DeM0Nu5Ke2H` (tag "Criollo", @criollo_oax): Italian namesakes until "Oaxaca" was typed~~: the handle's city now pins a tag search; `oax` and many Monocle-city shorthands added.
+- ~~JaJa `DehDPLMoj30` (tag "JAJA", @jaja.berlin): same~~.
+- ~~Straker's `DehOwL8G6hx` (@strakers_nyc with co-author @thomas_straker): "Thomas Strake" in Hanau~~: one city for the whole post, from any account's handle; every search kept within 30 km of it. Apple has Straker's.
+- ~~Selma `selma__paris`: LittleBig in Bratislava, Cape Town…~~: an "at Selma" guess has to carry the name, and far-off junk is dropped, so Google gets asked. Apple offers "SELMA'S" in Paris first; is that it? If not, "None of these" → Google. Not done: reading the poster's bio address (one more Apify read per stuck post).
+- ~~Arraval `Ded7Z8SigdT`: Barcelona airport and ferry above Arraval~~: transport must match the name, not the city; @mentioned accounts rank first.
+- ~~Deleted a place, shared again: "Already in Vicolo"~~: the Undo timer stopped when the app went to the background; leaving now commits the delete.
+- ~~Japanese town names (`DegsdXSFG26`, 楽園 in Kyōdō)~~: asked again in English.
+- **Map pins:** places saved from a post show the post's photo again (web now; iOS after Sarp's look). List imports and Maps links keep the type icon.
+
 ### 2026-10-14 round (Mert + testers)
 Builds 21–25 (2026-10-14 → 10-15) are the answer to this round: place finding, profile saves, list posts, the Share to… tutorial, stuck help, the location primer, What's new. Build 25 checked on Sarp's phone 2026-10-15. Still open:
 - **Testers on old builds:** all five were on 21. Nudge them to update and turn on Automatic Updates. Idea, not built: an in-app "new version ready" banner (server holds the latest build number, opens TestFlight).

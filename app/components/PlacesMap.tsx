@@ -54,6 +54,12 @@ type Props = {
 /** A map that has not drawn by then is treated as offline. */
 const LOAD_TIMEOUT_MS = 12_000;
 
+/** The post's picture, for a place saved from an Instagram or TikTok post; null for list imports and Maps links. */
+function fromPost(p: Place): string | null {
+  if (p.fromList || !p.imageUrl) return null;
+  return /instagram\.com|tiktok\.com/.test(p.instagramUrl) ? p.imageUrl : null;
+}
+
 export default function PlacesMap({ places, selected, onSelect, onFail, focus, here = null, goHere = 0, onAway }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -234,14 +240,18 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
         el.style.cssText = "width:44px;height:44px;cursor:pointer";
         const pin = document.createElement("div");
         pin.className = "pinsta-pin";
-        // The type icon only: a photo shrunk to 44px is unreadable; the type reads at a glance.
+        // Saved from a post: the post's picture, the "cool" of it (Sarp, 2026-10-16). From a list or a
+        // Maps link: the type icon on its tint, so the map shows how much came from where.
+        const photo = fromPost(p);
         const icon = document.createElement("img");
-        icon.src = placeIcon(p);
+        icon.src = photo ?? placeIcon(p);
         icon.alt = "";
         icon.draggable = false;
-        icon.className = "pinsta-pin-icon";
+        icon.className = photo ? "pinsta-pin-photo" : "pinsta-pin-icon";
+        // A picture that won't load falls back to the type icon.
+        if (photo) icon.onerror = () => { icon.onerror = null; icon.src = placeIcon(p); icon.className = "pinsta-pin-icon"; pin.style.backgroundColor = tintFor(p.category); };
         pin.append(icon);
-        pin.style.backgroundColor = tintFor(p.category);
+        pin.style.backgroundColor = photo ? "" : tintFor(p.category);
         pin.classList.toggle("active", p.id === selectedRef.current);
         const label = document.createElement("div");
         label.className = "pinsta-pin-label";

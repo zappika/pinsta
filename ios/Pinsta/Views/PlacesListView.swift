@@ -255,6 +255,7 @@ private struct PlacesContent: View {
             askIfDue()
             await PhotoRetry.run(in: context)
             await PriceLookup.run(in: context)
+            await EnglishNames.run(in: context)
         }
         .onChange(of: places.isEmpty) { _, _ in start() }
         .onChange(of: Launch.shared.splashDone) { _, _ in start() }
@@ -270,6 +271,9 @@ private struct PlacesContent: View {
         .onChange(of: places.count) { _, _ in askIfDue() }
         .onChange(of: view) { _, _ in peek = nil }
         .onDisappear { commitPending() }
+        // Leaving the app stops the Undo timer: off to Instagram to share the post again, the place was
+        // still there and the share said "Already in Vicolo" (Sarp, 2026-10-16). Gone means gone.
+        .onChange(of: scenePhase) { _, phase in if phase == .background { commitPending() } }
     }
 
     // MARK: - Opening screen

@@ -135,6 +135,7 @@ export async function POST(req: Request) {
             tag: post.locationName!,
             ownerFullName: post.ownerFullName,
             ownerUsername: post.ownerUsername,
+            coauthors: post.coauthors ?? [],
             caption: post.caption,
             hashtags: post.hashtags,
             cityHints,

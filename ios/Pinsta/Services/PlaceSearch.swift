@@ -52,6 +52,7 @@ extension PlaceSearch {
         _ tag: String,
         ownerFullName: String?,
         ownerUsername: String? = nil,
+        coauthors: [String] = [],
         caption: String?,
         hashtags: [String],
         cityHints: [String],
@@ -79,6 +80,10 @@ extension PlaceSearch {
             queries.append(q)
         }
 
+        // A city in a handle says where the tag is: "Criollo" from @criollo_oax, "JAJA" from @jaja.berlin (2026-10-16).
+        let place = postCity(ownerUsername: ownerUsername, coauthors: coauthors, town: nil)
+        if let place, !queries.contains("\(tag) \(place)") { queries.append("\(tag) \(place)") }
+
         let merged = await runAll(queries)
         func score(_ c: PlaceCandidate) -> Int {
             let n = c.name.lowercased()
@@ -88,7 +93,11 @@ extension PlaceSearch {
             return 3
         }
         // A result in a town named like the tag matched the town, not the venue ("VRÅ" → Vrå, Denmark).
-        return merged.filter { isVenue($0, asked: tag) && fold($0.city ?? "") != fold(tag) }.sorted { score($0) < score($1) }
+        let venues = merged.filter { isVenue($0, asked: tag) && fold($0.city ?? "") != fold(tag) }.sorted { score($0) < score($1) }
+        // Something in the handle's city: only those. Nothing there: a blog can tag a place elsewhere, keep all.
+        guard let place, let near = await locate(place) else { return venues }
+        let local = venues.filter { isNear($0, near) }
+        return local.isEmpty ? venues : local
     }
 
     /// No location tag: the account that posted is the lead. A venue's own
@@ -107,7 +116,7 @@ extension PlaceSearch {
         if let town { queries += queries.filter { $0 != split }.map { "\($0) \(town)" } }
         guard !queries.isEmpty else { return [] }
         // A city glued to the handle pins the search there ("batasthlm": Bata the shoe shop in Spain is not it).
-        let handleCity = split.flatMap { $0.split(separator: " ").last.map(String.init) }
+        let handleCity = cityOfHandle(ownerUsername)
         var near = near
         if near == nil, let handleCity { near = await locate(handleCity) }
         let merged = await runAll(queries, near: near)
@@ -164,14 +173,20 @@ extension PlaceSearch {
     static func resolveUntagged(
         caption: String?, ownerFullName: String?, ownerUsername: String?, coauthors: [String],
         town: String?, near: CLLocationCoordinate2D?, hint: String? = nil
-    ) async -> (candidates: [PlaceCandidate], pinned: Bool) {
+    ) async -> (candidates: [PlaceCandidate], pinned: Bool, near: CLLocationCoordinate2D?) {
+        // The post's city keeps every search there: without it "Thomas Straker" found Thomas Strake in Hanau
+        // for a New York collab, and Apple's far-off junk kept Google from being asked (2026-10-16).
+        var near = near
+        if near == nil, let city = postCity(ownerUsername: ownerUsername, coauthors: coauthors, town: town) { near = await locate(city) }
         func find(_ q: String?) async -> [PlaceCandidate] {
             guard let q else { return [] }
             return ((try? await search(q, limit: 6, near: near)) ?? []).filter { isVenue($0, asked: q) && isNear($0, near) }
         }
         let fromPin = await find(pinnedPlaceQuery(caption))
-        if !fromPin.isEmpty { return (Array(fromPin.prefix(3)), true) }
-        let fromCaption = await find(captionPlaceQuery(caption))
+        if !fromPin.isEmpty { return (Array(fromPin.prefix(3)), true, near) }
+        // "at Selma, …": a guess at a name, so the result has to carry it (not LittleBig in Bratislava).
+        let atQuery = captionPlaceQuery(caption)
+        let fromCaption = await find(atQuery).filter { overlaps(nameWords($0.name, $0), nameWords(atQuery ?? "", $0)) }
         var fromCollab: [PlaceCandidate] = []
         for name in collabNames(caption) {
             // A collab name is a guess at a venue: the result has to carry one of its words.
@@ -186,13 +201,17 @@ extension PlaceSearch {
         var seen = Set<String>()
         let merged = (Array(fromCaption.prefix(3)) + fromCollab + fromAccounts).filter { seen.insert($0.id).inserted }
         // On a collab, the venue carries the tag's or a collab name's words (VRÅ, not the Clarion Hotel it's in).
-        let hints = words(hint ?? "") + collabNames(caption).flatMap(words)
+        // An account the post names (a co-author, an @mention) is the strongest lead: @arraval → Arraval first (2026-10-16).
+        let handles = coauthors.filter { $0 != ownerUsername }
+            .flatMap { words(splitHandleCity($0)?.name ?? $0.replacingOccurrences(of: "[._-]+", with: " ", options: .regularExpression)) }
+        let hints = (words(hint ?? "") + collabNames(caption).flatMap(words) + handles)
+            .filter { !handleCityNames.contains($0) && !categoryWords.contains($0) }
         let ranked = merged.enumerated().sorted { a, b in
             let ha = !hints.isEmpty && overlaps(words(a.element.name), hints) ? 0 : 1
             let hb = !hints.isEmpty && overlaps(words(b.element.name), hints) ? 0 : 1
             return (ha, a.offset) < (hb, b.offset)
         }.map(\.element)
-        return (Array(ranked.prefix(4)), false)
+        return (Array(ranked.prefix(4)), false, near)
     }
 
     /// Somewhere to go: not a station or a car park unless its name was asked for ("vR" offered
@@ -200,10 +219,32 @@ extension PlaceSearch {
     static func isVenue(_ c: PlaceCandidate, asked: String? = nil) -> Bool {
         // Searched "VRÅ", got Vrå the Danish town, its station and its school: a result in a town named like the search.
         if let asked, let city = c.city, fold(city) == fold(asked.trimmingCharacters(in: .whitespaces)) { return false }
-        if c.isTransit { return asked.map { overlaps(words(c.name), words($0)) } ?? false }
+        // The name has to be asked for, not the city it's in: "Barcelona-El Prat Airport" for an account in Barcelona (Arraval, 2026-10-16).
+        if c.isTransit || transitName.firstMatch(in: c.name, range: NSRange(c.name.startIndex..., in: c.name)) != nil {
+            return asked.map { overlaps(nameWords(c.name, c), nameWords($0, c)) } ?? false
+        }
         // A town or a street: named like its town ("Vrå"), or like a street ("Vattugatan").
         if c.category == .other, c.name.lowercased() == c.city?.lowercased() || streetOfTag(c.name) != nil { return false }
         return true
+    }
+
+    // Transport that comes back untyped, known by its name ("Ferry de Barcelona"). Same list in lib/google-places.ts.
+    private static let transitName = try! NSRegularExpression(
+        pattern: #"(^|[^\p{L}])(airport|aeropuerto|aeroport|aéroport|aeroporto|flughafen|lufthavn|flygplats|lentoasema|havalimanı|ferry|ferries|ferri|terminal|estación|estació|gare|bahnhof|station)([^\p{L}]|$)"#,
+        options: .caseInsensitive
+    )
+
+    /// A name's words that say who, not where: no city a handle can name, nor the result's own town or region.
+    private static func nameWords(_ s: String, _ c: PlaceCandidate? = nil) -> [String] {
+        let whereWords = Set(words(c?.city ?? "") + words(c?.region ?? ""))
+        return words(s).filter { !handleCityNames.contains($0) && !whereWords.contains($0) }
+    }
+
+    /// Where a post is, when it says: a city in a co-author's or the poster's handle ("strakers_nyc",
+    /// "selma__paris"), else a town tag. Same rule as `postCity` in lib/google-places.ts.
+    static func postCity(ownerUsername: String?, coauthors: [String], town: String?) -> String? {
+        for u in coauthors + [ownerUsername].compactMap({ $0 }) { if let city = cityOfHandle(u) { return city } }
+        return town
     }
 
     /// Within 30 km of a street tag's pin, or anywhere without one ("Bata, Ragusa" for a Stockholm post).
@@ -301,16 +342,39 @@ extension PlaceSearch {
         return nil
     }
 
-    // Cities restaurants glue onto their handle: "barabbacph", "joe_nyc", "cafe.sthlm".
-    // Only codes that don't end ordinary words ("ber" would split "amber"). Same list in lib/google-places.ts.
-    private static let handleCities: [(String, String)] = [
-        ("oslo", "Oslo"),
-        ("cph", "Copenhagen"), ("copenhagen", "Copenhagen"), ("kbh", "Copenhagen"),
-        ("nyc", "New York"), ("ldn", "London"), ("london", "London"), ("bcn", "Barcelona"), ("barcelona", "Barcelona"),
-        ("sthlm", "Stockholm"), ("stockholm", "Stockholm"), ("gbg", "Gothenburg"), ("malmo", "Malmö"),
-        ("cdmx", "Mexico City"), ("paris", "Paris"), ("berlin", "Berlin"), ("istanbul", "Istanbul"), ("lisbon", "Lisbon"),
-        ("lisboa", "Lisbon"), ("madrid", "Madrid"), ("milano", "Milano"), ("roma", "Rome"), ("tokyo", "Tokyo"), ("hki", "Helsinki"),
+    // Cities restaurants put in their handle: "barabbacph", "joe_nyc", "cafe.sthlm", "criollo_oax".
+    // The cities a Monocle reader travels to (Sarp, 2026-10-16). Same lists in lib/google-places.ts.
+    // Glued: also found stuck to the end of the name ("barabbacph"): full names and codes that end no ordinary word.
+    private static let handleCitiesGlued: [(String, String)] = [
+        ("oslo", "Oslo"), ("osl", "Oslo"), ("copenhagen", "Copenhagen"), ("cph", "Copenhagen"), ("kbh", "Copenhagen"), ("kobenhavn", "Copenhagen"),
+        ("stockholm", "Stockholm"), ("sthlm", "Stockholm"), ("gothenburg", "Gothenburg"), ("goteborg", "Gothenburg"), ("gbg", "Gothenburg"), ("malmo", "Malmö"),
+        ("helsinki", "Helsinki"), ("hki", "Helsinki"), ("reykjavik", "Reykjavík"), ("london", "London"), ("ldn", "London"), ("dublin", "Dublin"),
+        ("edinburgh", "Edinburgh"), ("paris", "Paris"), ("lyon", "Lyon"), ("marseille", "Marseille"), ("bordeaux", "Bordeaux"), ("amsterdam", "Amsterdam"),
+        ("brussels", "Brussels"), ("bruxelles", "Brussels"), ("antwerp", "Antwerp"), ("berlin", "Berlin"), ("hamburg", "Hamburg"), ("munich", "Munich"),
+        ("munchen", "Munich"), ("vienna", "Vienna"), ("wien", "Vienna"), ("zurich", "Zürich"), ("zuerich", "Zürich"), ("geneva", "Geneva"),
+        ("prague", "Prague"), ("praha", "Prague"), ("budapest", "Budapest"), ("copenhague", "Copenhagen"), ("warsaw", "Warsaw"), ("krakow", "Kraków"),
+        ("barcelona", "Barcelona"), ("bcn", "Barcelona"), ("madrid", "Madrid"), ("sevilla", "Seville"), ("seville", "Seville"), ("valencia", "Valencia"),
+        ("donostia", "San Sebastián"), ("sansebastian", "San Sebastián"), ("mallorca", "Mallorca"), ("ibiza", "Ibiza"), ("lisbon", "Lisbon"), ("lisboa", "Lisbon"),
+        ("porto", "Porto"), ("milano", "Milan"), ("milan", "Milan"), ("roma", "Rome"), ("rome", "Rome"), ("napoli", "Naples"),
+        ("firenze", "Florence"), ("florence", "Florence"), ("venezia", "Venice"), ("venice", "Venice"), ("torino", "Turin"), ("bologna", "Bologna"),
+        ("athens", "Athens"), ("athina", "Athens"), ("istanbul", "Istanbul"), ("tbilisi", "Tbilisi"), ("beirut", "Beirut"), ("telaviv", "Tel Aviv"),
+        ("marrakech", "Marrakech"), ("marrakesh", "Marrakech"), ("capetown", "Cape Town"), ("dubai", "Dubai"), ("tokyo", "Tokyo"), ("kyoto", "Kyoto"),
+        ("osaka", "Osaka"), ("seoul", "Seoul"), ("taipei", "Taipei"), ("hongkong", "Hong Kong"), ("singapore", "Singapore"), ("bangkok", "Bangkok"),
+        ("bkk", "Bangkok"), ("melbourne", "Melbourne"), ("sydney", "Sydney"), ("nyc", "New York"), ("brooklyn", "Brooklyn"), ("losangeles", "Los Angeles"),
+        ("sanfrancisco", "San Francisco"), ("chicago", "Chicago"), ("miami", "Miami"), ("portland", "Portland"), ("toronto", "Toronto"), ("montreal", "Montréal"),
+        ("vancouver", "Vancouver"), ("cdmx", "Mexico City"), ("oaxaca", "Oaxaca"), ("oax", "Oaxaca"), ("buenosaires", "Buenos Aires"), ("saopaulo", "São Paulo"),
+        ("lima", "Lima"), ("bogota", "Bogotá"), ("medellin", "Medellín"), ("havana", "Havana"),
     ]
+    // Last: short codes, counted only as the handle's last part of their own ("cafe_lx", not "felix").
+    private static let handleCitiesLast: [String: String] = Dictionary(uniqueKeysWithValues: [
+        ("lx", "Lisbon"), ("lis", "Lisbon"), ("par", "Paris"), ("ber", "Berlin"), ("ams", "Amsterdam"), ("mil", "Milan"),
+        ("mi", "Milan"), ("rom", "Rome"), ("ath", "Athens"), ("ist", "Istanbul"), ("tyo", "Tokyo"), ("zrh", "Zürich"),
+        ("vie", "Vienna"), ("muc", "Munich"), ("prg", "Prague"), ("bxl", "Brussels"), ("edi", "Edinburgh"), ("dub", "Dublin"),
+        ("tlv", "Tel Aviv"), ("hk", "Hong Kong"), ("sg", "Singapore"), ("syd", "Sydney"), ("mel", "Melbourne"), ("la", "Los Angeles"),
+        ("nola", "New Orleans"), ("sf", "San Francisco"), ("mtl", "Montréal"), ("atx", "Austin"), ("bsas", "Buenos Aires"), ("cpt", "Cape Town"),
+    ])
+    /// Every city a handle can name, for telling a city word from a name word.
+    private static let handleCityNames: Set<String> = Set((handleCitiesGlued.map(\.1) + handleCitiesLast.values).flatMap { fold($0).split(separator: " ").map(String.init) })
 
     /// "restaurangvra" → "restaurang vra": a category word glued on. Same rule as `handleWithKind` on the web.
     static func handleWithKind(_ username: String?) -> String? {
@@ -324,14 +388,22 @@ extension PlaceSearch {
 
     /// "barabbacph" → "barabba Copenhagen"; nil when the handle carries no city.
     static func handleWithCity(_ username: String?) -> String? {
+        splitHandleCity(username).map { [$0.name, $0.city].filter { !$0.isEmpty }.joined(separator: " ") }
+    }
+
+    /// "strakers_nyc" → "New York"; nil when the handle carries no city.
+    static func cityOfHandle(_ username: String?) -> String? { splitHandleCity(username)?.city }
+
+    private static func splitHandleCity(_ username: String?) -> (name: String, city: String)? {
         let parts = (username ?? "").lowercased().split { "._-".contains($0) }.map(String.init)
+        if parts.count > 1, let city = handleCitiesLast[parts[parts.count - 1]] { return (parts.dropLast().joined(separator: " "), city) }
         for i in stride(from: parts.count - 1, through: 0, by: -1) {
             let p = parts[i]
-            if i > 0, let city = handleCities.first(where: { $0.0 == p })?.1 {
-                return (Array(parts[..<i]) + Array(parts[(i + 1)...]) + [city]).joined(separator: " ")
+            if i > 0, let city = handleCitiesGlued.first(where: { $0.0 == p })?.1 {
+                return ((Array(parts[..<i]) + Array(parts[(i + 1)...])).joined(separator: " "), city)
             }
-            for (code, city) in handleCities where p.count >= code.count + 3 && p.hasSuffix(code) {
-                return (Array(parts[..<i]) + [String(p.dropLast(code.count))] + Array(parts[(i + 1)...]) + [city]).joined(separator: " ")
+            for (code, city) in handleCitiesGlued where p.count >= code.count + 3 && p.hasSuffix(code) {
+                return ((Array(parts[..<i]) + [String(p.dropLast(code.count))] + Array(parts[(i + 1)...])).joined(separator: " "), city)
             }
         }
         return nil

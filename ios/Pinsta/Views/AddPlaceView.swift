@@ -359,7 +359,7 @@ struct AddPlaceView: View {
             // A carousel may name several places on its slides; read them while the usual search runs.
             // Their city: a town tag, the handle's ("vinkoslo"), or TikTok's.
             let slideCity = PlaceSearch.areaOfTag(post.locationName)
-                ?? PlaceSearch.handleWithCity(post.ownerUsername)?.split(separator: " ").last.map(String.init) ?? post.city
+                ?? PlaceSearch.cityOfHandle(post.ownerUsername) ?? post.city
             async let onSlides = SlideText.places(
                 slides: post.slides ?? [], caption: post.caption, city: slideCity, account: [post.ownerFullName, post.ownerUsername].compactMap { $0 }
             )
@@ -367,13 +367,15 @@ struct AddPlaceView: View {
             var from: Source = .account
             let tagged = post.locationName.flatMap { PlaceSearch.areaOfTag($0) == nil && PlaceSearch.streetOfTag($0) == nil ? $0 : nil }
             var streetPin: CLLocationCoordinate2D?
+            // Where the post is (a street tag, or the city in a handle): Google is asked there too.
+            var postNear: CLLocationCoordinate2D?
             if post.kind == "google", let name = post.locationName {
                 let pin = post.near.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lng) }
                 found = await PlaceSearch.resolveLink(name: name, near: pin)
                 from = .link
             } else if let tag = tagged {
                 found = Array(await PlaceSearch.resolveTag(
-                    tag, ownerFullName: post.ownerFullName, ownerUsername: post.ownerUsername, caption: post.caption,
+                    tag, ownerFullName: post.ownerFullName, ownerUsername: post.ownerUsername, coauthors: post.coauthors ?? [], caption: post.caption,
                     hashtags: post.hashtags ?? [], cityHints: Array(cityHints),
                     extraQueries: post.city.map { ["\(tag) \($0)"] } ?? []
                 ).prefix(5))
@@ -390,6 +392,7 @@ struct AddPlaceView: View {
                     hint: tagged
                 )
                 found = r.candidates
+                postNear = r.near
                 // The caption's 📍 line names the place as surely as a tag does.
                 from = r.pinned ? .tag : .account
             }
@@ -407,9 +410,11 @@ struct AddPlaceView: View {
                 // The handle's city keeps it local ("batasthlm" → "bata Stockholm", searched around Stockholm).
                 let withCity = PlaceSearch.handleWithCity(post.ownerUsername)
                 let name = withCity ?? post.ownerFullName ?? PlaceSearch.handleWithKind(post.ownerUsername)
-                var near = streetPin
-                if near == nil, let city = withCity?.split(separator: " ").last { near = await PlaceSearch.locate(String(city)) }
-                let clues = [tagged, PlaceSearch.pinnedPlaceQuery(post.caption), name].compactMap { $0 }
+                // A co-author carrying a city is the venue more often than the poster ("strakers_nyc" on Thomas Straker's post).
+                let coauthor = (post.coauthors ?? []).filter { $0 != post.ownerUsername }.lazy.compactMap(PlaceSearch.handleWithCity).first
+                var near = streetPin ?? postNear
+                if near == nil, let city = PlaceSearch.cityOfHandle(post.ownerUsername) { near = await PlaceSearch.locate(city) }
+                let clues = [tagged, PlaceSearch.pinnedPlaceQuery(post.caption), coauthor, PlaceSearch.captionPlaceQuery(post.caption), name].compactMap { $0 }
                 if found.isEmpty {
                     // Apple found nothing at all: ask Google straight away.
                     found = narrow(await GoogleFallback.search(clues, near: near))
@@ -561,6 +566,7 @@ struct AddPlaceView: View {
             context.insert(place)
             persist()
             Task { await PriceLookup.check(place, in: context) }
+            Task { await EnglishNames.check(place, in: context) }
             let line = Milestone.line(for: place, among: all)
             let id = place.id
             // The picture usually arrived while the place was being found; it is the card's photo too.
