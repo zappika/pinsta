@@ -636,7 +636,11 @@ export async function resolveUntagged(input: {
   ]);
   if (fromPin.length) return { candidates: fromPin.slice(0, 3), pinned: true, near };
   // Co-authors before the poster: on a collab the venue is rarely the one who posted.
-  const accounts = [...fromAccounts.slice(1).flat(), ...fromAccounts[0]];
+  // The poster found itself: a mentioned account's places far from it are a namesake. @lilliestuart
+  // (a person) found "Stuart Studio" in Lille on Pophams' London post (2026-10-16).
+  const anchor = fromAccounts[0][0];
+  const others = fromAccounts.slice(1).flat().filter((c) => !anchor || metersBetween({ lat: anchor.lat, lng: anchor.lng }, { latitude: c.lat, longitude: c.lng }) <= 100_000);
+  const accounts = [...others, ...fromAccounts[0]];
   const seen = new Set<string>();
   const merged = [...fromCaption.slice(0, 3), ...fromCollab.flatMap((r) => r.slice(0, 2)), ...accounts].filter(
     (c) => !seen.has(c.placeId) && seen.add(c.placeId),

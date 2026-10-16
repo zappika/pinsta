@@ -14,6 +14,7 @@ How it stays true:
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
 ## Next build (since `ios-26`)
+- A person tagged in a venue's post no longer pulls in namesakes from another country (Pophams' London post offered places in Lille).
 
 ## In TestFlight: 1.0 (26) · 2026-10-16 · `ios-26` · phone ☐
 - With no places near you, the map opens on all your places, not on the nearest country. Only places worlds apart (say Tokyo and Barcelona) still open on one country, the one with the most places.

@@ -16,6 +16,11 @@ What's new for testers: `changelog.md` → vicolo.space/changelog (menu → What
 ## Open from feedback
 Newest round first. When something is fixed, strike it through with the build it shipped in, then drop it next round.
 
+### 2026-10-16 round, on build 26
+- ~~Pophams `DeeRAfqIuGl`: "Stuart Studio" in Lille first~~: from `@lilliestuart` (a person) in the caption, ranked first by the new mention rule. A mentioned account's results more than 100 km from the poster's own are dropped. For build 27.
+- **Jolene `Deb1PksCAdA` (@jolene_newingtongreen):** failed on Sarp's phone on 26. The search finds Jolene London; the Simulator once got "Couldn't read that post" (the read, not the search) and once worked. Suspect Apify (5 reads at a time on the free plan, many test reads that day). Open: retry on the phone; if it keeps failing, look at the extract logs.
+- **casa.lawa `DeW-H5LCsup` (Catania):** Bar Popolare found (hard: another venue's post), plus a laundry and a café whose signs are in a street photo on one slide. Idea: names from a slide that's mostly unreadable text start unticked; must keep Vink's Oslo slides (four names each) ticked. Photo: the link's `img_index=7` doesn't match Apify's six pictures (a video slide, likely), so not used. Waiting on Sarp.
+
 ### 2026-10-16 round (Sarp's own tries)
 Most were "can't read the location" or "Apple Maps doesn't have it". Fixed for build 26 (search on web and iOS):
 - ~~Criollo `DeM0Nu5Ke2H` (tag "Criollo", @criollo_oax): Italian namesakes until "Oaxaca" was typed~~: the handle's city now pins a tag search; `oax` and many Monocle-city shorthands added.

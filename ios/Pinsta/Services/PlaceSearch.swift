@@ -198,7 +198,14 @@ extension PlaceSearch {
         for handle in coauthors where handle != ownerUsername {
             fromAccounts += await resolveAccount(ownerFullName: nil, ownerUsername: handle, town: town, near: near).prefix(3)
         }
-        fromAccounts += await resolveAccount(ownerFullName: ownerFullName, ownerUsername: ownerUsername, town: town, near: near).prefix(3)
+        let fromOwner = Array(await resolveAccount(ownerFullName: ownerFullName, ownerUsername: ownerUsername, town: town, near: near).prefix(3))
+        // The poster found itself: a mentioned account's places far from it are a namesake. @lilliestuart
+        // (a person) found "Stuart Studio" in Lille on Pophams' London post (2026-10-16).
+        if let anchor = fromOwner.first {
+            let at = CLLocation(latitude: anchor.latitude, longitude: anchor.longitude)
+            fromAccounts = fromAccounts.filter { CLLocation(latitude: $0.latitude, longitude: $0.longitude).distance(from: at) <= 100_000 }
+        }
+        fromAccounts += fromOwner
         var seen = Set<String>()
         let merged = (Array(fromCaption.prefix(3)) + fromCollab + fromAccounts).filter { seen.insert($0.id).inserted }
         // On a collab, the venue carries the tag's or a collab name's words (VRÅ, not the Clarion Hotel it's in).
