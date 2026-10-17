@@ -376,9 +376,9 @@ extension PlaceSearch {
         ("athens", "Athens"), ("athina", "Athens"), ("istanbul", "Istanbul"), ("tbilisi", "Tbilisi"), ("beirut", "Beirut"), ("telaviv", "Tel Aviv"),
         ("marrakech", "Marrakech"), ("marrakesh", "Marrakech"), ("capetown", "Cape Town"), ("dubai", "Dubai"), ("tokyo", "Tokyo"), ("kyoto", "Kyoto"),
         ("osaka", "Osaka"), ("seoul", "Seoul"), ("taipei", "Taipei"), ("hongkong", "Hong Kong"), ("singapore", "Singapore"), ("bangkok", "Bangkok"),
-        ("bkk", "Bangkok"), ("melbourne", "Melbourne"), ("sydney", "Sydney"), ("nyc", "New York"), ("brooklyn", "Brooklyn"), ("losangeles", "Los Angeles"),
+        ("bkk", "Bangkok"), ("melbourne", "Melbourne"), ("sydney", "Sydney"), ("nyc", "New York"), ("newyork", "New York"), ("newyorkcity", "New York"), ("brooklyn", "Brooklyn"), ("losangeles", "Los Angeles"),
         ("sanfrancisco", "San Francisco"), ("chicago", "Chicago"), ("miami", "Miami"), ("portland", "Portland"), ("toronto", "Toronto"), ("montreal", "Montréal"),
-        ("vancouver", "Vancouver"), ("cdmx", "Mexico City"), ("oaxaca", "Oaxaca"), ("oax", "Oaxaca"), ("buenosaires", "Buenos Aires"), ("saopaulo", "São Paulo"),
+        ("vancouver", "Vancouver"), ("cdmx", "Mexico City"), ("mexicocity", "Mexico City"), ("neworleans", "New Orleans"), ("austin", "Austin"), ("oaxaca", "Oaxaca"), ("oax", "Oaxaca"), ("buenosaires", "Buenos Aires"), ("saopaulo", "São Paulo"),
         ("lima", "Lima"), ("bogota", "Bogotá"), ("medellin", "Medellín"), ("havana", "Havana"),
     ]
     // Last: short codes, counted only as the handle's last part of their own ("cafe_lx", not "felix").
@@ -386,7 +386,7 @@ extension PlaceSearch {
         ("lx", "Lisbon"), ("lis", "Lisbon"), ("par", "Paris"), ("ber", "Berlin"), ("ams", "Amsterdam"), ("mil", "Milan"),
         ("mi", "Milan"), ("rom", "Rome"), ("ath", "Athens"), ("ist", "Istanbul"), ("tyo", "Tokyo"), ("zrh", "Zürich"),
         ("vie", "Vienna"), ("muc", "Munich"), ("prg", "Prague"), ("bxl", "Brussels"), ("edi", "Edinburgh"), ("dub", "Dublin"),
-        ("tlv", "Tel Aviv"), ("hk", "Hong Kong"), ("sg", "Singapore"), ("syd", "Sydney"), ("mel", "Melbourne"), ("la", "Los Angeles"),
+        ("tlv", "Tel Aviv"), ("hk", "Hong Kong"), ("sg", "Singapore"), ("syd", "Sydney"), ("mel", "Melbourne"), ("la", "Los Angeles"), ("ny", "New York"),
         ("nola", "New Orleans"), ("sf", "San Francisco"), ("mtl", "Montréal"), ("atx", "Austin"), ("bsas", "Buenos Aires"), ("cpt", "Cape Town"),
     ])
     /// "Tokyo", "BERLIN": a line that is only a city's name names no place (a slide's cover, gatrooms 2026-10-16).

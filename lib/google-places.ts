@@ -395,9 +395,9 @@ const HANDLE_CITIES_GLUED: Record<string, string> = {
   marrakech: "Marrakech", marrakesh: "Marrakech", capetown: "Cape Town", dubai: "Dubai",
   tokyo: "Tokyo", kyoto: "Kyoto", osaka: "Osaka", seoul: "Seoul", taipei: "Taipei", hongkong: "Hong Kong",
   singapore: "Singapore", bangkok: "Bangkok", bkk: "Bangkok", melbourne: "Melbourne", sydney: "Sydney",
-  nyc: "New York", brooklyn: "Brooklyn", losangeles: "Los Angeles", sanfrancisco: "San Francisco", chicago: "Chicago",
+  nyc: "New York", newyork: "New York", newyorkcity: "New York", brooklyn: "Brooklyn", losangeles: "Los Angeles", sanfrancisco: "San Francisco", chicago: "Chicago",
   miami: "Miami", portland: "Portland", toronto: "Toronto", montreal: "Montréal", vancouver: "Vancouver",
-  cdmx: "Mexico City", oaxaca: "Oaxaca", oax: "Oaxaca", buenosaires: "Buenos Aires", saopaulo: "São Paulo", lima: "Lima",
+  cdmx: "Mexico City", mexicocity: "Mexico City", neworleans: "New Orleans", austin: "Austin", oaxaca: "Oaxaca", oax: "Oaxaca", buenosaires: "Buenos Aires", saopaulo: "São Paulo", lima: "Lima",
   bogota: "Bogotá", medellin: "Medellín", havana: "Havana",
 };
 // LAST: short codes, counted only as the handle's last part of their own ("cafe_lx", not "felix").
@@ -405,7 +405,7 @@ const HANDLE_CITIES_LAST: Record<string, string> = {
   lx: "Lisbon", lis: "Lisbon", par: "Paris", ber: "Berlin", ams: "Amsterdam", mil: "Milan", mi: "Milan", rom: "Rome",
   ath: "Athens", ist: "Istanbul", tyo: "Tokyo", zrh: "Zürich", vie: "Vienna", muc: "Munich", prg: "Prague", bxl: "Brussels",
   edi: "Edinburgh", dub: "Dublin", tlv: "Tel Aviv", hk: "Hong Kong", sg: "Singapore", syd: "Sydney", mel: "Melbourne",
-  la: "Los Angeles", nola: "New Orleans", sf: "San Francisco", mtl: "Montréal", atx: "Austin", bsas: "Buenos Aires", cpt: "Cape Town",
+  la: "Los Angeles", ny: "New York", nola: "New Orleans", sf: "San Francisco", mtl: "Montréal", atx: "Austin", bsas: "Buenos Aires", cpt: "Cape Town",
 };
 /** Every city a handle can name, for telling a city word from a name word. */
 const HANDLE_CITY_NAMES = new Set([...Object.values(HANDLE_CITIES_GLUED), ...Object.values(HANDLE_CITIES_LAST)].flatMap((c) => fold(c).split(/\s+/)));
