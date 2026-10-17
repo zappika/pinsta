@@ -505,7 +505,7 @@ struct AddPlaceView: View {
                 return
             }
             // A Swedish caption: the Stockholm Liebling before the Viennese one.
-            found = PlaceSearch.lifted(found, to: PlaceSearch.languageCountry(caption: post.caption, username: post.ownerUsername))
+            found = PlaceSearch.lifted(found, to: PlaceSearch.languageCountries(caption: post.caption, username: post.ownerUsername))
             candidates = found
             source = found.isEmpty ? nil : from
             // Three slides or more and nothing to offer: say what happened.

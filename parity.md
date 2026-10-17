@@ -12,16 +12,15 @@ closes a difference (CLAUDE.md). Last updated 2026-10-15 (build 24). Also at bac
 | What menu sub-rows (2+ places sharing a type, e.g. Wine bar under Bars; `lib/subtypes.ts` ↔ `Subtypes.swift`) | Google `primaryType` | Apple's category (brewery, movie_theater…), or Google's type when the fallback found it; no cuisines (Apple has none, Sarp: no rows from our food words). Only saves from now on carry a type |
 | Locate button and a 4.5 km minimum frame | Round arrow above the + on the map; frames you at town size, may ask for location at any list size. No frame tighter than 4.5 km | Same, for build 27 (`PlacesMapView.minFrameKm`, `goHere`); off-location shows a notice pointing to Settings |
 | The + menu | Fans out Instagram post / Google Maps (a place or a list → /import); Import left the buddy menu; Paste on both screens; a share-sheet tip on the first 3 pasted saves (Sarp, 2026-10-16) | Same (`AddMenu.swift`); a list link opens ImportView. The buddy menu keeps a "Google list" row only while an import runs, for its progress |
-| Map pins | Loud and quiet, being explored (2026-10-16): photos of places picked one at a time sized by zoom, list imports small tinted dots (type icon at street level), names where they fit, a Tiers / Text switch | Post photo, else type icon on its tint (`PlacesMapView.fromPost`); gets the web's once Sarp picks |
+| Map pins | Loud and quiet, being explored (2026-10-16): photos of places picked one at a time sized by zoom, list imports small tinted dots (type icon at street level), names where they fit, a Tiers / Text switch | Post photo, else type icon on its tint (`PlacesMapView.fromPost`); gets the web's once Sarp picks · Going ahead on the web, design not locked yet (Sarp, 2026-10-17) |
 | Town names in English | Google answers in English | A town or region in another script is geocoded again in English (`EnglishNames`) |
-| List posts: several places on a carousel's slides or a numbered list in the caption, pick many | No: slides need text reading on the server (a caption list would not) | Yes (Vision on the phone); a slide name Apple Maps lacks is asked of Google; names off a street photo's signs start unticked |
-| Nordic caption lifts its country (Swedish → Sweden first among suggestions; English lifts nothing) | No | Yes, Apple's on-device language detection (`PlaceSearch.languageCountry`) |
-| Why a post couldn't be read (private/deleted vs. no answer) on the search screen, and "no photo" on the success card | No: one generic line | Yes |
 
 ## Different on purpose
 
 | What | Web | iOS |
 |---|---|---|
+| List posts: several places on a carousel's slides or a numbered list in the caption, pick many | No: slides need text reading on the server (a caption list would not) | Yes (Vision on the phone); a slide name Apple Maps lacks is asked of Google; names off a street photo's signs start unticked · iOS-only for now (Sarp, 2026-10-17) |
+| Why a post couldn't be read (private/deleted vs. no answer) on the search screen, and "no photo" on the success card | One generic line | Yes · iOS-only for now (Sarp, 2026-10-17) |
 | Asset library | Backoffice `/library`, web-only artwork browser | No library UI |
 | Whose list | Sarp's, behind the owner key ("Lock this browser") | Each phone's own |
 | Where the list lives | Neon database | SwiftData on the phone |

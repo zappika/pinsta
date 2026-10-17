@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { fetchInstagramPost } from "@/lib/instagram-post";
+import { languageCountries, lifted } from "@/lib/language";
 import { fetchTikTokPost } from "@/lib/tiktok";
 import { fetchInstagramProfile } from "@/lib/instagram-profile";
 import { readGoogleLink } from "@/lib/google-link";
 import { listIdFrom } from "@/lib/google-list";
 import { parseSourceUrl, type SourceKind } from "@/lib/sources";
-import { areaOfTag, getPlace, locate, profileMatches, resolveTag, resolveUntagged, searchPlaces, streetOfTag, type PlaceCandidate } from "@/lib/google-places";
+import { areaOfTag, getPlace, handleWithKind, locate, profileMatches, resolveTag, resolveUntagged, searchPlaces, streetOfTag, type PlaceCandidate } from "@/lib/google-places";
 import { storeImage } from "@/lib/blob";
 import { isOwner } from "@/lib/owner";
 
@@ -180,7 +181,8 @@ export async function POST(req: Request) {
         ? nearestFirst(found, post.near)
         : parsed.kind === "profile"
           ? profileMatches(found, { fullName: post.ownerFullName, username: post.ownerUsername, category: post.category ?? null })
-          : found;
+          : // A Swedish caption: the Stockholm Liebling before the Viennese one.
+            lifted(found, languageCountries(post.caption, handleWithKind(post.ownerUsername)));
 
     const out: ExtractResponse = {
       post: {

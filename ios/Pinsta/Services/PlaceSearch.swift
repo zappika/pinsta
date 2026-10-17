@@ -1,6 +1,5 @@
 import Foundation
 import MapKit
-import NaturalLanguage
 
 /// A candidate from MapKit search — the native replacement for Google Places.
 struct PlaceCandidate: Identifiable, Hashable {
@@ -152,25 +151,47 @@ extension PlaceSearch {
     }
 
     /// A post written in a Nordic language lifts places in its country: Liebling in Stockholm over the
-    /// Liebling café in Vienna for a Swedish caption (Sarp, 2026-10-17). Only these languages: English is
-    /// what Copenhagen posts in too, so it says nothing, and an English post lifts nothing.
-    private static let nordic: [NLLanguage: String] = [.swedish: "Sweden", .danish: "Denmark", .norwegian: "Norway", .finnish: "Finland", .icelandic: "Iceland"]
+    /// Liebling café in Vienna for a Swedish caption (Sarp, 2026-10-17). English says nothing (Copenhagen
+    /// posts in English too). Common words only one language uses; two of them, and more than any other
+    /// language, decide; a word in the handle counts twice; Danish-and-Norwegian words lift both. Apple's
+    /// language detection missed a handle's "restaurang", so it's a word list, the same one in
+    /// lib/language.ts. Change one, change the other.
+    private static let nordicWords: [String: Set<String>] = [
+        "sweden": ["och", "är", "inte", "från", "också", "eller", "välkommen", "välkomna", "öppet", "öppettider", "ikväll", "idag", "här", "kväll", "lördag", "söndag", "fredag", "måndag", "tisdag", "lördagar", "mån", "tis", "lör", "sön", "mycket", "hos", "boka", "gott", "även", "mellan", "alla", "dagar", "restaurang", "krog", "fika"],
+        "denmark": ["åbent", "åben", "åbner", "hvad", "aften", "uge", "ugen", "køkken", "dejlig", "dejligt", "smørrebrød", "vores", "bestil"],
+        "norway": ["åpent", "åpen", "åpner", "kveld", "ikveld", "etter", "uke", "uken", "hva", "kjøkken", "deilig", "deilige", "nå"],
+        "dano": ["og", "ikke", "også", "velkommen", "fra", "lørdag", "søndag", "fredag", "mandag", "tirsdag", "frokost", "hyggelig", "spise", "forbi", "kun"],
+        "finland": ["ja", "ei", "että", "tervetuloa", "auki", "ravintola", "kanssa", "myös", "tänään", "huomenna", "nähdään", "kiitos", "viikonloppuna", "ruoka", "olemme", "meillä", "kaikki"],
+        "iceland": ["með", "við", "frá", "ekki", "velkomin", "opið", "kvöld", "matur", "veitingastaður"],
+    ]
+    private static let nordicCountry = ["sweden": "Sweden", "denmark": "Denmark", "norway": "Norway", "finland": "Finland", "iceland": "Iceland"]
 
-    /// The country a post's language points to; nil unless it's clearly a Nordic one.
-    static func languageCountry(caption: String?, username: String?) -> String? {
-        let text = [caption, handleWithKind(username)].compactMap { $0 }.joined(separator: "\n")
-        guard text.filter(\.isLetter).count >= 12 else { return nil }
-        let r = NLLanguageRecognizer()
-        r.processString(text)
-        guard let (lang, p) = r.languageHypotheses(withMaximum: 1).first, p >= 0.6 else { return nil }
-        return nordic[lang]
+    /// The countries a post's words point to: one, Denmark and Norway together, or none.
+    static func languageCountries(caption: String?, username: String?) -> [String] {
+        func split(_ s: String?) -> Set<String> {
+            Set((s ?? "").lowercased().split { !$0.isLetter }.map(String.init))
+        }
+        let own = split(handleWithKind(username))
+        let words = split(caption).union(own)
+        func hits(_ k: String) -> Int { nordicWords[k]!.intersection(words).count + nordicWords[k]!.intersection(own).count }
+        let named = nordicWords["dano"]!.union(nordicWords["denmark"]!).union(nordicWords["norway"]!)
+        let dano = hits("dano") + words.filter { w in w.contains(where: { "æø".contains($0) }) && !named.contains(w) }.count
+        let score = [
+            "sweden": hits("sweden"), "denmark": hits("denmark") + dano, "norway": hits("norway") + dano, "finland": hits("finland"),
+            "iceland": hits("iceland") + words.filter { w in w.contains(where: { "ðþ".contains($0) }) && !nordicWords["iceland"]!.contains(w) }.count,
+        ]
+        guard let best = score.values.max(), best >= 2 else { return [] }
+        let top = Set(score.filter { $0.value == best }.keys)
+        // Only Danish-and-Norwegian words: both. Any other tie says nothing.
+        if top == ["denmark", "norway"] { return ["Denmark", "Norway"] }
+        return top.count == 1 ? [nordicCountry[top.first!]!] : []
     }
 
-    /// Places in that country first, the order otherwise kept. A tie-break among suggestions, never a filter.
-    static func lifted(_ cs: [PlaceCandidate], to country: String?) -> [PlaceCandidate] {
-        guard let country else { return cs }
-        let here = cs.filter { fold($0.country ?? "") == fold(country) }
-        return here + cs.filter { fold($0.country ?? "") != fold(country) }
+    /// Places in those countries first, the order otherwise kept. A tie-break among suggestions, never a filter.
+    static func lifted(_ cs: [PlaceCandidate], to countries: [String]) -> [PlaceCandidate] {
+        guard !countries.isEmpty else { return cs }
+        let here = { (c: PlaceCandidate) in countries.contains { fold($0) == fold(c.country ?? "") } }
+        return cs.filter(here) + cs.filter { !here($0) }
     }
 
     /// Two names share a real word, accents aside.

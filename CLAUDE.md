@@ -69,6 +69,7 @@ Pinsta. Instagram itself can't be installed in the Simulator.
   the tag's words. Tagged accounts count as co-authors (@clarionpost on Broth Boy x Vrå). Name comparisons fold
   case and accents ("VRÅ" = @restaurangvra's "vra"); a category word glued to a handle is split off
   (`handleWithKind`), a city glued to it pins the search there and isn't a name word.
+- **Nordic captions** (`lib/language.ts` ↔ `PlaceSearch.languageCountries`, same word list): two words only Swedish/Danish/Norwegian/Finnish/Icelandic use (a handle word counts twice) move that country's places first; Danish-and-Norwegian words lift both. English lifts nothing. A tie-break, never a filter (Sarp, 2026-10-17). Apple's NLLanguageRecognizer and franc misread short captions.
 - **Instagram profiles** (`instagram.com/<handle>` or `@handle`, kind `profile` in `lib/sources.ts` ↔ `SourceURL`):
   `lib/instagram-profile.ts` reads one through Apify (`resultsType: "details"`) shaped like a post — display name
   before any " | ", the place its own latest posts are tagged with most (2+), else a street address in the bio
