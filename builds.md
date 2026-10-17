@@ -13,7 +13,9 @@ How it stays true:
 - `git log ios-N..HEAD -- ios lib app/api` is the check: anything there that isn't listed under Next build was forgotten.
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
-## Next build (since `ios-29`)
+## Next build (since `ios-30`)
+
+## In TestFlight: 1.0 (30) · 2026-10-17 · `ios-30` · phone ☐
 - When a post can't be read, the sheet says why (private or deleted, or Instagram didn't answer), and a place saved without a photo says so on the saved card.
 - With a single suggestion, the button under it says "Not this one".
 - A post written in Swedish, Danish, Norwegian, Finnish or Icelandic shows places in that country first.
@@ -29,13 +31,14 @@ How it stays true:
 - *(internal)* Privacy manifests (app + extension) declare UserDefaults (CA92.1, 1C8F.1) and the data that leaves the phone: links/places (Other User Content), usage counts, read errors. For the App Store.
 - *(internal)* Testing launch arguments (`-addURL`, `-importURL`, `-slowNotices`, `-splashHold`) work in Debug builds only (`Views/TestArgs.swift`).
 
-## In TestFlight: 1.0 (29) · 2026-10-16 · `ios-29` · phone ☑ (Sarp, 2026-10-16)
+## Earlier builds
+
+### 1.0 (29) · 2026-10-16 · `ios-29` · phone ☑ (Sarp, 2026-10-16)
 - A post that names places only on signs in a street photo no longer ticks them for you: those names are listed unticked, the post's own places stay ticked.
 - Vicolo now also counts how it's used (how often it's opened, which views you pick and how long each is on screen), with no places, links or names. The privacy page says so.
 - *(internal)* `SlideText.Reading.signs`: a slide with any Vision line under 0.5 confidence is a photo of signs (casa.lawa `DeW-H5LCsup`, slide 5); its names start unticked. Vink's Oslo slides all read at 1.0, still 5 of 5 ticked.
 - *(internal)* `Uses.swift` + `ScreenClock`: per-day running totals (`open`, `pick.<view>`, `sec.<screen>` incl. `tutorial`) in the App Group, sent to open `POST /api/uses` on launch and on background; the server keeps the larger count. Backoffice → Saves shows them, plus where saves came from (link kind × share sheet / in app).
 
-## Earlier builds
 Tags `ios-1` … `ios-25` mark the commit that set each build number (the upload may
 include a commit or two after it).
 

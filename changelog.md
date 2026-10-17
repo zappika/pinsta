@@ -8,6 +8,21 @@ backoffice, web-only changes). Headings read "## Build N · D Month".
 
 # What's new in Vicolo
 
+## Build 30 · 17 October
+
+- Sharing a post with many slides (a museum, a house tour) no longer gets stuck on "Finding the place…". The sheet shows which slide it's reading and which name it's looking up, and tells you if the slides don't name a place.
+- When Vicolo can't read a post, it says why: the account is private or the post was deleted, or Instagram didn't answer. A place saved without a photo says so on the saved card.
+- With only one suggestion, the button under it now reads "Not this one".
+- A post in Swedish, Danish, Norwegian, Finnish or Icelandic shows places in that country first, so Liebling in Stockholm comes before Liebling in Vienna.
+- Accounts that spell out New York ("misinewyork", "_ny") are looked for in New York, not in every town with that name.
+- A post tagged with just a town, like "Los Angeles, California", no longer suggests random places there.
+- The Undo next to "Removed …" is no longer hidden under the locate button.
+- Menu → Help and Privacy: how to save, common questions, how to reach us, and what Vicolo does with your data.
+- Settings → Help improve Vicolo: a switch to stop sending how saves went and how the app is used.
+- Larger text: the Where and What titles stack instead of being cut off.
+- Reduce Motion: menus, cards and sheets fade instead of sliding, and the map jumps instead of flying.
+- VoiceOver can change or remove a card and reads the Where and What titles.
+
 ## Build 29 · 16 October
 
 - A post that names places only on signs in a street photo no longer ticks them for you: those names are listed unticked, the post's own places stay ticked.
