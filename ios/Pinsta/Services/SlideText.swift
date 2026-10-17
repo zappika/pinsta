@@ -23,24 +23,42 @@ enum SlideText {
     /// reel, 2026-10-15) names places the same way; those get the post's own photo.
     /// `within`: past this many seconds the list is given up and the ordinary results show. The
     /// sheet waits for this, and it used to wait forever (archived.spaces, luxury_listings, 2026-10-17).
-    static func places(slides: [String], caption: String? = nil, city: String?, account: [String] = [], within seconds: Double = 20) async -> [Found] {
-        let once = Once<[Found]>()
+    /// `onStep`: where it is, for the sheet to say so (a bar stuck near full read as a frozen app, 2026-10-17).
+    static func places(
+        slides: [String], caption: String? = nil, city: String?, account: [String] = [], within seconds: Double = 20,
+        onStep: @escaping @Sendable (Step) -> Void = { _ in }
+    ) async -> Outcome {
+        let once = Once<Outcome>()
         return await withCheckedContinuation { done in
             once.set(done)
             let work = Task {
-                once.resume(await read(slides: slides, caption: caption, city: city, account: account))
+                once.resume(Outcome(found: await read(slides: slides, caption: caption, city: city, account: account, onStep: onStep), gaveUp: false))
             }
             Task {
                 try? await Task.sleep(for: .seconds(seconds))
                 work.cancel()
-                once.resume([])
+                once.resume(Outcome(found: [], gaveUp: true))
             }
         }
     }
 
-    private static func read(slides: [String], caption: String?, city: String?, account: [String]) async -> [Found] {
+    struct Outcome {
+        /// Two or more places, or none.
+        let found: [Found]
+        /// Ran out of time before it was through.
+        let gaveUp: Bool
+    }
+
+    /// Reading the slides' text, then looking the names up: `done` of `of`.
+    enum Step: Equatable {
+        case reading(done: Int, of: Int)
+        case looking(done: Int, of: Int)
+    }
+
+    private static func read(slides: [String], caption: String?, city: String?, account: [String], onStep: @Sendable (Step) -> Void) async -> [Found] {
         let listed = captionList(caption)
         guard slides.count >= 2 || listed.count >= 2 else { return [] }
+        if slides.count >= 2 { onStep(.reading(done: 0, of: min(slides.count, 10))) }
         // Downloaded together, read one at a time off Swift's shared threads: ten Vision reads at once
         // held every one of them and none ever finished. A slide that fails is just skipped.
         let downloaded: [(Int, Data)] = await withTaskGroup(of: (Int, Data)?.self) { group in
@@ -54,6 +72,7 @@ enum SlideText {
         var read: [(Int, Data, Reading)] = []
         for (i, data) in downloaded {
             guard !Task.isCancelled else { return [] }
+            onStep(.reading(done: read.count, of: downloaded.count))
             read.append((i, data, await reading(data)))
         }
         // Each name keeps where it came from: its slide (0…), or its caption line (-1, -2…).
@@ -82,8 +101,10 @@ enum SlideText {
             found.append((Found(candidate: c, image: data, unsure: signs.contains(from)), from))
         }
         var answered = Set<String>()
-        for (name, data, from) in names.prefix(maxSearches) {
+        let lookups = min(names.count, maxSearches)
+        for (n, (name, data, from)) in names.prefix(maxSearches).enumerated() {
             guard !Task.isCancelled else { return [] }
+            onStep(.looking(done: n, of: lookups))
             let hits = (try? await search(name, near: near)) ?? []
             if let c = hits.first(where: { named($0.name, name) && PlaceSearch.isNear($0, near) }) { keep(c, data, from); answered.insert(name) }
         }

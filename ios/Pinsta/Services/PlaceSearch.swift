@@ -140,6 +140,16 @@ extension PlaceSearch {
         .enumerated().sorted { (rank($0.element), $0.offset) < (rank($1.element), $1.offset) }.map(\.element)
     }
 
+    /// Named after one of the clues, not just in its city: Google asked "Luxury Listings" near Los Angeles
+    /// answers UCLA and the Kia Forum (2026-10-17). A long word glued into a handle counts ("richterholtermann").
+    static func namedLike(_ c: PlaceCandidate, _ clues: [String]) -> Bool {
+        let name = nameWords(c.name, c)
+        return clues.contains { clue in
+            let want = nameWords(clue, c).filter { !categoryWords.contains($0) }
+            return overlaps(name, want) || want.contains { w in w.count >= 8 && name.contains { $0.count >= 4 && w.contains($0) } }
+        }
+    }
+
     /// Two names share a real word, accents aside.
     static func sharesWord(_ a: String, _ b: String) -> Bool { overlaps(words(a), words(b)) }
 
@@ -342,6 +352,8 @@ extension PlaceSearch {
 
     private static let regionNames: Set<String> = {
         var names: Set<String> = ["usa", "uk", "uae", "england", "scotland", "italia", "españa", "deutschland", "sverige", "danmark", "türkiye"]
+        // Instagram tags US, Canadian and Australian towns "Los Angeles, California" (luxury_listings, 2026-10-17).
+        names.formUnion(["alabama", "alaska", "arizona", "arkansas", "california", "colorado", "connecticut", "delaware", "florida", "georgia", "hawaii", "idaho", "illinois", "indiana", "iowa", "kansas", "kentucky", "louisiana", "maine", "maryland", "massachusetts", "michigan", "minnesota", "mississippi", "missouri", "montana", "nebraska", "nevada", "new hampshire", "new jersey", "new mexico", "new york", "north carolina", "north dakota", "ohio", "oklahoma", "oregon", "pennsylvania", "rhode island", "south carolina", "south dakota", "tennessee", "texas", "utah", "vermont", "virginia", "washington", "west virginia", "wisconsin", "wyoming", "district of columbia", "ontario", "quebec", "québec", "british columbia", "alberta", "nova scotia", "new south wales", "victoria", "queensland", "western australia", "south australia", "tasmania"])
         let en = Locale(identifier: "en")
         for region in Locale.Region.isoRegions {
             if let name = en.localizedString(forRegionCode: region.identifier) { names.insert(name.lowercased()) }

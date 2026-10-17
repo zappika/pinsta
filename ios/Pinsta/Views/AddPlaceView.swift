@@ -63,6 +63,10 @@ struct AddPlaceView: View {
     @State private var widening = false
     /// A carousel naming several places on its slides (`SlideText`): pick which to save.
     @State private var many: [SlideText.Found] = []
+    /// Where the slide reading is, while the sheet waits on it.
+    @State private var slideStep: SlideText.Step?
+    /// The slides were read (or given up on) and named no place: said plainly, not as a frozen bar.
+    @State private var slidesMissed: (slides: Int, gaveUp: Bool)?
     @State private var picked: Set<String> = []
     @FocusState private var focus: Field?
     /// What this sheet tried, for `SaveReport`; sent once, when it ends.
@@ -125,6 +129,12 @@ struct AddPlaceView: View {
         if !many.isEmpty { return saving != nil ? "Saving…" : "This post has \(many.count) places" }
         if byName { return "Which place is it?" }
         if validURL == nil { return "Save a place" }
+        if finding, let slideStep {
+            switch slideStep {
+            case .reading(let done, let of): return "Reading slide \(min(done + 1, of)) of \(of)…"
+            case .looking(let done, let of): return "Looking up \(done + 1) of \(of) names…"
+            }
+        }
         if reading == .loading || finding { return "Finding the place…" }
         if saving != nil { return "Saving…" }
         if showSuggestedFirst { return candidates.count == 1 ? "Is this the place?" : "Is it one of these?" }
@@ -292,7 +302,7 @@ struct AddPlaceView: View {
         case .done(let post):
             VStack(alignment: .leading, spacing: 14) {
                 PostRow(post: post, fallbackImage: editing?.imageData, category: candidates.first?.category)
-                if finding { LoadingBar(read: true, started: readStarted) }
+                if finding { LoadingBar(read: true, started: readStarted, step: slideStep) }
             }
         case .failed:
             Text("Couldn't read that post. Type the place's name to save it.")
@@ -326,6 +336,11 @@ struct AddPlaceView: View {
             Text("Searching…").font(.subheadline).foregroundStyle(.tertiary).frame(maxWidth: .infinity)
         } else if !searching && typed.count >= 3 && candidates.isEmpty && error == nil {
             Text("No matches. Try adding the city.").font(.subheadline).foregroundStyle(.tertiary).frame(maxWidth: .infinity)
+        } else if editing == nil, manualMode, !finding, case .done = reading, typed.count < 3, let missed = slidesMissed {
+            Text(missed.gaveUp
+                 ? "\(missed.slides) slides full of text. That's more than I can read through. Type the place's name to save it."
+                 : "Read all \(missed.slides) slides and didn't find a place in them. Type its name to save it.")
+                .font(.subheadline).foregroundStyle(.secondary)
         } else if editing == nil, manualMode, !finding, case .done = reading, typed.count < 3 {
             // A profile or a tag names a place; it just isn't on the map (BATA isn't on Apple Maps yet).
             Text(post?.kind == "profile" || post?.locationName != nil ? "Couldn't find this place on the map. Type its name to save it." : "No location on this post. Type the place's name to save it.")
@@ -355,6 +370,8 @@ struct AddPlaceView: View {
         candidates = []
         wider = nil
         many = []
+        slideStep = nil
+        slidesMissed = nil
         query = ""
         error = nil
         tried = SaveReport.Detail()
@@ -396,7 +413,8 @@ struct AddPlaceView: View {
                 ?? PlaceSearch.postCity(ownerUsername: post.ownerUsername, coauthors: post.coauthors ?? [], town: nil, hashtags: post.hashtags ?? [])
                 ?? post.city
             async let onSlides = SlideText.places(
-                slides: post.slides ?? [], caption: post.caption, city: slideCity, account: [post.ownerFullName, post.ownerUsername].compactMap { $0 }
+                slides: post.slides ?? [], caption: post.caption, city: slideCity, account: [post.ownerFullName, post.ownerUsername].compactMap { $0 },
+                onStep: { step in Task { @MainActor in withAnimation(.snappy) { slideStep = step } } }
             )
             var found: [PlaceCandidate] = []
             var from: Source = .account
@@ -452,7 +470,7 @@ struct AddPlaceView: View {
                 let clues = [tagged, PlaceSearch.pinnedPlaceQuery(post.caption), coauthor, PlaceSearch.captionPlaceQuery(post.caption), name].compactMap { $0 }
                 if found.isEmpty {
                     // Apple found nothing at all: ask Google straight away.
-                    found = narrow(await GoogleFallback.search(clues, near: near))
+                    found = narrow(await GoogleFallback.search(clues, near: near).filter { PlaceSearch.namedLike($0, clues) })
                     if post.kind == "profile" { from = .tag }
                 } else if from == .account {
                     // Apple's guesses from the account: "None of these" asks Google with the same clues.
@@ -460,7 +478,9 @@ struct AddPlaceView: View {
                 }
             }
             // Two or more places on the slides: the post is a list, and they pick which to keep.
-            let listed = await onSlides
+            let outcome = await onSlides
+            let listed = outcome.found
+            slideStep = nil
             // The search field is open while this runs: if the user started typing,
             // their own results win, and nothing saves itself behind their back.
             guard !Task.isCancelled, query.trimmed.count < 3 else { return }
@@ -478,6 +498,8 @@ struct AddPlaceView: View {
             }
             candidates = found
             source = found.isEmpty ? nil : from
+            // Three slides or more and nothing to offer: say what happened.
+            if found.isEmpty, (post.slides?.count ?? 0) >= 3 { slidesMissed = (min(post.slides?.count ?? 0, 10), outcome.gaveUp) }
             // Only a location tag or a Maps link is trusted enough to save without a tap.
             if candidates.count == 1, source == .tag || source == .link {
                 save(candidates[0], auto: true)
@@ -882,13 +904,20 @@ private struct LoadingBar: View {
     /// The post is read; the place is being found.
     let read: Bool
     let started: Date
+    /// Reading slides: the bar follows the real count instead of the clock.
+    var step: SlideText.Step? = nil
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 0.1)) { ctx in
             // Eases toward 70% while reading, then on toward 95%; it only hits 100% by finishing.
             let t = ctx.date.timeIntervalSince(started)
             let reading = 0.7 * (1 - exp(-t / 6))
-            let value = read ? 0.7 + 0.25 * (1 - exp(-t / 8)) : reading
+            let value: Double = switch step {
+            // On from where the read left the bar (70%): it never goes back.
+            case .reading(let done, let of): 0.7 + 0.1 * Double(done) / Double(max(of, 1))
+            case .looking(let done, let of): 0.8 + 0.15 * Double(done) / Double(max(of, 1))
+            case nil: read ? 0.7 + 0.25 * (1 - exp(-t / 8)) : reading
+            }
             GeometryReader { geo in
                 Capsule().fill(Color(.tertiarySystemFill))
                     .overlay(alignment: .leading) {

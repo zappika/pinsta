@@ -352,6 +352,8 @@ export function profileMatches(cs: PlaceCandidate[], p: { fullName: string | nul
 
 const REGION_NAMES = (() => {
   const names = new Set(["usa", "uk", "uae", "england", "scotland", "italia", "españa", "deutschland", "sverige", "danmark", "türkiye"]);
+  // Instagram tags US, Canadian and Australian towns "Los Angeles, California" (luxury_listings, 2026-10-17).
+  for (const n of ["alabama", "alaska", "arizona", "arkansas", "california", "colorado", "connecticut", "delaware", "florida", "georgia", "hawaii", "idaho", "illinois", "indiana", "iowa", "kansas", "kentucky", "louisiana", "maine", "maryland", "massachusetts", "michigan", "minnesota", "mississippi", "missouri", "montana", "nebraska", "nevada", "new hampshire", "new jersey", "new mexico", "new york", "north carolina", "north dakota", "ohio", "oklahoma", "oregon", "pennsylvania", "rhode island", "south carolina", "south dakota", "tennessee", "texas", "utah", "vermont", "virginia", "washington", "west virginia", "wisconsin", "wyoming", "district of columbia", "ontario", "quebec", "québec", "british columbia", "alberta", "nova scotia", "new south wales", "victoria", "queensland", "western australia", "south australia", "tasmania"]) names.add(n);
   const display = new Intl.DisplayNames(["en"], { type: "region" });
   for (let a = 65; a <= 90; a++) for (let b = 65; b <= 90; b++) {
     const code = String.fromCharCode(a, b);
