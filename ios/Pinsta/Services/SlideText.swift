@@ -21,20 +21,40 @@ enum SlideText {
     /// `account`: the poster's name and handle — their logo on a slide ("Vink") is not a place.
     /// `caption`: a numbered list in it ("1. paon bali (@paon_bali_amsterdam)", Amsterdam Indonesian
     /// reel, 2026-10-15) names places the same way; those get the post's own photo.
-    static func places(slides: [String], caption: String? = nil, city: String?, account: [String] = []) async -> [Found] {
+    /// `within`: past this many seconds the list is given up and the ordinary results show. The
+    /// sheet waits for this, and it used to wait forever (archived.spaces, luxury_listings, 2026-10-17).
+    static func places(slides: [String], caption: String? = nil, city: String?, account: [String] = [], within seconds: Double = 20) async -> [Found] {
+        let once = Once<[Found]>()
+        return await withCheckedContinuation { done in
+            once.set(done)
+            let work = Task {
+                once.resume(await read(slides: slides, caption: caption, city: city, account: account))
+            }
+            Task {
+                try? await Task.sleep(for: .seconds(seconds))
+                work.cancel()
+                once.resume([])
+            }
+        }
+    }
+
+    private static func read(slides: [String], caption: String?, city: String?, account: [String]) async -> [Found] {
         let listed = captionList(caption)
         guard slides.count >= 2 || listed.count >= 2 else { return [] }
-        // Downloaded and read together; a slide that fails is just skipped.
-        let read: [(Int, Data, Reading)] = await withTaskGroup(of: (Int, Data, Reading)?.self) { group in
+        // Downloaded together, read one at a time off Swift's shared threads: ten Vision reads at once
+        // held every one of them and none ever finished. A slide that fails is just skipped.
+        let downloaded: [(Int, Data)] = await withTaskGroup(of: (Int, Data)?.self) { group in
             for (i, link) in slides.prefix(10).enumerated() {
-                group.addTask {
-                    guard let data = await ImageLoader.data(from: link) else { return nil }
-                    return (i, data, lines(in: data))
-                }
+                group.addTask { await ImageLoader.data(from: link, timeout: 15).map { (i, $0) } }
             }
-            var out: [(Int, Data, Reading)] = []
+            var out: [(Int, Data)] = []
             for await r in group { if let r { out.append(r) } }
             return out.sorted { $0.0 < $1.0 }
+        }
+        var read: [(Int, Data, Reading)] = []
+        for (i, data) in downloaded {
+            guard !Task.isCancelled else { return [] }
+            read.append((i, data, await reading(data)))
         }
         // Each name keeps where it came from: its slide (0…), or its caption line (-1, -2…).
         var names: [(String, Data?, Int)] = listed.enumerated().map { ($0.element, nil, -1 - $0.offset) }
@@ -63,6 +83,7 @@ enum SlideText {
         }
         var answered = Set<String>()
         for (name, data, from) in names.prefix(maxSearches) {
+            guard !Task.isCancelled else { return [] }
             let hits = (try? await search(name, near: near)) ?? []
             if let c = hits.first(where: { named($0.name, name) && PlaceSearch.isNear($0, near) }) { keep(c, data, from); answered.insert(name) }
         }
@@ -80,7 +101,7 @@ enum SlideText {
             // used up all six asks before slide 1's "Julius Ernst" (gatrooms, 2026-10-16).
             for round in 0..<(missed.values.map(\.count).max() ?? 0) {
                 for from in order where !done.contains(from) && asked < googleAsks {
-                    guard let lines = missed[from], round < lines.count else { continue }
+                    guard let lines = missed[from], round < lines.count, !Task.isCancelled else { continue }
                     let (name, data, _) = lines[round]
                     asked += 1
                     let hits = await GoogleFallback.search([name], near: area)
@@ -146,6 +167,13 @@ enum SlideText {
         var signs = false
     }
 
+    private static let visionQueue = DispatchQueue(label: "SlideText.vision", qos: .userInitiated)
+
+    /// `lines(in:)` on its own queue: Vision blocks the thread it runs on.
+    private static func reading(_ data: Data) async -> Reading {
+        await withCheckedContinuation { done in visionQueue.async { done.resume(returning: lines(in: data)) } }
+    }
+
     /// Short label-like lines: 3–40 characters, four words at most, not a sentence,
     /// a handle, a hashtag, a link or a number.
     static func lines(in data: Data) -> Reading {
@@ -194,6 +222,23 @@ enum SlideText {
         }
         let groups = found.map { f in found.filter { close(f, $0) } }
         return groups.max { $0.count < $1.count } ?? []
+    }
+}
+
+/// Resumes a continuation once: whichever of the work and the deadline comes first.
+private final class Once<T>: @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<T, Never>?
+    private var early: T?
+    func set(_ c: CheckedContinuation<T, Never>) {
+        lock.lock(); defer { lock.unlock() }
+        if let early { c.resume(returning: early); self.early = nil; done = true } else if !done { continuation = c }
+    }
+    private var done = false
+    func resume(_ value: T) {
+        lock.lock(); defer { lock.unlock() }
+        guard !done else { return }
+        if let c = continuation { done = true; continuation = nil; c.resume(returning: value) } else { early = value; done = true }
     }
 }
 

@@ -14,6 +14,7 @@ How it stays true:
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
 ## Next build (since `ios-29`)
+- Sharing a post with many slides (a museum, a house tour) no longer gets stuck on "Finding the place…".
 - Restaurants whose account spells out New York ("misinewyork", "_ny") are looked for in New York, not in every town with that name.
 - Settings → Help improve Vicolo: switch off sending how saves went and how the app is used.
 - With larger text, the Where and What titles sit one above the other instead of being cut short.
