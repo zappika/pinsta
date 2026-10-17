@@ -652,7 +652,8 @@ private struct PlacesContent: View {
         ZStack(alignment: .bottomTrailing) {
             addMenu
             VStack(alignment: .trailing, spacing: 12) {
-                if view == .map, !shown.isEmpty, !adding, !fan, editing == nil, peek == nil { locateButton }
+                // Not over a toast: it covered Undo (2026-10-17).
+                if view == .map, !shown.isEmpty, !adding, !fan, editing == nil, peek == nil, toast == nil, notice == nil { locateButton }
                 if (peek == nil || view == .cards) && (adding || editing != nil || !shown.isEmpty) { plusButton }
             }
         }

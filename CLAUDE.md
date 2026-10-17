@@ -160,6 +160,7 @@ While the env var is unset the lock is off. It is a **sensitive** Vercel variabl
 `curl -H "x-pinsta-key: $(grep PINSTA_OWNER_KEY .env.local | cut -d= -f2)" localhost:3010/api/places`
 
 ## Gotchas that cost time
+- **Age-restricted posts** (a bar's beer: Liebling DeloP3KicgM, 2026-10-17): Apify answers `restricted_page` with only the preview; `lib/instagram-post.ts` reads the account, name, caption and a 640 px picture from it. No tag, no slides.
 - **Saved posts can vanish.** Instagram posts get deleted (Bar Brutal's did); the
   reader then says "Post does not exist" and the app falls back to typing. Test
   auto-save with a tagged post that still exists — Ästad Vingård (`DdJIacKIplU`).

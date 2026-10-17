@@ -37,6 +37,13 @@ type RawItem = {
   childPosts?: { type?: string; displayUrl?: string }[];
   error?: string;
   errorDescription?: string;
+  // An age-restricted post (a restaurant's beer, Liebling 2026-10-17) comes back as "restricted_page"
+  // with only the page's preview: the account, "Name (@handle) • Instagram…", the caption quoted in
+  // "N likes, … - handle on <date>: \"…\". ", and a 640 px picture.
+  user?: { username?: string };
+  title?: string;
+  description?: string;
+  image?: string;
 };
 
 const ACTOR = "apify~instagram-scraper";
@@ -71,6 +78,7 @@ export async function fetchInstagramPost(postUrl: string): Promise<InstagramPost
   }
   const items = (await res.json()) as RawItem[];
   const it = items[0];
+  if (it?.error === "restricted_page" && it.user?.username) return restricted(it, postUrl);
   if (!it || it.error) {
     throw new Error(it?.errorDescription ?? "Post not found or not public");
   }
@@ -93,5 +101,24 @@ export async function fetchInstagramPost(postUrl: string): Promise<InstagramPost
       ].filter((u): u is string => !!u)),
     ].slice(0, 6),
     slides: (it.childPosts ?? []).filter((c) => c.type !== "Video" && c.displayUrl).map((c) => c.displayUrl!).slice(0, 10),
+  };
+}
+
+/** What an age-restricted post still shows: who posted it, what it says, its picture. No tag, no slides. */
+function restricted(it: RawItem, postUrl: string): InstagramPost {
+  const caption = it.description?.match(/^[^:]*:\s*"([\s\S]*)"\.?\s*$/)?.[1]?.trim() || null;
+  const fullName = it.title?.match(/^(.*?)\s*\(@/)?.[1]?.trim() || null;
+  return {
+    url: it.url ?? postUrl,
+    type: "Image",
+    caption,
+    locationName: null,
+    locationId: null,
+    imageUrl: it.image ?? null,
+    ownerUsername: it.user!.username!,
+    ownerFullName: fullName,
+    hashtags: [...(caption ?? "").matchAll(/#([\p{L}\d_]+)/gu)].map((m) => m[1]),
+    coauthors: [...new Set([...(caption ?? "").matchAll(/@([\w.]+)/g)].map((m) => m[1].replace(/\.$/, "")))].slice(0, 6),
+    slides: [],
   };
 }

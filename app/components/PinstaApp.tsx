@@ -453,7 +453,8 @@ export default function PinstaApp() {
               <ViewSwitch view={view} onChange={setView} />
             </div>
           )}
-          {view === "map" && places && places.length > 0 && !adding && !fan && !peekId && (
+          {/* Not over the Undo toast, which it covered (2026-10-17). */}
+          {view === "map" && places && places.length > 0 && !adding && !fan && !peekId && !toast && (
             <button
               type="button"
               aria-label="Show where I am"

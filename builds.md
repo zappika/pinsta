@@ -14,6 +14,7 @@ How it stays true:
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
 ## Next build (since `ios-29`)
+- The Undo of "Removed …" is no longer hidden under the locate button.
 - Sharing a post with many slides (a museum, a house tour) no longer gets stuck on "Finding the place…": the sheet says which slide it is reading and which name it is looking up, and if the slides name no place it says so.
 - A post tagged with just a US town ("Los Angeles, California") no longer offers random places in that town.
 - Restaurants whose account spells out New York ("misinewyork", "_ny") are looked for in New York, not in every town with that name.
