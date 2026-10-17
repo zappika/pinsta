@@ -85,7 +85,12 @@ struct AddPlaceView: View {
         var imageURL: String? = nil
         /// Decoded before the card shows, so it never opens on the type icon and then jumps.
         var image: UIImage? = nil
+        /// Saved without the post's picture, and why (Sarp, 2026-10-17: say it on the card).
+        var photoNote: String? = nil
     }
+    /// The failed read won't ever work (private account or deleted post): no photo will follow.
+    @State private var readGone = false
+
     private enum Reading: Equatable {
         case idle, loading, done(InstagramPost), failed(String)
         static func == (a: Reading, b: Reading) -> Bool {
@@ -305,7 +310,9 @@ struct AddPlaceView: View {
                 if finding { LoadingBar(read: true, started: readStarted, step: slideStep) }
             }
         case .failed:
-            Text("Couldn't read that post. Type the place's name to save it.")
+            Text(readGone
+                 ? "Vicolo can't see this post: the account is private or the post was deleted. Type the place's name to save it."
+                 : "Instagram didn't answer this time. Type the place's name to save it; the photo will follow.")
                 .font(.subheadline).foregroundStyle(.secondary)
         case .idle:
             EmptyView()
@@ -364,6 +371,7 @@ struct AddPlaceView: View {
             return
         }
         reading = .loading
+        readGone = false
         readStarted = Date()
         finding = false
         source = nil
@@ -496,6 +504,8 @@ struct AddPlaceView: View {
                 }
                 return
             }
+            // A Swedish caption: the Stockholm Liebling before the Viennese one.
+            found = PlaceSearch.lifted(found, to: PlaceSearch.languageCountry(caption: post.caption, username: post.ownerUsername))
             candidates = found
             source = found.isEmpty ? nil : from
             // Three slides or more and nothing to offer: say what happened.
@@ -515,6 +525,7 @@ struct AddPlaceView: View {
         } catch {
             guard !Task.isCancelled else { return }
             reading = .failed(error.localizedDescription)
+            readGone = (error as? PostReader.APIError)?.permanent == true
             tried.readError = error.localizedDescription
             focus = .query
         }
@@ -559,7 +570,7 @@ struct AddPlaceView: View {
         } label: {
             HStack(spacing: 6) {
                 if widening { ProgressView().controlSize(.small) }
-                Text(widening ? "Looking further…" : "None of these")
+                Text(widening ? "Looking further…" : candidates.count == 1 ? "Not this one" : "None of these")
             }
             .font(.subheadline.weight(.medium))
             .foregroundStyle(.secondary)
@@ -599,7 +610,11 @@ struct AddPlaceView: View {
                 saving = nil
                 return
             }
-            let s = await store(c, url: post?.url ?? validURL, image: postImage)
+            var s = await store(c, url: post?.url ?? validURL, image: postImage)
+            // The post couldn't be read: the card says why it has no photo.
+            if case .failed = reading, !byName, s.place.imageData == nil {
+                s.photoNote = readGone ? "No photo: the post is private or deleted." : "The photo will follow once Instagram answers."
+            }
             report(s.already ? .already : outcome, place: c.name)
             await show(s)
             saving = nil
@@ -836,6 +851,9 @@ private struct SavedCard: View {
                     Text(place.name).font(.title.weight(.semibold)).lineLimit(2).minimumScaleFactor(0.6)
                     Text([place.category.rawValue, place.city ?? place.country].compactMap { $0 }.joined(separator: " · "))
                         .font(.body).opacity(0.8).lineLimit(1)
+                    if let note = saved.photoNote {
+                        Text(note).font(.subheadline).opacity(0.9).padding(.top, 10)
+                    }
                     if shareTip {
                         Text("Faster next time: in Instagram, tap Share, then Vicolo.").font(.subheadline).opacity(0.9).padding(.top, 10)
                     }

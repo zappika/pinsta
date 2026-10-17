@@ -14,6 +14,9 @@ How it stays true:
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
 ## Next build (since `ios-29`)
+- When a post can't be read, the sheet says why (private or deleted, or Instagram didn't answer), and a place saved without a photo says so on the saved card.
+- With a single suggestion, the button under it says "Not this one".
+- A post written in Swedish, Danish, Norwegian, Finnish or Icelandic shows places in that country first.
 - The Undo of "Removed …" is no longer hidden under the locate button.
 - Sharing a post with many slides (a museum, a house tour) no longer gets stuck on "Finding the place…": the sheet says which slide it is reading and which name it is looking up, and if the slides name no place it says so.
 - A post tagged with just a US town ("Los Angeles, California") no longer offers random places in that town.

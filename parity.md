@@ -15,6 +15,8 @@ closes a difference (CLAUDE.md). Last updated 2026-10-15 (build 24). Also at bac
 | Map pins | Loud and quiet, being explored (2026-10-16): photos of places picked one at a time sized by zoom, list imports small tinted dots (type icon at street level), names where they fit, a Tiers / Text switch | Post photo, else type icon on its tint (`PlacesMapView.fromPost`); gets the web's once Sarp picks |
 | Town names in English | Google answers in English | A town or region in another script is geocoded again in English (`EnglishNames`) |
 | List posts: several places on a carousel's slides or a numbered list in the caption, pick many | No: slides need text reading on the server (a caption list would not) | Yes (Vision on the phone); a slide name Apple Maps lacks is asked of Google; names off a street photo's signs start unticked |
+| Nordic caption lifts its country (Swedish → Sweden first among suggestions; English lifts nothing) | No | Yes, Apple's on-device language detection (`PlaceSearch.languageCountry`) |
+| Why a post couldn't be read (private/deleted vs. no answer) on the search screen, and "no photo" on the success card | No: one generic line | Yes |
 
 ## Different on purpose
 

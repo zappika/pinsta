@@ -1,5 +1,6 @@
 import Foundation
 import MapKit
+import NaturalLanguage
 
 /// A candidate from MapKit search — the native replacement for Google Places.
 struct PlaceCandidate: Identifiable, Hashable {
@@ -148,6 +149,28 @@ extension PlaceSearch {
             let want = nameWords(clue, c).filter { !categoryWords.contains($0) }
             return overlaps(name, want) || want.contains { w in w.count >= 8 && name.contains { $0.count >= 4 && w.contains($0) } }
         }
+    }
+
+    /// A post written in a Nordic language lifts places in its country: Liebling in Stockholm over the
+    /// Liebling café in Vienna for a Swedish caption (Sarp, 2026-10-17). Only these languages: English is
+    /// what Copenhagen posts in too, so it says nothing, and an English post lifts nothing.
+    private static let nordic: [NLLanguage: String] = [.swedish: "Sweden", .danish: "Denmark", .norwegian: "Norway", .finnish: "Finland", .icelandic: "Iceland"]
+
+    /// The country a post's language points to; nil unless it's clearly a Nordic one.
+    static func languageCountry(caption: String?, username: String?) -> String? {
+        let text = [caption, handleWithKind(username)].compactMap { $0 }.joined(separator: "\n")
+        guard text.filter(\.isLetter).count >= 12 else { return nil }
+        let r = NLLanguageRecognizer()
+        r.processString(text)
+        guard let (lang, p) = r.languageHypotheses(withMaximum: 1).first, p >= 0.6 else { return nil }
+        return nordic[lang]
+    }
+
+    /// Places in that country first, the order otherwise kept. A tie-break among suggestions, never a filter.
+    static func lifted(_ cs: [PlaceCandidate], to country: String?) -> [PlaceCandidate] {
+        guard let country else { return cs }
+        let here = cs.filter { fold($0.country ?? "") == fold(country) }
+        return here + cs.filter { fold($0.country ?? "") != fold(country) }
     }
 
     /// Two names share a real word, accents aside.
