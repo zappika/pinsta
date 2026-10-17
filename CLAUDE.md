@@ -164,8 +164,8 @@ While the env var is unset the lock is off. It is a **sensitive** Vercel variabl
 - **Saved posts can vanish.** Instagram posts get deleted (Bar Brutal's did); the
   reader then says "Post does not exist" and the app falls back to typing. Test
   auto-save with a tagged post that still exists — Ästad Vingård (`DdJIacKIplU`).
-- **Test fresh installs on a second simulator** (e.g. iPhone 17) so the main one
-  keeps its list.
+- **One simulator: iPhone 17 Pro** (Sarp, 2026-10-17). No second one, not even for fresh installs.
+  A test that needs an empty list or deletes rows: say so first, and put the list back afterwards.
 - **This shell is zsh:** unquoted `$VAR` doesn't word-split, and `echo` rewrites `\n` inside JSON. Write API tests as small `node` scripts, not curl pipelines.
 - **Bundle ID changed to `se.sarper.vicolo`.** The old `se.sarper.pinsta` app is a separate install on simulators; its local list stays with it.
 - **iOS scene phase:** dialogs and menus send the app through `.inactive`. The list only rebuilds on a return from `.background`; rebuilding on every `.active` wiped view state (it ate the Directions confirmation).
@@ -221,7 +221,7 @@ xcodebuild -exportArchive -archivePath build/Vicolo.xcarchive -exportOptionsPlis
 `ios/build/` is gitignored; recreate `export.plist` if missing. Archiving needs an Apple account in Xcode → Settings → Accounts; without one it fails with "No Accounts" / "No profiles for 'se.sarper.vicolo'" (the Mac Sarp worked on 2026-10-02 had none; earlier builds came from the other machine). Team 8D6ML34D52 (paid), Sarp's iPhone 15 is registered. Processing at Apple takes 10–20 min.
 
 ## Testing iOS
-- Use the second simulator (iPhone 17) for fresh-install and destructive tests; the main one (iPhone 17 Pro) keeps a list. UDIDs differ per Mac: `xcrun simctl list devices`.
+- Everything on iPhone 17 Pro, the only simulator (Sarp, 2026-10-17); it keeps a list, so a fresh-install or delete test is announced first and the list restored after. UDIDs differ per Mac: `xcrun simctl list devices`.
 - SwiftData migration test: build the previous commit in a `git worktree`, install it, save a place, then install the new build over it (`simctl install` keeps the data).
 - `xcrun simctl location <id> set 41.39,2.17` + `xcrun simctl privacy <id> grant location se.sarper.vicolo` for the opening town and the blue dot.
 - `-splashHold` keeps the splash still up (see "Splash assets").
