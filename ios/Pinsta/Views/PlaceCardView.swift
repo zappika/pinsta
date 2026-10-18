@@ -156,6 +156,7 @@ struct PlaceCardView: View {
     }
 
     private func open(_ link: String) {
+        Uses.count("post.open")
         if let url = URL(string: link) { UIApplication.shared.open(url) }
     }
 }

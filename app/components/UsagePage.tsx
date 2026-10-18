@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { setOwnerKey } from "@/lib/api";
+import BackofficeNav from "./BackofficeNav";
 import Locked from "./Locked";
 import { monthName, UsageSummary, useUsage, type Day } from "./UsageSheet";
 
@@ -35,13 +36,8 @@ export default function UsagePage() {
   }
 
   return (
-    <main className="mx-auto min-h-dvh max-w-xl px-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-12">
-      <a href="/app" className="text-sm font-medium text-stone-500 active:text-stone-700">
-        ← Vicolo
-      </a>
-      <a href="/saves" className="ml-5 text-sm font-medium text-stone-500">Saves →</a>
-      <a href="/library" className="ml-5 text-sm font-medium text-stone-500">Object library →</a>
-      <h1 className="mt-3 text-2xl font-semibold tracking-tight">Usage</h1>
+    <main className="mx-auto min-h-dvh max-w-xl px-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-[calc(env(safe-area-inset-bottom)+5rem)]">
+      <h1 className="text-2xl font-semibold tracking-tight">Usage</h1>
       <p className="mt-1 text-sm text-stone-500">{data ? `${monthName(data.since)} so far` : "What the paid services cost"}</p>
 
       {!data ? (
@@ -60,6 +56,11 @@ export default function UsagePage() {
           </p>
         </>
       )}
+      <p className="mt-8 text-sm font-medium text-stone-500">
+        <a href="/library" className="active:text-stone-700">Object library →</a>
+        <a href="/parity" className="ml-5 active:text-stone-700">Parity →</a>
+      </p>
+      <BackofficeNav />
     </main>
   );
 }

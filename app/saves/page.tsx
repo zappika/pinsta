@@ -1,9 +1,7 @@
-import type { Metadata } from "next";
+import { backofficeMetadata } from "@/lib/backoffice";
 import SavesPage from "../components/SavesPage";
 
-export const metadata: Metadata = {
-  title: "Saves · Vicolo",
-};
+export const metadata = backofficeMetadata("Saves");
 
 export default function Page() {
   return <SavesPage />;

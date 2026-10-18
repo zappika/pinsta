@@ -3,14 +3,14 @@ import { NextResponse, type NextRequest } from "next/server";
 // One Vercel project, three hosts (Sarp, 2026-10-08):
 //   vicolo.space            — marketing index, /privacy, /support, /changelog (testers read it)
 //   app.vicolo.space        — the product: the list (served from /app), /import
-//   backoffice.vicolo.space — owner tooling: /usage, /saves, /parity
+//   backoffice.vicolo.space — owner tooling: /pulse (home), /saves, /usage, /parity
 // pinsta-two.vercel.app keeps serving the list at / for older links.
 // Any other host (localhost, previews) gets plain paths: / is the index, /app the list.
 // The apex vs www choice is Vercel's domain setting (today vicolo.space → www); never redirect between them here, or it loops.
 const ROOT = "https://www.vicolo.space";
 const APP = "https://app.vicolo.space";
 const BACKOFFICE = "https://backoffice.vicolo.space";
-const OWNER_TOOLS = ["/usage", "/saves", "/library", "/success", "/parity"];
+const OWNER_TOOLS = ["/pulse", "/usage", "/saves", "/library", "/success", "/parity"];
 const APP_PAGES = ["/import"];
 
 export function proxy(req: NextRequest) {
@@ -26,7 +26,7 @@ export function proxy(req: NextRequest) {
     if (pathname === "/app") return go(APP + "/" + search);
     if (isTool && host === "app.vicolo.space") return go(BACKOFFICE + pathname + search);
   } else if (host === "backoffice.vicolo.space") {
-    if (pathname === "/") return go(BACKOFFICE + "/usage");
+    if (pathname === "/") return go(BACKOFFICE + "/pulse");
     if (pathname === "/app") return go(APP + "/");
     if (isAppPage) return go(APP + pathname + search);
     if (!isTool) return go(ROOT + pathname + search);

@@ -8,6 +8,7 @@ import {
   timestamp,
   date,
   primaryKey,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -156,3 +157,17 @@ export const uses = pgTable(
 );
 
 export type Use = typeof uses.$inferSelect;
+
+/**
+ * Sarp's names for the phones that report (Pulse on the backoffice): an install id is a random
+ * string, so this is where "Mert" or "my iPhone" lives. Owner-only, never sent by a phone; the
+ * names stay in the database, not the public repo. `me` leaves Sarp's own phones (and the
+ * simulator) out of Pulse's numbers.
+ */
+export const installs = pgTable("installs", {
+  install: text("install").primaryKey(),
+  label: text("label"),
+  me: boolean("me").notNull().default(false),
+});
+
+export type Install = typeof installs.$inferSelect;

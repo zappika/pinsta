@@ -59,6 +59,7 @@ final class Settings {
 
     /// The card's Directions button: open straight away, or ask first.
     func directions(to place: Place) {
+        Uses.count("directions")
         if let app = mapsApp { open(place, in: app) } else { choosingFor = place; choosingOpen = true }
     }
 

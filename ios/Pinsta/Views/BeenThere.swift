@@ -20,7 +20,7 @@ struct VisitSwitch: View {
                     if been { place.visitedAt = nil; save() }
                 }
                 choice(on: been, height: 48) { Text("Been there") } action: {
-                    if !been { place.visitedAt = .now; save() }
+                    if !been { place.visitedAt = .now; save(); Uses.count("visited") }
                 }
             }
             if been {

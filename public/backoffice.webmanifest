@@ -1,0 +1,13 @@
+{
+  "name": "Vicolo Backoffice",
+  "short_name": "Backoffice",
+  "start_url": "/pulse",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f5f4",
+  "theme_color": "#f5f5f4",
+  "icons": [
+    { "src": "/backoffice-icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/backoffice-icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

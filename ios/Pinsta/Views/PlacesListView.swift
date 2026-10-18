@@ -237,6 +237,8 @@ private struct PlacesContent: View {
                     onDelete: { self.peek = nil; remove(peek) }
                 )
                 .id(peek.id)
+                // Pulse's "come back to find something": a place opened from the map, list or tiles.
+                .onAppear { Uses.count("place.open") }
             }
         }
         .animation(.snappy, value: peek?.id)

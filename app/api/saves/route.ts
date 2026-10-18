@@ -49,7 +49,9 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   const locked = requireOwner(req);
   if (locked) return locked;
-  const from = new Date(Date.now() - DAYS * 86_400_000);
-  const rows = await getDb().select().from(saves).where(gte(saves.at, from)).orderBy(desc(saves.at)).limit(1000);
-  return NextResponse.json({ days: DAYS, saves: rows });
+  // ?days=90 for Pulse (first seen, coming back); 30 by default.
+  const days = Math.min(Math.max(Number(new URL(req.url).searchParams.get("days")) || DAYS, 1), 90);
+  const from = new Date(Date.now() - days * 86_400_000);
+  const rows = await getDb().select().from(saves).where(gte(saves.at, from)).orderBy(desc(saves.at)).limit(5000);
+  return NextResponse.json({ days, saves: rows });
 }

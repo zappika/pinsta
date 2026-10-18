@@ -2,7 +2,8 @@ import Foundation
 
 /// How the app is used, for the backoffice (Sarp, 2026-10-16: "I catch myself using the other
 /// views a lot less than the map"). Per day, running totals: `open`, `pick.<view>` (a tap on the
-/// view pill), `sec.<screen>` (seconds on screen). Sent to `POST /api/uses` with the same random
+/// view pill), `sec.<screen>` (seconds on screen), and finding a saved place again (build 31):
+/// `place.open`, `directions`, `post.open`, `visited`. Sent to `POST /api/uses` with the same random
 /// install id as `SaveReport`: no names, no list, no places. Off with `SaveReport.sharing`.
 ///
 /// Totals live in the App Group defaults until the server has them; a day is resent while it
