@@ -226,7 +226,7 @@ final class ListImport {
     // MARK: Importing
 
     func startImport() {
-        guard visited != nil, !importing else { return }
+        guard !importing else { return }
         importing = true
         for i in rows.indices where rows[i].importable && rows[i].picked && rows[i].save != .saved {
             save(i)

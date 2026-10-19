@@ -164,61 +164,40 @@ struct ImportView: View {
     // MARK: Import
 
     @ViewBuilder
+    /// One black button, always ready: imports are Want to go unless the switch says
+    /// you have been to them (Sarp, 2026-10-19: the bookmark/check pair was too confusing).
     private var importButton: some View {
         let picked = job.picked.count
         let over = picked - ListImport.limit
         let done = job.finished
-        let unasked = !done && !job.importing && job.visited == nil
-        HStack(spacing: 8) {
-        if !done { VisitPick() }
-        Button {
-            if done { dismiss() } else { job.startImport() }
-        } label: {
-            Text(
-                done ? "Done · \(count(job.savedCount, "place")) imported"
-                : over > 0 ? "Untick \(over) to import (\(ListImport.limit) at most)"
-                : picked == 0 ? "Nothing selected"
-                : unasked ? "Want to go or been there?"
-                : "Import \(count(picked, "place"))"
-            )
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(Color(.systemBackground))
-            .frame(maxWidth: .infinity).padding(.vertical, 15)
-            .background(Color(.label), in: RoundedRectangle(cornerRadius: 16))
-        }
-        .disabled(!done && (job.importing || picked == 0 || over > 0 || unasked))
-        .opacity(!done && (picked == 0 || over > 0 || unasked) ? 0.4 : 1)
+        return VStack(spacing: 10) {
+            if !done {
+                Toggle("I've been to these", isOn: Binding(get: { job.visited == true }, set: { job.visited = $0 }))
+                    .font(.subheadline)
+                    .tint(Color(.label))
+                    .disabled(job.importing)
+                    .padding(.horizontal, 16).padding(.vertical, 8)
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+                    .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
+            }
+            Button {
+                if done { dismiss() } else { job.startImport() }
+            } label: {
+                Text(
+                    done ? "Done · \(count(job.savedCount, "place")) imported"
+                    : over > 0 ? "Untick \(over) to import (\(ListImport.limit) at most)"
+                    : picked == 0 ? "Nothing selected"
+                    : "Import \(count(picked, "place"))"
+                )
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color(.systemBackground))
+                .frame(maxWidth: .infinity).padding(.vertical, 15)
+                .background(Color(.label), in: RoundedRectangle(cornerRadius: 16))
+            }
+            .disabled(!done && (job.importing || picked == 0 || over > 0))
+            .opacity(!done && (picked == 0 || over > 0) ? 0.4 : 1)
         }
         .padding(.horizontal, 16).padding(.bottom, 8)
-    }
-}
-
-/// Want to go or Been there for the whole import, icons only: a bookmark and a check (web: VisitPick).
-private struct VisitPick: View {
-    private var job: ListImport { .shared }
-
-    var body: some View {
-        HStack(spacing: 4) {
-            option(false, "Want to go", "bookmark")
-            option(true, "Been there", "checkmark")
-        }
-        .padding(4)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
-        .disabled(job.importing)
-    }
-
-    private func option(_ been: Bool, _ label: String, _ symbol: String) -> some View {
-        let on = job.visited == been
-        return Button { job.visited = been } label: {
-            Image(systemName: symbol)
-                .font(.body.weight(.semibold))
-                .foregroundStyle(on ? Color(.systemBackground) : .secondary)
-                .frame(width: 44, height: 44)
-                .background(on ? Color(.label) : .clear, in: RoundedRectangle(cornerRadius: 12))
-        }
-        .accessibilityLabel(label)
-        .accessibilityAddTraits(on ? .isSelected : [])
     }
 }
 

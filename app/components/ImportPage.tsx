@@ -18,7 +18,6 @@ type Item = {
 type Row = Item & { key: number; picked: boolean; category: Category; state: "idle" | "saving" | "saved" | "failed" };
 type Preview = { title: string | null; owner: string | null; total: number; rows: Row[] };
 /** The whole list goes in as one or the other (Sarp, 2026-10-11): sixty unsorted places would never get sorted. */
-type Visit = "want" | "been";
 
 /**
  * /import: a shared Google Maps list becomes Vicolo places. Paste the list's
@@ -34,7 +33,7 @@ export default function ImportPage() {
   const [importing, setImporting] = useState(false);
   const [locked, setLocked] = useState(false);
   const [keyTried, setKeyTried] = useState(false);
-  const [visit, setVisit] = useState<Visit | null>(null);
+  const [been, setBeen] = useState(false);
 
   useEffect(() => {
     const onLocked = () => setLocked(true);
@@ -112,7 +111,7 @@ export default function ImportPage() {
   const savedCount = preview?.rows.filter((r) => r.state === "saved").length ?? 0;
 
   async function runImport() {
-    if (!preview || importing || !visit) return;
+    if (!preview || importing) return;
     setImporting(true);
     // Two at a time: each save is a Google details call plus a photo.
     const queue = [...picked];
@@ -120,7 +119,7 @@ export default function ImportPage() {
       [0, 1].map(async () => {
         for (let r = queue.shift(); r; r = queue.shift()) {
           update(r.key, { state: "saving" });
-          const ok = await save(r, { title: preview.title, owner: preview.owner }, visit === "been");
+          const ok = await save(r, { title: preview.title, owner: preview.owner }, been);
           update(r.key, { state: ok ? "saved" : "failed", picked: !ok });
         }
       }),
@@ -227,17 +226,16 @@ export default function ImportPage() {
               Done · see {count(savedCount, "place")} in your list
             </a>
           ) : (
-            <div className="flex gap-2">
-              <VisitPick value={visit} disabled={importing} onChange={setVisit} />
+            <div className="space-y-2">
+              <BeenSwitch on={been} disabled={importing} onChange={setBeen} />
               <button
                 type="button"
-                disabled={picked.length === 0 || importing || !visit}
+                disabled={picked.length === 0 || importing}
                 onClick={runImport}
-                className="min-w-0 flex-1 rounded-2xl bg-stone-900 py-3.5 text-sm font-semibold text-white shadow-lg active:bg-stone-800 disabled:opacity-40"
+                className="w-full rounded-2xl bg-stone-900 py-3.5 text-sm font-semibold text-white shadow-lg active:bg-stone-800 disabled:opacity-40"
               >
                 {importing ? `Importing… ${savedCount} done`
                   : picked.length === 0 ? "Nothing selected"
-                  : !visit ? "Want to go or been there?"
                   : `Import ${count(picked.length, "place")}`}
               </button>
             </div>
@@ -249,31 +247,24 @@ export default function ImportPage() {
 }
 
 /**
- * Want to go or Been there for the whole import, icons only (Sarp, 2026-10-11): a bookmark
- * and a check. Nothing is picked at first, so the import asks.
+ * Imports are Want to go unless this says you have been to them all (Sarp, 2026-10-19:
+ * the bookmark/check pair in front of a greyed button was too confusing).
  */
-function VisitPick({ value, disabled, onChange }: { value: Visit | null; disabled: boolean; onChange: (v: Visit) => void }) {
-  const option = (v: Visit, label: string, path: string) => (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={value === v}
-      aria-label={label}
-      title={label}
-      disabled={disabled}
-      onClick={() => onChange(v)}
-      className={`flex w-12 items-center justify-center rounded-xl ${value === v ? "bg-stone-900 text-white" : "text-stone-500 active:bg-stone-100"}`}
-    >
-      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d={path} />
-      </svg>
-    </button>
-  );
+function BeenSwitch({ on, disabled, onChange }: { on: boolean; disabled: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div role="radiogroup" aria-label="Import as" className="flex shrink-0 gap-1 rounded-2xl bg-white p-1 shadow-lg">
-      {option("want", "Want to go", "M6 4h12v16l-6-4-6 4z")}
-      {option("been", "Been there", "M5 12.5l4.5 4.5L19 7")}
-    </div>
+    <label className="flex items-center justify-between rounded-2xl bg-white px-4 py-2.5 text-sm text-stone-700 shadow-lg">
+      I’ve been to these
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        disabled={disabled}
+        onClick={() => onChange(!on)}
+        className={`relative h-6 w-10 rounded-full transition-colors ${on ? "bg-stone-900" : "bg-stone-300"}`}
+      >
+        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? "left-[18px]" : "left-0.5"}`} />
+      </button>
+    </label>
   );
 }
 

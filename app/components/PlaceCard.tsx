@@ -143,9 +143,10 @@ function Visit({ place, onVisit }: { place: Place; onVisit: (c: VisitChange) => 
   const been = place.visitedAt != null;
   return (
     <div className="px-4 pb-4">
-      <div role="radiogroup" aria-label="Want to go or been there" className="flex gap-2">
-        <Choice on={!been} onClick={() => been && onVisit({ visited: false })}>Want to go</Choice>
-        <Choice on={been} onClick={() => !been && onVisit({ visited: true })}>Been there</Choice>
+      {/* One track, one lit half: it reads as a switch, not two actions (Sarp, 2026-10-19). */}
+      <div role="radiogroup" aria-label="Want to go or been there" className="flex gap-1 rounded-2xl bg-stone-100 p-1">
+        <Segment on={!been} onClick={() => been && onVisit({ visited: false })}>Want to go</Segment>
+        <Segment on={been} onClick={() => !been && onVisit({ visited: true })}>Been there</Segment>
       </div>
       {been && (
         <>
@@ -164,6 +165,20 @@ function Visit({ place, onVisit }: { place: Place; onVisit: (c: VisitChange) => 
 }
 
 export const FACES = ["Not good", "Good", "Loved it"];
+
+function Segment({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={on}
+      onClick={onClick}
+      className={`h-11 flex-1 rounded-xl text-sm font-medium transition-all ${on ? "bg-white text-stone-900 shadow" : "text-stone-500 active:text-stone-700"}`}
+    >
+      {children}
+    </button>
+  );
+}
 
 function Choice({ on, onClick, label, tall, children }: { on: boolean; onClick: () => void; label?: string; tall?: boolean; children: ReactNode }) {
   return (

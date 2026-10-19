@@ -15,14 +15,13 @@ struct VisitSwitch: View {
     var body: some View {
         let been = place.visitedAt != nil
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 8) {
-                choice(on: !been, height: 48) { Text("Want to go") } action: {
-                    if been { place.visitedAt = nil; save() }
-                }
-                choice(on: been, height: 48) { Text("Been there") } action: {
-                    if !been { place.visitedAt = .now; save(); Uses.count("visited") }
-                }
+            // One track, one lit half: it reads as a switch, not two actions (Sarp, 2026-10-19).
+            HStack(spacing: 4) {
+                segment(on: !been, "Want to go") { if been { place.visitedAt = nil; save() } }
+                segment(on: been, "Been there") { if !been { place.visitedAt = .now; save(); Uses.count("visited") } }
             }
+            .padding(4)
+            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             if been {
                 Text("How was it?")
                     .font(.subheadline)
@@ -44,6 +43,26 @@ struct VisitSwitch: View {
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 16)
+    }
+
+    private func segment(on: Bool, _ title: String, action: @escaping () -> Void) -> some View {
+        Button { withAnimation(.snappy) { action() } } label: {
+            Text(title)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(on ? Color.primary : Color.secondary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+                .background {
+                    if on {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color(.systemBackground))
+                            .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
+                    }
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(on ? .isSelected : [])
     }
 
     private func choice<L: View>(on: Bool, height: CGFloat, @ViewBuilder label: () -> L, action: @escaping () -> Void) -> some View {
