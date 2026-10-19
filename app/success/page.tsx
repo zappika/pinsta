@@ -1,8 +1,14 @@
-import type { Metadata } from "next";
+import { backofficeMetadata } from "@/lib/backoffice";
+import BackofficeNav from "../components/BackofficeNav";
 import SuccessLab from "../components/SuccessLab";
 
-export const metadata: Metadata = { title: "Save flow · Vicolo" };
+export const metadata = backofficeMetadata("Save flow");
 
 export default function Page() {
-  return <SuccessLab />;
+  return (
+    <>
+      <SuccessLab />
+      <BackofficeNav />
+    </>
+  );
 }

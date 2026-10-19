@@ -56,10 +56,6 @@ export default function UsagePage() {
           </p>
         </>
       )}
-      <p className="mt-8 text-sm font-medium text-stone-500">
-        <a href="/library" className="active:text-stone-700">Object library →</a>
-        <a href="/parity" className="ml-5 active:text-stone-700">Parity →</a>
-      </p>
       <BackofficeNav />
     </main>
   );
