@@ -262,25 +262,28 @@ struct AddPlaceView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .focused($focus, equals: .url)
-                    .padding(.horizontal, 14).padding(.vertical, 10)
-                    .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(!urlText.isEmpty && validURL == nil && looksLikeLink ? Color.red.opacity(0.5) : Color.clear)
-                    )
                 if urlText.isEmpty && allowsPasteboard {
                     // The system paste control reads the pasteboard without the permission prompt.
+                    // A chip inside the field, with the clipboard icon: beside the field it read
+                    // as "submit after pasting" (Sarp, 2026-10-19).
                     PasteButton(payloadType: String.self) { strings in
                         if let s = strings.first { urlText = s }
                     }
-                    .labelStyle(.titleOnly)
-                    .buttonStyle(.borderless)
-                    .tint(.primary)
-                    .font(.subheadline.weight(.medium))
-                    .padding(.horizontal, 14).padding(.vertical, 10)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.separator)))
+                    .labelStyle(.titleAndIcon)
+                    .buttonBorderShape(.capsule)
+                    .controlSize(.small)
+                    .tint(Color(.secondarySystemFill))
+                    .foregroundStyle(.primary)
                 }
             }
+            .padding(.leading, 14).padding(.trailing, urlText.isEmpty && allowsPasteboard ? 6 : 14)
+            .frame(minHeight: 30)  // the chip's height, so the field doesn't shrink once it goes
+            .padding(.vertical, 7)
+            .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(!urlText.isEmpty && validURL == nil && looksLikeLink ? Color.red.opacity(0.5) : Color.clear)
+            )
             if mode == .google && urlText.isEmpty && editing == nil {
                 Text("A place, or a whole list. In Google Maps, Share the place or the list. A list has to be shared, not private.")
                     .font(.caption).foregroundStyle(.secondary)

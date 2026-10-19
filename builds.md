@@ -15,6 +15,7 @@ How it stays true:
 
 ## Next build (since `ios-30`)
 - *(internal)* Counts opening a saved place, Directions, the post button and Been there (no place names), for the backoffice's Pulse page.
+- The Paste button sits inside the link field, with a clipboard icon, so it reads as "paste what you copied", not as a button to tap after pasting. *(not built yet: written on the Mac without Xcode)*
 
 ## In TestFlight: 1.0 (30) · 2026-10-17 · `ios-30` · phone ☑ (Sarp, 2026-10-17)
 - When a post can't be read, the sheet says why (private or deleted, or Instagram didn't answer), and a place saved without a photo says so on the saved card.
