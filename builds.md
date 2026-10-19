@@ -15,7 +15,7 @@ How it stays true:
 
 ## Next build (since `ios-30`)
 - Importing a list: one Import button, ready straight away; places come in as Want to go unless you turn on "I've been to these" (the bookmark and check icons are gone).
-- On a place, Want to go and Been there are one switch now (one side lit), so they read as a choice, not two buttons.
+- On a place, Want to go and Been there are one switch now (one side lit), so they read as a choice, not two buttons; Been there has a raised hand.
 - Zoomed far out, the map shows one bubble per city with a few of its photos and how many places it has; tap one to fly into that city.
 - A place imported from a Google Maps list says whose list it came from on its card ("From Emilie’s “Paris” list").
 - A post tagged with just a city ("Athens") now looks for the place in that city, and finds places Apple Maps only knows by their local-script name (Seychelles in Athens, not restaurants in the Seychelles).

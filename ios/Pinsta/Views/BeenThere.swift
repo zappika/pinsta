@@ -18,7 +18,7 @@ struct VisitSwitch: View {
             // One track, one lit half: it reads as a switch, not two actions (Sarp, 2026-10-19).
             HStack(spacing: 4) {
                 segment(on: !been, "Want to go") { if been { place.visitedAt = nil; save() } }
-                segment(on: been, "Been there") { if !been { place.visitedAt = .now; save(); Uses.count("visited") } }
+                segment(on: been, "Been there", symbol: "hand.raised.fill") { if !been { place.visitedAt = .now; save(); Uses.count("visited") } }
             }
             .padding(4)
             .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -45,9 +45,12 @@ struct VisitSwitch: View {
         .padding(.bottom, 16)
     }
 
-    private func segment(on: Bool, _ title: String, action: @escaping () -> Void) -> some View {
+    private func segment(on: Bool, _ title: String, symbol: String? = nil, action: @escaping () -> Void) -> some View {
         Button { withAnimation(.snappy) { action() } } label: {
-            Text(title)
+            HStack(spacing: 6) {
+                if let symbol { Image(systemName: symbol).accessibilityHidden(true) }
+                Text(title)
+            }
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(on ? Color.primary : Color.secondary)
                 .frame(maxWidth: .infinity)
