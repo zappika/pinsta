@@ -5,6 +5,7 @@ import type * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { placeIcon, tintFor } from "@/lib/categories";
 import { NEAR_KM, kmBetween } from "@/lib/geo";
+import { destinationLabels } from "@/lib/grouping";
 import { isDark } from "@/lib/theme";
 import type { Place } from "./types";
 
@@ -50,6 +51,9 @@ function deepen(hex: string): string {
 const PIN_STYLE_KEY = "vicolo.pinStyle";
 /** From street level on, never group — two entries at one address would never split. */
 const NO_CLUSTER_ZOOM = 16;
+/** Zoomed out past this, places become one bubble per city (the Where label), for trip planning
+ *  (Sarp, 2026-10-19: home filters by type, cities are found by zooming out). Tap → that city. */
+const CITY_ZOOM = 7;
 /** A frame is never narrower than this: a town's places in two neighbourhoods still show
  * a piece of the city around them (Sarp, 2026-10-15: "too tight"). ↔ `PlacesMapView.minFrameKm`. */
 const MIN_FRAME_KM = 4.5;
@@ -268,6 +272,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     clusterMarkers.current = [];
 
     const z = m.getZoom();
+    if (z < CITY_ZOOM) return drawCities(lib, m);
     const view = m.getBounds();
     const onScreen = placesRef.current.filter((p) => view.contains([p.lng, p.lat])).length;
     const tier: Tier = onScreen <= ROOMY ? "street" : tierAt(z);
@@ -417,6 +422,70 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
       if (hit(box)) continue;
       taken.push(box);
       n.el.classList.add("labelled");
+    }
+  }
+
+  /** One bubble per city: up to four of its post photos (else its commonest type icon), name and count. */
+  function drawCities(lib: typeof maplibregl, m: maplibregl.Map) {
+    const labels = destinationLabels(placesRef.current);
+    const cities = new Map<string, Place[]>();
+    for (const p of placesRef.current) {
+      const k = labels.get(p.id) ?? p.city ?? p.country ?? "Elsewhere";
+      cities.set(k, [...(cities.get(k) ?? []), p]);
+    }
+    // Biggest first, so where two cities touch, the bigger one keeps its name.
+    const sorted = [...cities.entries()].sort((a, b) => b[1].length - a[1].length);
+    type Box = { x0: number; y0: number; x1: number; y1: number };
+    const taken: Box[] = [];
+    for (const [name, members] of sorted) {
+      const lat = members.reduce((a, p) => a + p.lat, 0) / members.length;
+      const lng = members.reduce((a, p) => a + p.lng, 0) / members.length;
+      const size = Math.round(Math.min(56, 34 + Math.sqrt(members.length) * 3));
+      const el = document.createElement("div");
+      el.className = "pinsta-city";
+      const bubble = document.createElement("div");
+      bubble.style.width = bubble.style.height = `${size}px`;
+      const photos = members.map(fromPost).filter((u): u is string => !!u).slice(0, 4);
+      if (photos.length) {
+        bubble.className = "pinsta-pin pinsta-mosaic";
+        bubble.dataset.n = String(photos.length);
+        for (const u of photos) {
+          const img = document.createElement("img");
+          img.src = u;
+          img.alt = "";
+          img.draggable = false;
+          bubble.append(img);
+        }
+      } else {
+        bubble.className = "pinsta-pin pinsta-pin-quiet";
+        bubble.style.backgroundColor = tintFor(members[0].category);
+        const icon = document.createElement("img");
+        icon.src = placeIcon(members[0]);
+        icon.alt = "";
+        icon.className = "pinsta-pin-icon";
+        bubble.append(icon);
+      }
+      const label = document.createElement("div");
+      label.className = "pinsta-city-label";
+      label.innerHTML = `<b></b> <span>${members.length}</span>`;
+      label.querySelector("b")!.textContent = name;
+      el.append(bubble, label);
+      const pt = m.project([lng, lat]);
+      const w = Math.max(size, name.length * 7.5 + 24);
+      const box = { x0: pt.x - w / 2, y0: pt.y - size / 2, x1: pt.x + w / 2, y1: pt.y + size / 2 + 20 };
+      if (taken.some((t) => box.x0 < t.x1 && box.x1 > t.x0 && box.y0 < t.y1 && box.y1 > t.y0)) label.style.display = "none";
+      else taken.push(box);
+      const go = () => {
+        const b = new lib.LngLatBounds();
+        for (const p of members) b.extend([p.lng, p.lat]);
+        m.fitBounds(atLeastMinFrame(lib, b), { padding: FRAME_PADDING, maxZoom: 15, duration: 900 });
+      };
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        go();
+      });
+      keyboardButton(el, `${name}, ${members.length} places`, go);
+      clusterMarkers.current.push(new lib.Marker({ element: el, anchor: "top", offset: [0, -size / 2] }).setLngLat([lng, lat]).addTo(m));
     }
   }
 
