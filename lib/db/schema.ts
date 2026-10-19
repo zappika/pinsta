@@ -171,3 +171,43 @@ export const installs = pgTable("installs", {
 });
 
 export type Install = typeof installs.$inferSelect;
+
+/**
+ * A Google Maps list the iOS app is importing (`lib/import-jobs.ts`, Sarp 2026-10-19): matched
+ * here, a chunk at a time, so it finishes with the phone in a pocket; a push says it's ready.
+ * `matches` grows in the order of `entries` (`done` of `total` so far; null = not found).
+ * `token` is the phone's APNs device token, cleared once the push is sent; no account, no name.
+ * `runningUntil` is a lease: a chunk runs only when no other holds the job.
+ */
+export const importJobs = pgTable("import_jobs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  link: text("link").notNull(),
+  title: text("title"),
+  owner: text("owner"),
+  entries: jsonb("entries").$type<ImportEntry[]>().notNull(),
+  matches: jsonb("matches").$type<(ImportMatch | null)[]>().notNull().default([]),
+  done: integer("done").notNull().default(0),
+  total: integer("total").notNull(),
+  status: text("status").$type<"matching" | "ready" | "failed">().notNull().default("matching"),
+  token: text("token"),
+  sandbox: boolean("sandbox").notNull().default(false),
+  install: text("install"),
+  runningUntil: timestamp("running_until", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type ImportEntry = { name: string; note: string | null; address: string | null; lat: number; lng: number };
+export type ImportMatch = {
+  placeId: string;
+  name: string;
+  lat: number;
+  lng: number;
+  address: string | null;
+  city: string | null;
+  region: string | null;
+  country: string | null;
+  category: string;
+  primaryType: string | null;
+};
+export type ImportJob = typeof importJobs.$inferSelect;
