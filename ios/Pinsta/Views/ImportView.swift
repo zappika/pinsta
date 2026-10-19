@@ -2,15 +2,18 @@ import SwiftUI
 import SwiftData
 
 /// The + menu → Google Maps, with a list link (was the buddy menu's Import from Google until 2026-10-16): the web's /import on the phone (Sarp, 2026-10-09: same
-/// flow, same design). Paste a shared list's link, review it grouped by type (untick, move a
-/// place or a whole group to another type), import. Matching runs with MapKit while the
-/// review is open and goes on after it closes (`ListImport`).
+/// flow, same design). Paste a shared list's link; the server finds the places (2026-10-19,
+/// `ListImport`) while this shows the count and can be closed; a push and the map's pill say
+/// when it's ready. Then the review, grouped by type (untick, move a place or a whole group to
+/// another type), and Import. What couldn't be found sits at the bottom with a Search button.
 struct ImportView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     /// A list link pasted into the + menu's Google Maps entry: read at once.
     var initialLink: String? = nil
     @State private var url = ""
+    /// Notifications are on: the wait can say "we'll let you know".
+    @State private var tells = false
     private var job: ListImport { .shared }
 
     var body: some View {
@@ -23,7 +26,8 @@ struct ImportView: View {
                     if job.reading {
                         Text("Reading the list…").font(.subheadline).foregroundStyle(.secondary).padding(.top, 10)
                     }
-                    if let error = job.error {
+                    if job.matching { progress.padding(.top, 28) }
+                    if job.phase == .failed, let error = job.error {
                         Text(error).font(.subheadline).foregroundStyle(.red).padding(.top, 10)
                     }
                     if !job.rows.isEmpty { review.padding(.top, 28) }
@@ -38,11 +42,15 @@ struct ImportView: View {
             }
             .safeAreaInset(edge: .bottom) { if !job.rows.isEmpty { importButton } }
         }
+        .task(id: job.matching) { tells = await Push.willTell() }
+        .onChange(of: job.phase) { _, phase in if phase == .ready { job.markOpened() } }
         .onAppear {
+            job.resume(context: context)
+            job.markOpened()
             if let initialLink, initialLink != job.link { url = initialLink; read(); return }
             if url.isEmpty, let link = job.link { url = link }
             // Testing: `-importURL <link>` opens here and reads that list.
-            if job.rows.isEmpty, let link = TestArgs.string("importURL") { url = link; read() }
+            if job.job == nil, let link = TestArgs.string("importURL") { url = link; read() }
         }
     }
 
@@ -68,7 +76,7 @@ struct ImportView: View {
                     .foregroundStyle(Color(.systemBackground))
                     .padding(.horizontal, 14).padding(.vertical, 10)
                     .background(Color(.label), in: RoundedRectangle(cornerRadius: 12))
-                    .disabled(job.reading || job.importing && job.busy)
+                    .disabled(job.reading)
             }
         }
     }
@@ -76,7 +84,26 @@ struct ImportView: View {
     private func read() {
         let link = url.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !link.isEmpty, !job.reading else { return }
-        Task { await job.read(link, context: context) }
+        Task {
+            // The moment it makes sense to ask (Sarp, 2026-10-19): this can take a while.
+            await Push.ask()
+            await job.start(link, context: context)
+        }
+    }
+
+    /// The server is finding the places: the count, and that this can be closed.
+    private var progress: some View {
+        let done = job.job?.done ?? 0
+        let total = max(job.job?.total ?? 0, 1)
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(job.title ?? "Your list").font(.title3.weight(.semibold)).lineLimit(1)
+            ProgressView(value: Double(min(done, total)), total: Double(total)).tint(Color(.label))
+            Text("Finding the places… \(done) of \(total)").font(.subheadline).foregroundStyle(.secondary)
+            Text(tells
+                 ? "You can close this. We'll let you know when it's ready."
+                 : "You can close this. It keeps going, and the review waits here.")
+                .font(.subheadline).foregroundStyle(.secondary)
+        }
     }
 
     // MARK: Review
@@ -104,7 +131,6 @@ struct ImportView: View {
 
     private var summary: String {
         var parts = [count(job.rows.count, "place")]
-        if job.findingCount > 0 { parts.append("finding \(job.findingCount)…") }
         if job.savedCount > 0 { parts.append("\(job.savedCount) imported") }
         return parts.joined(separator: " · ")
     }
@@ -122,17 +148,16 @@ struct ImportView: View {
         let rows: [ListImport.Row]
     }
 
-    /// One section per type in the app's order, then places still being found, then
-    /// what's already a card, then what couldn't be found (at the bottom, Sarp 2026-10-09).
+    /// One section per type in the app's order, then what's already a card, then what
+    /// couldn't be found (at the bottom, Sarp 2026-10-09; each with Search, 2026-10-19).
     private var groups: [Group] {
         let rows = job.rows
         let byType = PlaceCategory.allCases.map { c in
             Group(id: c.rawValue, title: c.rawValue, category: c, rows: rows.filter { $0.status == .matched && $0.category == c })
         }
         return (byType + [
-            Group(id: "finding", title: "Finding…", category: nil, rows: rows.filter { $0.status == .finding }),
             Group(id: "already", title: "Already in your list", category: nil, rows: rows.filter { $0.status == .already }),
-            Group(id: "missing", title: "Couldn’t find these", category: nil, rows: rows.filter { $0.status == .missing }),
+            Group(id: "missing", title: "Couldn’t find", category: nil, rows: rows.filter { $0.status == .missing }),
         ]).filter { !$0.rows.isEmpty }
     }
 
@@ -142,7 +167,7 @@ struct ImportView: View {
     private var importButton: some View {
         let picked = job.picked.count
         let over = picked - ListImport.limit
-        let done = job.importing && job.waitingCount == 0 && picked == 0
+        let done = job.finished
         let unasked = !done && !job.importing && job.visited == nil
         HStack(spacing: 8) {
         if !done { VisitPick() }
@@ -151,7 +176,6 @@ struct ImportView: View {
         } label: {
             Text(
                 done ? "Done · \(count(job.savedCount, "place")) imported"
-                : job.importing ? "Importing… \(job.savedCount) done\(job.waitingCount > 0 ? ", \(job.waitingCount) still finding" : "")"
                 : over > 0 ? "Untick \(over) to import (\(ListImport.limit) at most)"
                 : picked == 0 ? "Nothing selected"
                 : unasked ? "Want to go or been there?"
@@ -271,8 +295,16 @@ private struct ImportRowView: View {
             Spacer(minLength: 8)
             if row.save == .saved {
                 Text("✓ Imported").font(.caption.weight(.medium)).foregroundStyle(.secondary)
-            } else if row.status == .finding {
-                ProgressView().controlSize(.mini)
+            } else if row.status == .missing {
+                // The save sheet with this name, to find it by hand (the review stays for later).
+                Button {
+                    Settings.shared.showingImport = false
+                    Settings.shared.searchName = row.name
+                } label: {
+                    Text("Search").font(.caption.weight(.medium)).foregroundStyle(.secondary)
+                        .padding(.horizontal, 12).padding(.vertical, 4)
+                        .background(Color(.tertiarySystemFill), in: Capsule())
+                }
             } else if can {
                 MoveMenu(label: "Move", current: row.category, disabled: disabled) { c in update { $0.category = c } }
             }

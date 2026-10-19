@@ -4,6 +4,8 @@ import UIKit
 
 @main
 struct PinstaApp: App {
+    /// The push token and a tapped push (`Push`): what SwiftUI has no hook for.
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     /// The splash shows once per cold launch; a return from the background
     /// keeps the process, so it never shows again then.
     @State private var splash = SplashView.shouldShow

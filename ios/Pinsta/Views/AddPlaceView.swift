@@ -15,6 +15,8 @@ struct AddPlaceView: View {
 
     /// Pre-filled link (the share extension passes the shared URL).
     var initialURL: String? = nil
+    /// Pre-filled place name (the import review's Search on a place it couldn't find).
+    var initialName: String? = nil
     /// Re-selecting the place behind an existing card.
     var editing: Place? = nil
     /// Called when the sheet is done; the share extension completes its request here.
@@ -211,6 +213,7 @@ struct AddPlaceView: View {
                 urlText = initialURL
                 return
             }
+            if let initialName { urlText = initialName }
         }
         .task {
             // Same as the web: the field starts empty and Paste is a deliberate tap.

@@ -23,14 +23,14 @@ struct BuddyMenu: View {
             } label: {
                 Label("How to save", systemImage: "questionmark.circle")
             }
-            // Importing moved to the + menu (2026-10-16); while a list is still matching or saving
-            // in the background the menu still shows it, and opens it.
-            if ListImport.shared.busy {
+            // Importing starts from the + menu (2026-10-16); while a list is being found on the
+            // server, or waits for its review, the menu shows it and opens it (Sarp, 2026-10-19).
+            if ListImport.shared.active, let job = ListImport.shared.job {
                 Button {
                     settings.showingImport = true
                 } label: {
-                    Label("Google list", systemImage: "square.and.arrow.down")
-                    Text(ListImport.shared.importing ? "Importing… \(ListImport.shared.savedCount) done" : "Finding places…")
+                    Label("Import", systemImage: "square.and.arrow.down")
+                    Text(job.ready ? "\(job.title ?? "Google list"): ready to review" : "\(job.title ?? "Google list"): \(job.done) of \(job.total)")
                 }
             }
             Button {

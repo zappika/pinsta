@@ -34,6 +34,8 @@ final class Settings {
     var showingImport = false
     /// A list link from the save sheet, for ImportView to read.
     var importLink: String?
+    /// The import review's Search on a place it couldn't find: the save sheet opens with this name.
+    var searchName: String?
     /// Buddy menu → What's new, Help or Privacy, in Safari's sheet.
     var webPage: WebPage?
 

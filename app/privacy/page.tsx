@@ -45,7 +45,10 @@ export default function Privacy() {
         </li>
         <li>
           <strong>Google Maps lists.</strong> When you import a shared Google Maps list, its link goes to Vicolo’s
-          server, which reads the list. For imported places without a picture, the place’s name and map position go to
+          server, which reads the list and asks Google for each of its places; the list and what was found are kept
+          there for two weeks so the import can finish while the app is closed. If you allow notifications, the app
+          also sends a notification token, used once to say the import is ready and then deleted. For imported places
+          without a picture, the place’s name and map position go to
           our server, which asks Google for a photo of it.
         </li>
         <li>

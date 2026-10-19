@@ -1,14 +1,16 @@
 import Foundation
 import SwiftData
-import CoreLocation
-import MapKit
 import Observation
 
-/// A shared Google Maps list becomes Vicolo places (Sarp, 2026-10-09; the web's /import,
-/// all Apple): the server only reads the list (`/api/list`, free); every entry is matched
-/// here with MapKit, one after another, while the person reviews. Import can be tapped any
-/// time: picked places that are matched save at once, the rest as they match. Matching and
-/// saving go on after the screen is closed. One import at a time; it lives as long as the app.
+/// A shared Google Maps list becomes Vicolo places. Since 2026-10-19 (Sarp) the server
+/// matches it (`POST /api/import/jobs`, Google at each entry's pin, `lib/import-jobs.ts`), so
+/// the import goes on with the phone in a pocket and a push says it's ready. Until then a pill
+/// on the map shows the count; when ready, the review is as before: grouped by type, tick, and
+/// Import saves on the phone (nothing is saved by itself). One import at a time.
+///
+/// The running job lives in the App Group defaults (`Job`), so the share extension can start
+/// one (a list shared from Google Maps) and the app picks it up, and a closed app finds its
+/// job again on the next launch. The review itself is fetched again from the server then.
 @MainActor @Observable
 final class ListImport {
     static let shared = ListImport()
@@ -16,8 +18,9 @@ final class ListImport {
     /// More picked than this and Import asks to untick some (nobody below it sees the limit).
     static let limit = 250
 
-    enum Status: Equatable { case finding, matched, missing, already }
+    enum Status: Equatable { case matched, missing, already }
     enum SaveState: Equatable { case idle, saved, failed }
+    enum Phase: Equatable { case idle, starting, matching, ready, failed }
 
     struct Row: Identifiable {
         let id: Int
@@ -26,134 +29,189 @@ final class ListImport {
         let address: String?
         let latitude: Double
         let longitude: Double
-        var status: Status = .finding
+        var status: Status
         var match: PlaceCandidate?
         var category: PlaceCategory = .other
         var picked = true
         var save: SaveState = .idle
 
-        var importable: Bool { status == .finding || status == .matched }
+        var importable: Bool { status == .matched }
     }
 
-    private(set) var link: String?
-    private(set) var title: String?
+    /// The job as the App Group keeps it: enough to find it again and to draw the pill.
+    struct Job: Codable, Equatable {
+        let id: String
+        let link: String
+        var title: String?
+        var total: Int
+        var done = 0
+        var ready = false
+        /// The review was opened once: the pill goes, the buddy menu row stays.
+        var opened = false
+
+        private static let key = "importJob"
+        private static var defaults: UserDefaults? { UserDefaults(suiteName: Persistence.appGroup) }
+        static var stored: Job? { defaults?.data(forKey: key).flatMap { try? JSONDecoder().decode(Job.self, from: $0) } }
+        static func store(_ job: Job?) {
+            if let job, let data = try? JSONEncoder().encode(job) { defaults?.set(data, forKey: key) } else { defaults?.removeObject(forKey: key) }
+        }
+    }
+
+    private(set) var job: Job?
+    private(set) var phase: Phase = .idle
     private(set) var owner: String?
     var rows: [Row] = []
     /// The whole list goes in as Been there (true) or Want to go (false); nil until picked,
     /// so the import asks (Sarp, 2026-10-11: sixty unsorted places would never get sorted).
     var visited: Bool?
-    private(set) var reading = false
     private(set) var error: String?
-    /// Import was tapped: picked rows save as soon as they're matched.
+    /// Import was tapped.
     private(set) var importing = false
 
-    private var matcher: Task<Void, Never>?
+    private var poller: Task<Void, Never>?
     private var context: ModelContext?
 
+    var link: String? { job?.link }
+    var title: String? { job?.title }
+    var reading: Bool { phase == .starting }
+    var matching: Bool { phase == .matching }
     var picked: [Row] { rows.filter { $0.importable && $0.picked && $0.save != .saved } }
     var savedCount: Int { rows.filter { $0.save == .saved }.count }
-    var findingCount: Int { rows.filter { $0.status == .finding }.count }
-    /// Picked but not matched yet: they save when they are.
-    var waitingCount: Int { importing ? rows.filter { $0.status == .finding && $0.picked }.count : 0 }
-    var busy: Bool { reading || findingCount > 0 || (importing && waitingCount > 0) }
+    /// Imported everything that was picked.
+    var finished: Bool { importing && picked.isEmpty }
+    /// Something to come back to: the buddy menu shows it.
+    var active: Bool { job != nil && !finished }
+    /// The pill on the map: while the server matches, and once ready until the review is opened.
+    var showsPill: Bool { guard let job else { return false }; return phase == .matching || (job.ready && !job.opened && !finished) }
 
-    // MARK: Reading
+    // MARK: Starting
 
-    func read(_ url: String, context: ModelContext) async {
-        guard !reading else { return }
-        reset()
+    /// Reads and starts matching on the server; the push token (if the app has one) goes with it.
+    func start(_ url: String, context: ModelContext) async {
+        guard phase != .starting else { return }
+        forget()
         self.context = context
-        reading = true
-        defer { reading = false }
+        phase = .starting
         do {
-            let list = try await Self.fetch(url)
-            link = url
-            title = list.title
-            owner = list.owner
-            let saved = (try? context.fetch(FetchDescriptor<Place>())) ?? []
-            rows = list.entries.enumerated().map { i, e in
-                var row = Row(id: i, name: e.name, note: e.note, address: e.address, latitude: e.lat, longitude: e.lng)
-                // Already a card: the entry's own name and pin are enough to tell, no search.
-                if saved.contains(where: { $0.allPostURLs.contains(Self.link(row)) || SamePlace.matches($0, name: e.name, latitude: e.lat, longitude: e.lng) }) {
-                    row.status = .already
-                    row.picked = false
-                }
-                return row
-            }
-            matcher = Task { await matchAll() }
+            let answer = try await Self.startJob(url)
+            adopt(Job(id: answer.id, link: url, title: answer.title, total: answer.total, done: answer.done))
+            owner = answer.owner
         } catch {
+            phase = .failed
             self.error = (error as? ReadError)?.message ?? "Couldn't reach Vicolo. Check the connection and try again."
         }
     }
 
-    func reset() {
-        matcher?.cancel()
-        matcher = nil
-        link = nil; title = nil; owner = nil; error = nil
+    /// The share extension's half: start the job and leave it in the App Group for the app.
+    nonisolated static func startFromShare(_ url: String) async throws -> Job {
+        let answer = try await startJob(url)
+        let job = Job(id: answer.id, link: url, title: answer.title, total: answer.total, done: answer.done)
+        Job.store(job)
+        return job
+    }
+
+    /// On launch and on every return to the foreground: a job started here before, or by the
+    /// share extension, is followed again.
+    func resume(context: ModelContext) {
+        self.context = context
+        guard let stored = Job.stored else { return }
+        if stored.id == job?.id, poller != nil || phase == .ready { return }
+        if stored.id != job?.id { rows = []; visited = nil; importing = false; owner = nil; error = nil }
+        adopt(stored)
+    }
+
+    /// Opened the review: the pill has done its job.
+    func markOpened() {
+        guard var job, job.ready, !job.opened else { return }
+        job.opened = true
+        self.job = job
+        Job.store(job)
+    }
+
+    /// Back to the empty screen; the server's copy is deleted there after two weeks.
+    func forget() {
+        poller?.cancel()
+        poller = nil
+        job = nil
+        Job.store(nil)
+        phase = .idle
+        owner = nil; error = nil
         rows = []
         visited = nil
         importing = false
     }
 
-    // MARK: Matching
+    private func adopt(_ job: Job) {
+        self.job = job
+        Job.store(job)
+        phase = .matching
+        poller?.cancel()
+        poller = Task { await poll(job.id) }
+    }
 
-    /// One entry at a time. MapKit allows ~50 searches a minute and then refuses at once
-    /// (measured 2026-10-09); a refusal waits and tries the same entry again.
-    private func matchAll() async {
-        for i in rows.indices where rows[i].status == .finding {
-            guard !Task.isCancelled else { return }
-            // Unticked before its turn: not worth a search.
-            if !rows[i].picked { continue }
-            await match(i)
-        }
-        // The ones skipped while unticked, in case they were ticked again.
-        for i in rows.indices where rows[i].status == .finding {
-            guard !Task.isCancelled else { return }
-            await match(i)
+    // MARK: Following the server
+
+    /// Every few seconds while the app is open; iOS pauses it in the background and the
+    /// server goes on meanwhile. The poll also restarts a server job that stalled.
+    private func poll(_ id: String) async {
+        var misses = 0
+        while !Task.isCancelled, job?.id == id {
+            do {
+                let state = try await Self.fetch(id)
+                misses = 0
+                guard job?.id == id else { return }
+                job?.title = state.title ?? job?.title
+                job?.total = state.total
+                job?.done = state.done
+                owner = state.owner
+                if state.status == "ready", let items = state.items {
+                    job?.ready = true
+                    if let job { Job.store(job) }
+                    fill(items)
+                    phase = .ready
+                    poller = nil
+                    return
+                }
+                if state.status == "failed" {
+                    phase = .failed
+                    error = "Couldn't finish reading that list. Try again."
+                    poller = nil
+                    return
+                }
+                if let job { Job.store(job) }
+            } catch Gone.gone {
+                // Deleted on the server (two weeks old): nothing to come back to.
+                forget()
+                return
+            } catch {
+                misses += 1
+            }
+            try? await Task.sleep(for: .seconds(misses > 0 ? min(30, 3 * misses) : 3))
         }
     }
 
-    private func match(_ i: Int) async {
-        let row = rows[i]
-        let pin = CLLocationCoordinate2D(latitude: row.latitude, longitude: row.longitude)
-        while !Task.isCancelled {
-            do {
-                let here = CLLocation(latitude: row.latitude, longitude: row.longitude)
-                // The list's pin is Google's own: the right place is the nearest, a few metres off.
-                // Further than 150 m means MapKit found something else: no match, not a guess.
-                var near = Self.nearest(try await PlaceSearch.search(row.name, limit: 5, near: pin), to: here, within: 150)
-                // Second pass (BCN Nearby, 2026-10-09: 9 of 27 missed): towns and beaches aren't
-                // points of interest, and big sites sit far from Google's pin. Any kind of result,
-                // up to 2 km, but only one sharing a real word with the list's name.
-                if near == nil {
-                    let words = Self.words(row.name)
-                    let wider = try? await Self.anything(row.name, near: pin)
-                    near = Self.nearest((wider ?? []).filter { !Self.words($0.name).isDisjoint(with: words) }, to: here, within: 2000)
-                }
-                guard i < rows.count, rows[i].id == row.id else { return }
-                // A match can still be a card under MapKit's name rather than the list's.
-                let saved = (try? context?.fetch(FetchDescriptor<Place>())) ?? []
-                if let near, saved.contains(where: { SamePlace.matches($0, name: near.name, latitude: near.latitude, longitude: near.longitude) }) {
-                    rows[i].match = near
-                    rows[i].status = .already
-                    rows[i].picked = false
-                } else if let near {
-                    rows[i].match = near
-                    rows[i].category = near.category
-                    rows[i].status = .matched
-                    if importing && rows[i].picked { save(i) }
-                } else {
-                    rows[i].status = .missing
-                }
-                return
-            } catch let error as MKError where error.code == .loadingThrottled {
-                try? await Task.sleep(for: .seconds(8))
-            } catch {
-                // No result is an error too in MapKit: nothing near the pin.
-                guard i < rows.count, rows[i].id == row.id else { return }
-                rows[i].status = .missing
-                return
+    private func fill(_ items: [Item]) {
+        let saved = (try? context?.fetch(FetchDescriptor<Place>())) ?? []
+        rows = items.enumerated().map { i, e in
+            let match = e.match.map { m in
+                PlaceCandidate(
+                    id: "google:\(m.placeId)", name: m.name, latitude: m.lat, longitude: m.lng,
+                    address: m.address, city: m.city, region: m.region, country: m.country,
+                    category: PlaceCategory(rawValue: m.category) ?? .other,
+                    subtype: m.primaryType
+                )
             }
+            var row = Row(id: i, name: e.name, note: e.note, address: e.address, latitude: e.lat, longitude: e.lng,
+                          status: match == nil ? .missing : .matched, match: match, category: match?.category ?? .other)
+            // Already a card: the list's own name and pin, the old link, or Google's name for it.
+            let already = saved.contains { p in
+                p.allPostURLs.contains(Self.link(row))
+                    || SamePlace.matches(p, name: e.name, latitude: e.lat, longitude: e.lng)
+                    || match.map { SamePlace.matches(p, name: $0.name, latitude: $0.latitude, longitude: $0.longitude) } == true
+            }
+            if already { row.status = .already; row.picked = false }
+            if row.status == .missing { row.picked = false }
+            return row
         }
     }
 
@@ -165,34 +223,16 @@ final class ListImport {
         return link.url?.absoluteString ?? "https://www.google.com/maps"
     }
 
-    private static func nearest(_ found: [PlaceCandidate], to here: CLLocation, within metres: Double) -> PlaceCandidate? {
-        found
-            .map { ($0, CLLocation(latitude: $0.latitude, longitude: $0.longitude).distance(from: here)) }
-            .filter { $0.1 <= metres }
-            .min { $0.1 < $1.1 }?.0
-    }
-
-    private static func anything(_ name: String, near pin: CLLocationCoordinate2D) async throws -> [PlaceCandidate] {
-        let request = MKLocalSearch.Request()
-        request.naturalLanguageQuery = name
-        request.resultTypes = [.pointOfInterest, .address]
-        request.region = MKCoordinateRegion(center: pin, latitudinalMeters: 10_000, longitudinalMeters: 10_000)
-        return try await MKLocalSearch(request: request).start().mapItems.prefix(8).map(PlaceCandidate.init)
-    }
-
-    private static func words(_ s: String) -> Set<String> {
-        Set(s.lowercased().folding(options: .diacriticInsensitive, locale: nil)
-            .split { !$0.isLetter && !$0.isNumber }.map(String.init).filter { $0.count > 2 })
-    }
-
     // MARK: Importing
 
     func startImport() {
-        guard visited != nil, !importing || waitingCount == 0 else { return }
+        guard visited != nil, !importing else { return }
         importing = true
-        for i in rows.indices where rows[i].status == .matched && rows[i].picked && rows[i].save != .saved {
+        for i in rows.indices where rows[i].importable && rows[i].picked && rows[i].save != .saved {
             save(i)
         }
+        // Everything picked is in: nothing left to come back to.
+        if finished { Job.store(nil) }
     }
 
     private func save(_ i: Int) {
@@ -228,23 +268,51 @@ final class ListImport {
         }
     }
 
-    // MARK: The list
+    // MARK: The server
 
-    private struct ReadError: Error { let message: String }
-    private struct Entry: Decodable { let name: String; let note: String?; let address: String?; let lat: Double; let lng: Double }
-    private struct List: Decodable { let title: String?; let owner: String?; let entries: [Entry] }
+    struct ReadError: Error { let message: String }
+    private enum Gone: Error { case gone }
+    private struct Match: Decodable {
+        let placeId: String; let name: String; let lat: Double; let lng: Double
+        let address: String?; let city: String?; let region: String?; let country: String?
+        let category: String; let primaryType: String?
+    }
+    private struct Item: Decodable { let name: String; let note: String?; let address: String?; let lat: Double; let lng: Double; let match: Match? }
+    private struct State: Decodable {
+        let id: String; let status: String; let title: String?; let owner: String?
+        let total: Int; let done: Int; let items: [Item]?
+    }
     private struct Failure: Decodable { let error: String? }
 
-    private static func fetch(_ url: String) async throws -> List {
-        var request = URLRequest(url: PostReader.baseURL.appending(path: "api/list"))
+    /// The APNs token `Push` keeps in the App Group (the extension can't register, but reads it).
+    nonisolated static var pushToken: String? { UserDefaults(suiteName: Persistence.appGroup)?.string(forKey: "pushToken") }
+
+    nonisolated private static func startJob(_ url: String) async throws -> State {
+        var request = URLRequest(url: PostReader.baseURL.appending(path: "api/import/jobs"))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 30
-        request.httpBody = try? JSONSerialization.data(withJSONObject: ["url": url])
+        var body: [String: Any] = ["url": url]
+        if let token = pushToken { body["token"] = token }
+        #if DEBUG
+        body["sandbox"] = true
+        #endif
+        if SaveReport.sharing { body["install"] = SaveReport.install }
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         let (data, response) = try await URLSession.shared.data(for: request)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else {
             throw ReadError(message: (try? JSONDecoder().decode(Failure.self, from: data))?.error ?? "Couldn't read that list.")
         }
-        return try JSONDecoder().decode(List.self, from: data)
+        return try JSONDecoder().decode(State.self, from: data)
+    }
+
+    nonisolated private static func fetch(_ id: String) async throws -> State {
+        var request = URLRequest(url: PostReader.baseURL.appending(path: "api/import/jobs/\(id)"))
+        request.timeoutInterval = 20
+        let (data, response) = try await URLSession.shared.data(for: request)
+        let status = (response as? HTTPURLResponse)?.statusCode
+        if status == 404 { throw Gone.gone }
+        guard status == 200 else { throw URLError(.badServerResponse) }
+        return try JSONDecoder().decode(State.self, from: data)
     }
 }

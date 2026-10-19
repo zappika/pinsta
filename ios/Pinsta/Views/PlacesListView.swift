@@ -183,6 +183,7 @@ private struct PlacesContent: View {
                 .ignoresSafeArea(.keyboard)
 
             VStack(spacing: 10) {
+                importPill
                 if let notice {
                     Text(notice)
                         .font(.subheadline)
@@ -277,6 +278,7 @@ private struct PlacesContent: View {
         .task {
             // No web import: the web list is Sarp's, and every install starts empty.
             if launchURL != nil { adding = true }
+            ListImport.shared.resume(context: context)
             start()
             askIfDue()
             // Save reports the share extension couldn't send before it closed.
@@ -295,14 +297,20 @@ private struct PlacesContent: View {
         .onChange(of: category) { _, _ in peek = nil }
         // A place waiting behind the Undo toast is gone as far as a new save is
         // concerned: otherwise a new post could join it and be deleted with it.
-        .onChange(of: adding) { _, open in if open { commitPending() } else { askIfDue() } }
+        .onChange(of: adding) { _, open in if open { commitPending() } else { settings.searchName = nil; askIfDue() } }
+        // The import review's Search: its sheet has gone, the save sheet opens with the name.
+        .onChange(of: settings.searchName) { _, name in if name != nil { adding = true } }
         .onChange(of: editing == nil) { _, closed in if !closed { commitPending() } }
         .onChange(of: places.count) { _, _ in askIfDue() }
         .onChange(of: view) { _, _ in peek = nil }
         .onDisappear { commitPending() }
         // Leaving the app stops the Undo timer: off to Instagram to share the post again, the place was
         // still there and the share said "Already in Vicolo" (Sarp, 2026-10-16). Gone means gone.
-        .onChange(of: scenePhase) { _, phase in if phase == .background { commitPending() } }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { commitPending() }
+            // A list import started here or from the share sheet: follow it again.
+            if phase == .active { ListImport.shared.resume(context: context) }
+        }
     }
 
     // MARK: - Opening screen
@@ -646,6 +654,36 @@ private struct PlacesContent: View {
     /// The view pill steps aside for the save sheet and the + menu.
     private var pillHidden: Bool { adding || fan }
 
+    /// A list import on the server (Sarp, 2026-10-19): the count while it runs, then "ready"
+    /// until the review is opened. Tap opens the import.
+    @ViewBuilder
+    private var importPill: some View {
+        let imports = ListImport.shared
+        if imports.showsPill, let job = imports.job, !adding, editing == nil {
+            Button { settings.showingImport = true } label: {
+                HStack(spacing: 8) {
+                    if job.ready {
+                        Image(systemName: "checkmark.circle.fill")
+                    } else {
+                        ProgressView().controlSize(.small)
+                    }
+                    Text(job.ready
+                         ? "\(job.title ?? "Your list") is ready to review"
+                         : "Importing \(job.title ?? "your list")… \(job.done)/\(job.total)")
+                        .lineLimit(1)
+                }
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .background(.regularMaterial, in: Capsule())
+                .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 20)
+            .transition(.fromBottom(reduceMotion: reduceMotion))
+        }
+    }
+
     private func importSheet() -> ImportView { ImportView(initialLink: settings.importLink) }
     private func clearImportLink() { settings.importLink = nil }
 
@@ -700,7 +738,8 @@ private struct PlacesContent: View {
     }
 
     private var newPlaceSheet: AddPlaceView {
-        AddPlaceView(initialURL: launchURL, onFinish: { adding = false; launchURL = nil },
+        AddPlaceView(initialURL: launchURL, initialName: settings.searchName,
+                     onFinish: { adding = false; launchURL = nil; settings.searchName = nil },
                      mode: launchURL == nil ? addMode : .post, onList: handOff)
     }
 

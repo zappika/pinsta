@@ -19,6 +19,7 @@ final class ShareViewController: UIViewController {
     }
 
     private weak var card: UIView?
+    private var host: UIHostingController<ShareStage>?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -93,7 +94,9 @@ final class ShareViewController: UIViewController {
                 onFinish: { [weak self] in
                     self?.close { $0.completeRequest(returningItems: nil) }
                 },
-                allowsPasteboard: false
+                allowsPasteboard: false,
+                // A list shared from Google Maps: the server imports it, the app reviews it (2026-10-19).
+                onList: { [weak self] link in self?.startImport(link) }
             )
             .modelContainer(container))
         case .failure:
@@ -103,6 +106,7 @@ final class ShareViewController: UIViewController {
         }
 
         let host = UIHostingController(rootView: ShareStage(card: root, onOutside: { [weak self] in self?.cancel() }))
+        self.host = host
         // The card itself follows the keyboard (keyboardLayoutGuide below); without
         // this the hosted view avoided it a second time and its content jumped.
         host.safeAreaRegions = .container
@@ -125,6 +129,64 @@ final class ShareViewController: UIViewController {
         host.view.transform = CGAffineTransform(translationX: 0, y: AddPlaceView.savedHeight + 40)
         UIView.animate(withDuration: 0.45, delay: 0, usingSpringWithDamping: 0.85, initialSpringVelocity: 0) {
             host.view.transform = .identity
+        }
+    }
+}
+
+extension ShareViewController {
+    /// The save sheet found a list, not a place: the card becomes "importing", and the job
+    /// waits in the App Group for the app (`ListImport.Job`).
+    @MainActor
+    fileprivate func startImport(_ link: String) {
+        let done: () -> Void = { [weak self] in self?.close { $0.completeRequest(returningItems: nil) } }
+        host?.rootView = ShareStage(card: AnyView(ImportStartedCard(link: link, onDone: done)), onOutside: done)
+    }
+}
+
+/// "Importing your list… we'll let you know": the server goes on after this card closes.
+private struct ImportStartedCard: View {
+    let link: String
+    let onDone: () -> Void
+    @State private var title: String?
+    @State private var total = 0
+    @State private var started = false
+    @State private var error: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(started ? "Importing" : error == nil ? "Reading the list…" : "Couldn't import")
+                .font(.subheadline).foregroundStyle(.secondary)
+            if started {
+                Text(title ?? "Your Google Maps list").font(.title3.weight(.semibold)).lineLimit(2)
+                Text(ListImport.pushToken != nil
+                     ? "Finding \(total) places. We'll let you know when it's ready to review in Vicolo."
+                     : "Finding \(total) places. Open Vicolo in a minute to review them.")
+                    .font(.subheadline).foregroundStyle(.secondary)
+            } else if let error {
+                Text(error).font(.subheadline).foregroundStyle(.red)
+            } else {
+                ProgressView().padding(.vertical, 8)
+            }
+            Button(action: onDone) {
+                Text("Done").font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color(.systemBackground))
+                    .frame(maxWidth: .infinity).padding(.vertical, 14)
+                    .background(Color(.label), in: RoundedRectangle(cornerRadius: 16))
+            }
+            .padding(.top, 8)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemGroupedBackground))
+        .task {
+            do {
+                let job = try await ListImport.startFromShare(link)
+                title = job.title
+                total = job.total
+                started = true
+            } catch {
+                self.error = (error as? ListImport.ReadError)?.message ?? "Couldn't reach Vicolo. Check the connection and try again."
+            }
         }
     }
 }

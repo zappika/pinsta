@@ -29,6 +29,8 @@ targets:
       path: Pinsta/Pinsta.entitlements
       properties:
         com.apple.security.application-groups: [group.se.sarper.vicolo]
+        # Push for a finished list import (lib/apns.ts). App Store export signs it as production.
+        aps-environment: development
     info:
       path: Pinsta/Info.plist
       properties:

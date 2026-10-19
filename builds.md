@@ -17,6 +17,11 @@ How it stays true:
 - *(internal)* Counts opening a saved place, Directions, the post button and Been there (no place names), for the backoffice's Pulse page.
 - The Paste button sits inside the link field, with a clipboard icon, so it reads as "paste what you copied", not as a button to tap after pasting. *(not built yet: written on the Mac without Xcode)*
 - After importing a Google Maps list, every place gets its photo while the app is open, not five each time you open it. *(not built yet)*
+- Importing a Google Maps list keeps going with Vicolo closed: a pill on the map shows how far it is ("Importing … 12/40"), the menu has an Import row, and a notification says when it's ready to review. Vicolo asks to send notifications when you start an import. *(not built yet: written on the Mac without Xcode)*
+- Long lists import in full (up to 500 places), found with Google, so places Apple Maps lacks are found too.
+- Places the import couldn't find are at the bottom of the review, each with a Search button that opens the save sheet with its name.
+- A list shared from Google Maps' own Share button now imports (it was dropped before): the card says it's importing, and the app has it when it's ready.
+- *(internal)* Push: `aps-environment` entitlement; the notification needs the APNs key in Vercel (`APNS_KEY`, `APNS_KEY_ID`). Matching moved from MapKit to `POST /api/import/jobs`.
 
 ## In TestFlight: 1.0 (30) · 2026-10-17 · `ios-30` · phone ☑ (Sarp, 2026-10-17)
 - When a post can't be read, the sheet says why (private or deleted, or Instagram didn't answer), and a place saved without a photo says so on the saved card.
