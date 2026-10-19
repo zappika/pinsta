@@ -34,6 +34,7 @@ export default function ImportPage() {
   const [locked, setLocked] = useState(false);
   const [keyTried, setKeyTried] = useState(false);
   const [been, setBeen] = useState(false);
+  const [choosing, setChoosing] = useState(false);
 
   useEffect(() => {
     const onLocked = () => setLocked(true);
@@ -104,8 +105,6 @@ export default function ImportPage() {
 
   const update = (key: number, change: Partial<Row>) =>
     setPreview((p) => p && { ...p, rows: p.rows.map((r) => (r.key === key ? { ...r, ...change } : r)) });
-  const setAll = (change: (r: Row) => Partial<Row>) =>
-    setPreview((p) => p && { ...p, rows: p.rows.map((r) => (importable(r) && r.state === "idle" ? { ...r, ...change(r) } : r)) });
 
   const picked = useMemo(() => preview?.rows.filter((r) => r.picked && r.state !== "saved") ?? [], [preview]);
   const savedCount = preview?.rows.filter((r) => r.state === "saved").length ?? 0;
@@ -140,106 +139,173 @@ export default function ImportPage() {
     );
   }
 
+  const missing = preview?.rows.filter((r) => !r.match && !r.savedId) ?? [];
+  const already = preview?.rows.filter((r) => r.savedId).length ?? 0;
+  const done = !!preview && savedCount > 0 && picked.length === 0 && !importing;
+  const total = savedCount + picked.length;
+  const cancel = () => {
+    if (confirm("Cancel this import? Nothing from this list is added.")) {
+      setPreview(null);
+      setUrl("");
+      setChoosing(false);
+    }
+  };
+
+  // One mode at a time (Sarp, 2026-10-19): paste; then the list until Import or Cancel import.
   return (
-    <main className="mx-auto min-h-dvh max-w-xl px-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-32">
-      <a href="/app" className="text-sm font-medium text-stone-500 active:text-stone-700">
-        ← Vicolo
-      </a>
-      <h1 className="mt-3 text-2xl font-semibold tracking-tight">Import from Google Maps</h1>
-      <p className="mt-1 text-sm text-stone-500">
-        In Google Maps, open Saved, pick a list, and tap Share. Paste that link here. The list has to be shared, not private.
-      </p>
-
-      <form
-        className="mt-4 flex gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          read();
-        }}
-      >
-        <input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://maps.app.goo.gl/…"
-          inputMode="url"
-          autoCapitalize="off"
-          autoCorrect="off"
-          spellCheck={false}
-          className="min-w-0 flex-1 rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-base outline-none focus:border-stone-400"
-        />
-        <button
-          type="submit"
-          disabled={!url.trim() || reading}
-          className="rounded-xl bg-stone-900 px-4 text-sm font-medium text-white active:bg-stone-800 disabled:opacity-40"
-        >
-          {reading ? "Reading…" : "Read list"}
+    <main className="mx-auto min-h-dvh max-w-xl px-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-48">
+      {choosing ? (
+        <button type="button" onClick={() => setChoosing(false)} className="text-sm font-medium text-stone-500 active:text-stone-700">
+          ← Back
         </button>
-        {!url && (
-          <button type="button" onClick={paste} className="shrink-0 rounded-xl border border-stone-200 bg-white px-3.5 text-sm font-medium text-stone-700 active:bg-stone-50">
-            Paste
-          </button>
-        )}
-      </form>
-      {reading && <p className="mt-3 text-sm text-stone-500">Reading the list and finding each place. A long list takes a little while.</p>}
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      ) : (
+        <a href="/app" className="text-sm font-medium text-stone-500 active:text-stone-700">
+          ← {preview && !done ? "Later" : "Vicolo"}
+        </a>
+      )}
 
-      {preview && (
+      {!preview ? (
         <>
-          <div className="mt-8 flex flex-wrap items-end justify-between gap-3">
-            <div className="min-w-0">
-              <h2 className="truncate text-lg font-semibold">{preview.title ?? "Your list"}</h2>
-              <p className="text-sm text-stone-500">
-                {count(preview.rows.length, "place")}
-                {preview.total > preview.rows.length && ` (the first ${preview.rows.length} of ${preview.total})`}
-                {savedCount > 0 && ` · ${savedCount} imported`}
-              </p>
-            </div>
-            <button
-              type="button"
-              disabled={importing}
-              onClick={() => {
-                const on = preview.rows.some((r) => importable(r) && r.state === "idle" && !r.picked);
-                setAll(() => ({ picked: on }));
-              }}
-              className="rounded-lg px-2.5 py-1.5 text-sm font-medium text-stone-600 active:bg-stone-200"
-            >
-              {preview.rows.some((r) => importable(r) && r.state === "idle" && !r.picked) ? "Select all" : "Select none"}
-            </button>
-          </div>
-
-          {groups(preview.rows).map((g) => (
-            <Group
-              key={g.id}
-              group={g}
-              disabled={importing}
-              onRow={update}
-              onGroup={(change) => g.rows.forEach((r) => r.state === "idle" && update(r.key, change))}
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight">Import from Google Maps</h1>
+          <p className="mt-1 text-sm text-stone-500">
+            In Google Maps, open Saved, pick a list, and tap Share. Paste that link here. The list has to be shared, not private.
+          </p>
+          <form
+            className="mt-4 space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              read();
+            }}
+          >
+            <input
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://maps.app.goo.gl/…"
+              inputMode="url"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              className="w-full rounded-xl border border-stone-200 bg-white px-3.5 py-3 text-base outline-none focus:border-stone-400"
             />
-          ))}
+            {url ? (
+              <button type="submit" disabled={reading} className="w-full rounded-2xl bg-stone-900 py-3.5 text-sm font-semibold text-white active:bg-stone-800 disabled:opacity-40">
+                {reading ? "Reading the list…" : "Read list"}
+              </button>
+            ) : (
+              <button type="button" onClick={paste} className="w-full rounded-2xl bg-stone-900 py-3.5 text-sm font-semibold text-white active:bg-stone-800">
+                Paste
+              </button>
+            )}
+          </form>
+          {reading && <p className="mt-3 text-sm text-stone-500">Reading the list and finding each place. A long list takes a little while.</p>}
+          {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        </>
+      ) : choosing ? (
+        <>
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight">Choose what to import</h1>
+          <p className="mt-1 text-sm text-stone-500">Tap a place to leave it out. Tap its type to change it.</p>
+          {CATEGORIES.map((c) => {
+            const rows = preview.rows.filter((r) => importable(r) && r.category === c);
+            return rows.length === 0 ? null : (
+              <section key={c} className="mt-6">
+                <h2 className="px-4 pb-1.5 text-sm text-stone-500">
+                  {c} · {rows.length}
+                </h2>
+                <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white">
+                  {rows.map((r) => (
+                    <ChooseRow key={r.key} row={r} disabled={importing} onChange={(change) => update(r.key, change)} />
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
+        </>
+      ) : (
+        <>
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight">{preview.title ?? "Your list"}</h1>
+          {preview.owner && <p className="text-sm text-stone-500">From {preview.owner}</p>}
+          {preview.total > preview.rows.length && (
+            <p className="mt-1 text-sm text-stone-500">The first {preview.rows.length} of {preview.total} places.</p>
+          )}
+          <ul className="mt-5 divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white">
+            {CATEGORIES.map((c) => {
+              const n = picked.filter((r) => r.category === c).length;
+              return n === 0 ? null : (
+                <li key={c} className="flex items-center gap-3 px-4 py-2.5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={iconFor(c)} alt="" className="h-8 w-8 object-contain" />
+                  <span className="flex-1">{c}</span>
+                  <span className="tabular-nums text-stone-500">{n}</span>
+                </li>
+              );
+            })}
+            {picked.length === 0 && <li className="px-4 py-3 text-stone-500">{done ? `${count(savedCount, "place")} imported` : "Nothing chosen"}</li>}
+            {!done && (
+              <li>
+                <button
+                  type="button"
+                  disabled={importing}
+                  onClick={() => setChoosing(true)}
+                  className="flex w-full items-center justify-between px-4 py-3.5 text-left active:bg-stone-50 disabled:opacity-40"
+                >
+                  Choose what to import <span className="text-stone-400">›</span>
+                </button>
+              </li>
+            )}
+          </ul>
+          {already > 0 && <p className="mt-2.5 px-4 text-xs text-stone-500">{count(already, "place")} already in your list.</p>}
+          {missing.length > 0 && (
+            <section className="mt-7">
+              <h2 className="px-4 text-sm font-semibold">Couldn’t find {missing.length}</h2>
+              <ul className="mt-2 divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white">
+                {missing.map((r) => (
+                  <li key={r.key} className="px-4 py-3">
+                    <p className="truncate text-sm">{r.name}</p>
+                    {r.address && <p className="truncate text-xs text-stone-500">{r.address}</p>}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {!importing && !done && (
+            <button type="button" onClick={cancel} className="mt-8 w-full text-center text-sm text-red-600 active:text-red-700">
+              Cancel import
+            </button>
+          )}
         </>
       )}
 
       {preview && (
-        <div className="fixed inset-x-0 bottom-0 z-10 mx-auto max-w-xl px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
-          {picked.length === 0 && savedCount > 0 && !importing ? (
-            <a href="/app" className="block rounded-2xl bg-stone-900 py-3.5 text-center text-sm font-semibold text-white shadow-lg active:bg-stone-800">
-              Done · see {count(savedCount, "place")} in your list
-            </a>
-          ) : (
-            <div className="space-y-2">
-              <BeenSwitch on={been} disabled={importing} onChange={setBeen} />
-              <button
-                type="button"
-                disabled={picked.length === 0 || importing}
-                onClick={runImport}
-                className="w-full rounded-2xl bg-stone-900 py-3.5 text-sm font-semibold text-white shadow-lg active:bg-stone-800 disabled:opacity-40"
-              >
-                {importing ? `Importing… ${savedCount} done`
-                  : picked.length === 0 ? "Nothing selected"
-                  : `Import ${count(picked.length, "place")}`}
-              </button>
-            </div>
-          )}
+        // A solid bar of its own, not floating over the list.
+        <div className="fixed inset-x-0 bottom-0 z-10 border-t border-stone-200 bg-stone-100">
+          <div className="mx-auto max-w-xl space-y-3 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
+            {done ? (
+              <a href="/app" className="block rounded-2xl bg-stone-900 py-3.5 text-center text-sm font-semibold text-white active:bg-stone-800">
+                Done · see {count(savedCount, "place")} in your list
+              </a>
+            ) : (
+              <>
+                {importing ? (
+                  <div className="h-1.5 overflow-hidden rounded-full bg-stone-200">
+                    <div className="h-full bg-stone-900 transition-all" style={{ width: `${(savedCount / Math.max(total, 1)) * 100}%` }} />
+                  </div>
+                ) : (
+                  <BeenSwitch on={been} disabled={importing} onChange={setBeen} />
+                )}
+                <button
+                  type="button"
+                  disabled={picked.length === 0 || importing}
+                  onClick={choosing ? () => setChoosing(false) : runImport}
+                  className="w-full rounded-2xl bg-stone-900 py-3.5 text-sm font-semibold text-white active:bg-stone-800 disabled:opacity-40"
+                >
+                  {importing ? `Importing ${savedCount} of ${total}…`
+                    : picked.length === 0 ? "Nothing chosen"
+                    : choosing ? `Done · ${count(picked.length, "place")} chosen`
+                    : `Import ${count(picked.length, "place")}`}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
     </main>
@@ -252,7 +318,7 @@ export default function ImportPage() {
  */
 function BeenSwitch({ on, disabled, onChange }: { on: boolean; disabled: boolean; onChange: (v: boolean) => void }) {
   return (
-    <label className="flex items-center justify-between rounded-2xl bg-white px-4 py-2.5 text-sm text-stone-700 shadow-lg">
+    <label className="flex items-center justify-between text-sm text-stone-700">
       I’ve been to these
       <button
         type="button"
@@ -268,119 +334,40 @@ function BeenSwitch({ on, disabled, onChange }: { on: boolean; disabled: boolean
   );
 }
 
-type GroupT = { id: string; title: string; category: Category | null; rows: Row[] };
-
-/**
- * The review, sorted the way a list is usually made ("Paris", "Tokyo bars"):
- * one section per category, in the app's category order, then what can't be
- * imported. A place imported just now stays where it was, marked done.
- */
-function groups(rows: Row[]): GroupT[] {
-  const byCategory = CATEGORIES.map((c) => ({
-    id: c,
-    title: c,
-    category: c as Category,
-    rows: rows.filter((r) => importable(r) && r.category === c),
-  }));
-  return [
-    ...byCategory,
-    { id: "saved", title: "Already in your list", category: null, rows: rows.filter((r) => r.savedId) },
-    { id: "missing", title: "Google couldn’t find these", category: null, rows: rows.filter((r) => !r.match && !r.savedId) },
-  ].filter((g) => g.rows.length > 0);
-}
-
-function Group({ group, disabled, onRow, onGroup }: { group: GroupT; disabled: boolean; onRow: (key: number, c: Partial<Row>) => void; onGroup: (c: Partial<Row>) => void }) {
-  const open = group.rows.filter((r) => r.state === "idle");
-  const allPicked = open.length > 0 && open.every((r) => r.picked);
+/** Tap to leave it out or put it back; the type under the name is a quiet select (no Move pills). */
+function ChooseRow({ row, disabled, onChange }: { row: Row; disabled: boolean; onChange: (c: Partial<Row>) => void }) {
+  const where = row.match?.city ?? row.address;
+  const done = row.state === "saved";
   return (
-    <section className="mt-5">
-      <div className="flex items-center gap-3 px-4 pb-1.5">
-        {group.category && (
-          <input
-            type="checkbox"
-            aria-label={`Import every ${group.category}`}
-            checked={allPicked}
-            disabled={disabled || open.length === 0}
-            onChange={(e) => onGroup({ picked: e.target.checked })}
-            className="h-4 w-4 shrink-0 accent-stone-900"
-          />
-        )}
-        {group.category && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={iconFor(group.category)} alt="" className="-my-1 h-7 w-7 shrink-0 object-contain" />
-        )}
-        <h3 className="min-w-0 flex-1 truncate text-sm font-semibold">
-          {group.title} <span className="font-normal text-stone-400">· {group.rows.length}</span>
-        </h3>
-        {group.category && open.length > 0 && (
-          <Move label="Move all" current={group.category} disabled={disabled} onMove={(c) => onGroup({ category: c })} />
-        )}
-      </div>
-      <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white">
-        {group.rows.map((r) => (
-          <ImportRow key={r.key} row={r} disabled={disabled} onChange={(c) => onRow(r.key, c)} />
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-/**
- * A quiet "Move" pill over a native select: the system's own picker opens
- * (the wheel on a phone), and the place lands in the chosen section.
- */
-function Move({ label, current, disabled, onMove }: { label: string; current: Category; disabled: boolean; onMove: (c: Category) => void }) {
-  return (
-    <span className={`relative shrink-0 rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-600 ${disabled ? "opacity-40" : "active:bg-stone-200"}`}>
-      {label}
-      <select
-        aria-label={label}
-        value=""
-        disabled={disabled}
-        onChange={(e) => e.target.value && onMove(e.target.value as Category)}
-        className="absolute inset-0 cursor-pointer opacity-0"
+    <li className={`flex items-start gap-3 px-4 py-3 ${row.picked || done ? "" : "opacity-50"}`}>
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={row.picked}
+        disabled={disabled || done}
+        onClick={() => onChange({ picked: !row.picked })}
+        className="min-w-0 flex-1 text-left"
       >
-        <option value="" disabled>
-          Move to…
-        </option>
-        {CATEGORIES.filter((c) => c !== current).map((c) => (
+        <p className="truncate text-sm font-medium">{row.match?.name ?? row.name}</p>
+        {where && <p className="truncate text-xs text-stone-500">{where}</p>}
+        {row.note && <p className="mt-0.5 line-clamp-2 text-xs italic text-stone-500">“{row.note}”</p>}
+      </button>
+      <select
+        aria-label={`Type of ${row.name}`}
+        value={row.category}
+        disabled={disabled || done}
+        onChange={(e) => onChange({ category: e.target.value as Category })}
+        className="shrink-0 appearance-none bg-transparent pt-0.5 text-right text-xs text-stone-500"
+      >
+        {CATEGORIES.map((c) => (
           <option key={c} value={c}>
             {c}
           </option>
         ))}
       </select>
-    </span>
-  );
-}
-
-function ImportRow({ row, disabled, onChange }: { row: Row; disabled: boolean; onChange: (c: Partial<Row>) => void }) {
-  const can = importable(row) && row.state !== "saved";
-  const where = row.match?.city ?? row.address;
-  return (
-    <li className="flex items-start gap-3 px-4 py-3">
-      {importable(row) && (
-        <input
-          type="checkbox"
-          aria-label={`Import ${row.name}`}
-          checked={row.picked && can}
-          disabled={!can || disabled || row.state === "saving"}
-          onChange={(e) => onChange({ picked: e.target.checked })}
-          className="mt-1 h-4 w-4 shrink-0 accent-stone-900"
-        />
-      )}
-      <div className={`min-w-0 flex-1 ${importable(row) ? "" : "opacity-60"}`}>
-        <p className="truncate text-sm font-medium">{row.match?.name ?? row.name}</p>
-        {where && <p className="truncate text-xs text-stone-500">{where}</p>}
-        {row.note && <p className="mt-0.5 line-clamp-2 text-xs italic text-stone-500">“{row.note}”</p>}
-        {row.state === "failed" && <p className="mt-0.5 text-xs font-medium text-red-600">Couldn&apos;t save. Try again.</p>}
-      </div>
-      {row.state === "saved" ? (
-        <span className="shrink-0 pt-0.5 text-xs font-medium text-stone-500">✓ Imported</span>
-      ) : row.state === "saving" ? (
-        <span className="shrink-0 pt-0.5 text-xs text-stone-400">Saving…</span>
-      ) : (
-        can && <Move label="Move" current={row.category} disabled={disabled} onMove={(c) => onChange({ category: c })} />
-      )}
+      <span aria-hidden className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${row.picked ? "bg-stone-900 text-white" : "border border-stone-300"}`}>
+        {row.picked && "✓"}
+      </span>
     </li>
   );
 }
