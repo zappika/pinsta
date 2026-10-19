@@ -23,7 +23,7 @@ How it stays true:
 - Places the import couldn't find are at the bottom of the review, each with a Search button that opens the save sheet with its name.
 - A list shared from Google Maps' own Share button now imports (it was dropped before): the card says it's importing, and the app has it when it's ready.
 - *(internal)* Push: `aps-environment` entitlement; the notification needs the APNs key in Vercel (`APNS_KEY`, `APNS_KEY_ID`). Matching moved from MapKit to `POST /api/import/jobs`.
-- *(internal)* Built on the Xcode Mac 2026-10-19: one fix (the list screen's body was too long to type-check, split in two); import of the Bicocca test list ran in the Simulator (notification question, 13 places in review).
+- *(internal)* Built on the Xcode Mac 2026-10-19: one fix (the list screen's body was too long to type-check, split in two); import of the Bicocca test list ran in the Simulator (notification question, 13 places in review); a 116-place Barcelona list: the pill counted up to "ready to review", Couldn't find had 3, Search opened the save sheet on the name and found it.
 
 ## In TestFlight: 1.0 (30) · 2026-10-17 · `ios-30` · phone ☑ (Sarp, 2026-10-17)
 - When a post can't be read, the sheet says why (private or deleted, or Instagram didn't answer), and a place saved without a photo says so on the saved card.
