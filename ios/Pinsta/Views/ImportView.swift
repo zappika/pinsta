@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import MapKit
 
 /// The + menu → Google Maps, with a list link: a shared Google Maps list into Vicolo.
 /// One mode at a time (Sarp, 2026-10-19: the old review "feels like I'd rather cut myself"):
@@ -124,9 +125,10 @@ struct ImportView: View {
 
     private var overview: some View {
         let picked = job.picked
+        let open = job.rows.filter { $0.importable && $0.save != .saved }
         let byType = PlaceCategory.allCases.compactMap { c -> (PlaceCategory, Int)? in
-            let n = picked.filter { $0.category == c }.count
-            return n > 0 ? (c, n) : nil
+            guard open.contains(where: { $0.category == c }) else { return nil }
+            return (c, picked.filter { $0.category == c }.count)
         }
         let missing = job.rows.filter { $0.status == .missing }
         let already = job.rows.filter { $0.status == .already }.count
@@ -136,39 +138,40 @@ struct ImportView: View {
                 Text("From \(owner)").font(.subheadline).foregroundStyle(.secondary).padding(.top, 2)
             }
 
-            // What's going in, by type: icon, type, count.
+            // Where the list is: every place its type icon on its tint (Sarp, 2026-10-19: a visual
+            // summary; photos would cost a Google call each, the pins are free).
+            ListMap(rows: picked)
+                .frame(height: 220)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .padding(.top, 16)
+
+            // What's going in, by type. A type opens its places, to leave some out.
             VStack(spacing: 0) {
                 ForEach(Array(byType.enumerated()), id: \.element.0) { i, entry in
-                    HStack(spacing: 12) {
-                        entry.0.icon.resizable().scaledToFit().frame(width: 30, height: 30)
-                        Text(entry.0.rawValue)
-                        Spacer()
-                        Text("\(entry.1)").monospacedDigit().foregroundStyle(.secondary)
+                    NavigationLink {
+                        ChooseView(category: entry.0)
+                    } label: {
+                        HStack(spacing: 12) {
+                            entry.0.icon.resizable().scaledToFit().frame(width: 30, height: 30)
+                            Text(entry.0.plural)
+                            Spacer()
+                            Text("\(entry.1)").monospacedDigit().foregroundStyle(.secondary)
+                            Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
+                        }
+                        .padding(.horizontal, 16).padding(.vertical, 10)
+                        .contentShape(Rectangle())
                     }
-                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .buttonStyle(.plain)
+                    .disabled(job.importing)
                     if i < byType.count - 1 { Divider().padding(.leading, 58) }
                 }
                 if byType.isEmpty {
                     Text("Nothing chosen").foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading).padding(16)
                 }
-                Divider()
-                NavigationLink {
-                    ChooseView()
-                } label: {
-                    HStack {
-                        Text("Choose what to import")
-                        Spacer()
-                        Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
-                    }
-                    .padding(16)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .disabled(job.importing)
             }
             .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
-            .padding(.top, 20)
+            .padding(.top, 12)
 
             if already > 0 {
                 Text("\(count(already, "place")) already in your list.")
@@ -221,20 +224,17 @@ struct ImportView: View {
 
     // MARK: 4. Import
 
-    /// Not over the list: a solid bar of its own. Want to go unless the switch says otherwise
-    /// (Sarp, 2026-10-19); while importing the count, then Done.
+    /// Not over the list: a solid bar of its own. Everything comes in as Want to go (Sarp, 2026-10-19:
+    /// no "I've been to these"); while importing the count, then Done.
     private var bottomBar: some View {
         let picked = job.picked.count
         let over = picked - ListImport.limit
         let done = job.finished
         let total = job.savedCount + picked
+        let open = job.rows.filter { $0.importable && $0.save != .saved }.count
         return VStack(spacing: 12) {
             if job.importing && !done {
                 ProgressView(value: Double(job.savedCount), total: Double(max(total, 1))).tint(Color(.label))
-            } else if !done {
-                Toggle("I've been to these", isOn: Binding(get: { job.visited == true }, set: { job.visited = $0 }))
-                    .font(.subheadline)
-                    .tint(Color(.label))
             }
             Button {
                 if done { dismiss() } else { job.startImport() }
@@ -244,7 +244,8 @@ struct ImportView: View {
                     : job.importing ? "Importing \(job.savedCount) of \(total)…"
                     : over > 0 ? "Choose \(over) fewer (\(ListImport.limit) at most)"
                     : picked == 0 ? "Nothing chosen"
-                    : "Import \(count(picked, "place"))"
+                    : picked == open ? "Import all \(count(picked, "place"))"
+                    : "Import \(picked) of \(count(open, "place"))"
                 )
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color(.systemBackground))
@@ -262,30 +263,22 @@ struct ImportView: View {
 
 private func count(_ n: Int, _ word: String) -> String { "\(n) \(word)\(n == 1 ? "" : "s")" }
 
-/// "Choose what to import": every place, by type. Tap a place to leave it out or put it back;
-/// hold it to give it another type. No checkbox columns, no Move pills (Sarp, 2026-10-19).
+/// One type's places from the list: tap one to leave it out or put it back, hold it to give it
+/// another type. Each with its type icon on its tint, like a map pin (Sarp, 2026-10-19).
 private struct ChooseView: View {
+    let category: PlaceCategory
     private var job: ListImport { .shared }
 
     var body: some View {
-        let rows = job.rows.filter(\.importable)
+        let rows = job.rows.filter { $0.importable && $0.category == category }
         List {
             Section {
+                ForEach(rows) { row in ChooseRow(row: row) }
+            } footer: {
                 Text("Tap a place to leave it out. Hold it to change its type.")
-                    .font(.footnote).foregroundStyle(.secondary)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4))
-            }
-            ForEach(PlaceCategory.allCases) { c in
-                let group = rows.filter { $0.category == c }
-                if !group.isEmpty {
-                    Section("\(c.rawValue) · \(group.count)") {
-                        ForEach(group) { row in ChooseRow(row: row) }
-                    }
-                }
             }
         }
-        .navigationTitle("Choose what to import")
+        .navigationTitle(category.plural)
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -297,6 +290,11 @@ private struct ChooseRow: View {
     var body: some View {
         Button { update { $0.picked.toggle() } } label: {
             HStack(spacing: 12) {
+                row.icon.resizable().scaledToFit()
+                    .frame(width: 26, height: 26)
+                    .frame(width: 44, height: 44)
+                    .background(row.category.tint, in: Circle())
+                    .saturation(row.picked ? 1 : 0)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(row.match?.name ?? row.name).lineLimit(1)
                     if let place = row.match?.city ?? row.address {
@@ -306,12 +304,12 @@ private struct ChooseRow: View {
                         Text("“\(note)”").font(.caption).italic().foregroundStyle(.secondary).lineLimit(2)
                     }
                 }
-                .opacity(row.picked ? 1 : 0.45)
                 Spacer(minLength: 8)
                 Image(systemName: row.picked ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
                     .foregroundStyle(row.picked ? Color(.label) : Color(.tertiaryLabel))
             }
+            .opacity(row.picked ? 1 : 0.5)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -325,5 +323,47 @@ private struct ChooseRow: View {
 
     private func update(_ change: (inout ListImport.Row) -> Void) {
         if let i = job.rows.firstIndex(where: { $0.id == row.id }) { change(&job.rows[i]) }
+    }
+}
+
+/// The list on a still map: each place its type icon on its tint (as the app's map), framed to fit.
+private struct ListMap: View {
+    let rows: [ListImport.Row]
+
+    var body: some View {
+        Map(initialPosition: .region(region), interactionModes: []) {
+            ForEach(rows) { row in
+                Annotation("", coordinate: CLLocationCoordinate2D(latitude: row.latitude, longitude: row.longitude)) {
+                    row.icon.resizable().scaledToFit()
+                        .frame(width: 18, height: 18)
+                        .frame(width: 28, height: 28)
+                        .background(row.category.tint, in: Circle())
+                        .overlay(Circle().strokeBorder(.white, lineWidth: 2))
+                        .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
+                }
+                .annotationTitles(.hidden)
+            }
+        }
+        .mapStyle(.standard(pointsOfInterest: .excludingAll))
+        .allowsHitTesting(false)
+    }
+
+    private var region: MKCoordinateRegion {
+        let lats = rows.map(\.latitude), lngs = rows.map(\.longitude)
+        guard let minLat = lats.min(), let maxLat = lats.max(), let minLng = lngs.min(), let maxLng = lngs.max() else {
+            return MKCoordinateRegion(center: .init(latitude: 48, longitude: 10), span: .init(latitudeDelta: 30, longitudeDelta: 30))
+        }
+        return MKCoordinateRegion(
+            center: .init(latitude: (minLat + maxLat) / 2, longitude: (minLng + maxLng) / 2),
+            span: .init(latitudeDelta: max((maxLat - minLat) * 1.5, 0.008), longitudeDelta: max((maxLng - minLng) * 1.5, 0.008))
+        )
+    }
+}
+
+private extension ListImport.Row {
+    /// A restaurant's food icon when its name or note says (poke, pizza…), else its type's.
+    var icon: Image {
+        if category == .restaurant, let food = Food.icon(name: match?.name ?? name, caption: note) { return Image(food) }
+        return category.icon
     }
 }

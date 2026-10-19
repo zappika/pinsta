@@ -253,7 +253,7 @@ final class ListImport {
         if rows[i].category == c.category { place.subtypeRaw = c.subtype }
         place.fromListTitle = title ?? "Google Maps list"
         place.fromListOwner = owner
-        if visited == true { place.visitedAt = Date() }
+        // Every import comes in as Want to go (Sarp, 2026-10-19).
         context.insert(place)
         do {
             try context.save()

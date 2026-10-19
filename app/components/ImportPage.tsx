@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api, setOwnerKey } from "@/lib/api";
-import { CATEGORIES, iconFor, type Category } from "@/lib/categories";
+import { CATEGORIES, iconFor, tintFor, type Category } from "@/lib/categories";
+import { foodIcon } from "@/lib/food";
+import ListMap from "./ListMap";
 import Locked from "./Locked";
 
 type Match = { placeId: string; name: string; city: string | null; category: Category };
@@ -33,8 +35,8 @@ export default function ImportPage() {
   const [importing, setImporting] = useState(false);
   const [locked, setLocked] = useState(false);
   const [keyTried, setKeyTried] = useState(false);
-  const [been, setBeen] = useState(false);
-  const [choosing, setChoosing] = useState(false);
+  /** The type whose places are being chosen; null on the list itself. */
+  const [choosing, setChoosing] = useState<Category | null>(null);
 
   useEffect(() => {
     const onLocked = () => setLocked(true);
@@ -118,7 +120,7 @@ export default function ImportPage() {
       [0, 1].map(async () => {
         for (let r = queue.shift(); r; r = queue.shift()) {
           update(r.key, { state: "saving" });
-          const ok = await save(r, { title: preview.title, owner: preview.owner }, been);
+          const ok = await save(r, { title: preview.title, owner: preview.owner }, false);
           update(r.key, { state: ok ? "saved" : "failed", picked: !ok });
         }
       }),
@@ -143,11 +145,12 @@ export default function ImportPage() {
   const already = preview?.rows.filter((r) => r.savedId).length ?? 0;
   const done = !!preview && savedCount > 0 && picked.length === 0 && !importing;
   const total = savedCount + picked.length;
+  const openCount = preview?.rows.filter((r) => importable(r) && r.state !== "saved").length ?? 0;
   const cancel = () => {
     if (confirm("Cancel this import? Nothing from this list is added.")) {
       setPreview(null);
       setUrl("");
-      setChoosing(false);
+      setChoosing(null);
     }
   };
 
@@ -155,7 +158,7 @@ export default function ImportPage() {
   return (
     <main className="mx-auto min-h-dvh max-w-xl px-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-48">
       {choosing ? (
-        <button type="button" onClick={() => setChoosing(false)} className="text-sm font-medium text-stone-500 active:text-stone-700">
+        <button type="button" onClick={() => setChoosing(null)} className="text-sm font-medium text-stone-500 active:text-stone-700">
           ← Back
         </button>
       ) : (
@@ -202,23 +205,15 @@ export default function ImportPage() {
         </>
       ) : choosing ? (
         <>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight">Choose what to import</h1>
-          <p className="mt-1 text-sm text-stone-500">Tap a place to leave it out. Tap its type to change it.</p>
-          {CATEGORIES.map((c) => {
-            const rows = preview.rows.filter((r) => importable(r) && r.category === c);
-            return rows.length === 0 ? null : (
-              <section key={c} className="mt-6">
-                <h2 className="px-4 pb-1.5 text-sm text-stone-500">
-                  {c} · {rows.length}
-                </h2>
-                <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white">
-                  {rows.map((r) => (
-                    <ChooseRow key={r.key} row={r} disabled={importing} onChange={(change) => update(r.key, change)} />
-                  ))}
-                </ul>
-              </section>
-            );
-          })}
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight">{plural(choosing)}</h1>
+          <ul className="mt-5 divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white">
+            {preview.rows
+              .filter((r) => importable(r) && r.category === choosing)
+              .map((r) => (
+                <ChooseRow key={r.key} row={r} disabled={importing} onChange={(change) => update(r.key, change)} />
+              ))}
+          </ul>
+          <p className="mt-2.5 px-4 text-xs text-stone-500">Tap a place to leave it out. Tap its type to change it.</p>
         </>
       ) : (
         <>
@@ -227,31 +222,31 @@ export default function ImportPage() {
           {preview.total > preview.rows.length && (
             <p className="mt-1 text-sm text-stone-500">The first {preview.rows.length} of {preview.total} places.</p>
           )}
-          <ul className="mt-5 divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white">
+          <div className="mt-4">
+            <ListMap pins={picked.map((r) => ({ lat: r.lat, lng: r.lng, category: r.category, icon: rowIcon(r) }))} />
+          </div>
+          <ul className="mt-3 divide-y divide-stone-100 overflow-hidden rounded-2xl bg-white">
             {CATEGORIES.map((c) => {
-              const n = picked.filter((r) => r.category === c).length;
-              return n === 0 ? null : (
-                <li key={c} className="flex items-center gap-3 px-4 py-2.5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={iconFor(c)} alt="" className="h-8 w-8 object-contain" />
-                  <span className="flex-1">{c}</span>
-                  <span className="tabular-nums text-stone-500">{n}</span>
+              const open = preview.rows.filter((r) => importable(r) && r.state !== "saved" && r.category === c);
+              if (open.length === 0) return null;
+              return (
+                <li key={c}>
+                  <button
+                    type="button"
+                    disabled={importing}
+                    onClick={() => setChoosing(c)}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left active:bg-stone-50 disabled:opacity-40"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={iconFor(c)} alt="" className="h-8 w-8 object-contain" />
+                    <span className="flex-1">{plural(c)}</span>
+                    <span className="tabular-nums text-stone-500">{open.filter((r) => r.picked).length}</span>
+                    <span className="text-stone-400">›</span>
+                  </button>
                 </li>
               );
             })}
             {picked.length === 0 && <li className="px-4 py-3 text-stone-500">{done ? `${count(savedCount, "place")} imported` : "Nothing chosen"}</li>}
-            {!done && (
-              <li>
-                <button
-                  type="button"
-                  disabled={importing}
-                  onClick={() => setChoosing(true)}
-                  className="flex w-full items-center justify-between px-4 py-3.5 text-left active:bg-stone-50 disabled:opacity-40"
-                >
-                  Choose what to import <span className="text-stone-400">›</span>
-                </button>
-              </li>
-            )}
           </ul>
           {already > 0 && <p className="mt-2.5 px-4 text-xs text-stone-500">{count(already, "place")} already in your list.</p>}
           {missing.length > 0 && (
@@ -289,19 +284,18 @@ export default function ImportPage() {
                   <div className="h-1.5 overflow-hidden rounded-full bg-stone-200">
                     <div className="h-full bg-stone-900 transition-all" style={{ width: `${(savedCount / Math.max(total, 1)) * 100}%` }} />
                   </div>
-                ) : (
-                  <BeenSwitch on={been} disabled={importing} onChange={setBeen} />
-                )}
+                ) : null}
                 <button
                   type="button"
                   disabled={picked.length === 0 || importing}
-                  onClick={choosing ? () => setChoosing(false) : runImport}
+                  onClick={choosing ? () => setChoosing(null) : runImport}
                   className="w-full rounded-2xl bg-stone-900 py-3.5 text-sm font-semibold text-white active:bg-stone-800 disabled:opacity-40"
                 >
                   {importing ? `Importing ${savedCount} of ${total}…`
                     : picked.length === 0 ? "Nothing chosen"
-                    : choosing ? `Done · ${count(picked.length, "place")} chosen`
-                    : `Import ${count(picked.length, "place")}`}
+                    : choosing ? "Done"
+                    : picked.length === openCount ? `Import all ${count(picked.length, "place")}`
+                    : `Import ${picked.length} of ${count(openCount, "place")}`}
                 </button>
               </>
             )}
@@ -312,34 +306,16 @@ export default function ImportPage() {
   );
 }
 
-/**
- * Imports are Want to go unless this says you have been to them all (Sarp, 2026-10-19:
- * the bookmark/check pair in front of a greyed button was too confusing).
- */
-function BeenSwitch({ on, disabled, onChange }: { on: boolean; disabled: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <label className="flex items-center justify-between text-sm text-stone-700">
-      I’ve been to these
-      <button
-        type="button"
-        role="switch"
-        aria-checked={on}
-        disabled={disabled}
-        onClick={() => onChange(!on)}
-        className={`relative h-6 w-10 rounded-full transition-colors ${on ? "bg-stone-900" : "bg-stone-300"}`}
-      >
-        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? "left-[18px]" : "left-0.5"}`} />
-      </button>
-    </label>
-  );
-}
-
 /** Tap to leave it out or put it back; the type under the name is a quiet select (no Move pills). */
 function ChooseRow({ row, disabled, onChange }: { row: Row; disabled: boolean; onChange: (c: Partial<Row>) => void }) {
   const where = row.match?.city ?? row.address;
   const done = row.state === "saved";
   return (
-    <li className={`flex items-start gap-3 px-4 py-3 ${row.picked || done ? "" : "opacity-50"}`}>
+    <li className={`flex items-center gap-3 px-4 py-3 ${row.picked || done ? "" : "opacity-50"}`}>
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full" style={{ background: tintFor(row.category), filter: row.picked ? undefined : "grayscale(1)" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={rowIcon(row)} alt="" className="h-7 w-7 object-contain" />
+      </span>
       <button
         type="button"
         role="checkbox"
@@ -372,6 +348,9 @@ function ChooseRow({ row, disabled, onChange }: { row: Row; disabled: boolean; o
   );
 }
 
+/** A restaurant's food icon when its name or note says (poke, pizza…), else its type's. ↔ iOS Row.icon. */
+const rowIcon = (r: Row) => foodIcon({ category: r.category, name: r.match?.name ?? r.name, caption: r.note }) ?? iconFor(r.category);
+const plural = (c: Category) => (["Nature", "Culture", "Other"].includes(c) ? c : c === "Bakery" ? "Bakeries" : `${c}s`);
 const importable = (it: Item) => !!it.match && !it.savedId;
 const count = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
