@@ -19,6 +19,8 @@ Things that make what exists better. Hours, not weeks.
 ## Big feature directions
 Each one is weeks and needs a design pass before code.
 
+- **Home by type, cities when planning a trip** (Sarp, 2026-10-19, after that day's beta round). The home screen filters only by type (What); the cities a person has saved get their own way in, for trip-planning mood, with a nicer interaction than today's Where menu (not designed yet). Related: **trips** (a set of places for one trip, often across towns, like Google's "November trip") and **shared lists** (people send places to a friend; Berlin was a shared list).
+
 - **First experience.** The share tutorial (build 9), the success card (build 13) and the location primer (build 24) are in. Still open: when the list starts to feel like *yours*. Two ideas, not decided (2026-10-14):
   - **"Try it with one of these."** Seen in Corner's onboarding. Copied as is it doesn't fit: Vicolo has no catalog, and ticking cards doesn't teach the Share to… step testers get stuck on. The version that fits: 3 real Instagram posts from the user's city (hand-picked JSON, a few per tester city: Stockholm, Göteborg, Barcelona, Copenhagen). A tap runs the real save sheet, as `-addURL` does, and ends on the real success card. Every place still has its post, the map isn't empty, and the saves reach the location question. Comes before the Share tutorial, maybe instead of "Go to Instagram" opening Ästad Vingård.
   - **Human "why it's here" lines.** Corner's come from other users' data; ours can come from what's already stored, by heuristics, with no LLM and no new paid calls. One line per place, the strongest signal, falling back to today's source line (`lib/why-here.ts`):

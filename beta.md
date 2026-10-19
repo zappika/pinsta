@@ -16,6 +16,12 @@ What's new for testers: `changelog.md` → vicolo.space/changelog (menu → What
 ## Open from feedback
 Newest round first. When something is fixed, strike it through with the build it shipped in, then drop it next round.
 
+### 2026-10-19: how people save places now (Sarp asked two people, plus a Google Maps screenshot)
+- One person pins places abroad in Google Maps, **city by city**, or under the **trip name** when a trip is close. Places in Turkey aren't saved, just sent to a friend.
+- Another files everything in **Instagram Saved collections** (Antalya, İzmir…), not only places.
+- A Google Maps "You" screen: Manchester (29 places), November trip (5), Berlin (54, shared).
+- What it says: city is how people sort; trips are the second way; Google lists are where the places already are (list import is the way in); sharing is common; your own town gets less saving than travel.
+
 ### 2026-10-16 round, on build 26
 - ~~Pophams `DeeRAfqIuGl`: "Stuart Studio" in Lille first~~: from `@lilliestuart` (a person) in the caption, ranked first by the new mention rule. A mentioned account's results more than 100 km from the poster's own are dropped. Build 27.
 - ~~casa.lawa `DeW-H5LCsup` (Catania): a laundry and a café from a street photo's signs, ticked next to Bar Popolare~~: names off a slide Vision reads shakily start unticked. Oslo still 5 of 5 ticked. Build 29.
