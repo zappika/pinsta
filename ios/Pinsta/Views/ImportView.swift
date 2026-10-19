@@ -1,11 +1,13 @@
 import SwiftUI
 import SwiftData
 
-/// The + menu → Google Maps, with a list link (was the buddy menu's Import from Google until 2026-10-16): the web's /import on the phone (Sarp, 2026-10-09: same
-/// flow, same design). Paste a shared list's link; the server finds the places (2026-10-19,
-/// `ListImport`) while this shows the count and can be closed; a push and the map's pill say
-/// when it's ready. Then the review, grouped by type (untick, move a place or a whole group to
-/// another type), and Import. What couldn't be found sits at the bottom with a Search button.
+/// The + menu → Google Maps, with a list link: a shared Google Maps list into Vicolo.
+/// One mode at a time (Sarp, 2026-10-19: the old review "feels like I'd rather cut myself"):
+/// 1. Paste: the instruction, the field, Paste.
+/// 2. Finding: the server matches the list (`ListImport`); the count, and that this can be closed.
+/// 3. The list: its name, what's in it by type, what couldn't be found (Search), "I've been to
+///    these", Import. "Choose what to import" opens the places one by one. Cancel drops the import.
+/// 4. Importing, then Done.
 struct ImportView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
@@ -14,33 +16,31 @@ struct ImportView: View {
     @State private var url = ""
     /// Notifications are on: the wait can say "we'll let you know".
     @State private var tells = false
+    @State private var confirmingCancel = false
     private var job: ListImport { .shared }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("In Google Maps, open Saved, pick a list, and tap Share. Paste that link here. The list has to be shared, not private.")
-                        .font(.subheadline).foregroundStyle(.secondary)
-                    linkField.padding(.top, 14)
-                    if job.reading {
-                        Text("Reading the list…").font(.subheadline).foregroundStyle(.secondary).padding(.top, 10)
-                    }
-                    if job.matching { progress.padding(.top, 28) }
-                    if job.phase == .failed, let error = job.error {
-                        Text(error).font(.subheadline).foregroundStyle(.red).padding(.top, 10)
-                    }
-                    if !job.rows.isEmpty { review.padding(.top, 28) }
+                    if job.matching { finding }
+                    else if !job.rows.isEmpty { overview }
+                    else { paste }
                 }
-                .padding(.horizontal, 16).padding(.bottom, 120)
+                .padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 24)
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Import from Google Maps")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    // Later (or pulling the sheet down) keeps the import for another time: the buddy
+                    // menu's Import row brings it back. Dropping it is "Cancel import", below the list,
+                    // and asks first (Sarp, 2026-10-19: Cancel up here was too harsh).
+                    Button(job.matching || (!job.rows.isEmpty && !job.finished) ? "Later" : "Close") { dismiss() }
+                }
             }
-            .safeAreaInset(edge: .bottom) { if !job.rows.isEmpty { importButton } }
+            .safeAreaInset(edge: .bottom) { if !job.rows.isEmpty { bottomBar } }
         }
         .task(id: job.matching) { tells = await Push.willTell() }
         .onChange(of: job.phase) { _, phase in if phase == .ready { job.markOpened() } }
@@ -48,35 +48,45 @@ struct ImportView: View {
             job.resume(context: context)
             job.markOpened()
             if let initialLink, initialLink != job.link { url = initialLink; read(); return }
-            if url.isEmpty, let link = job.link { url = link }
             // Testing: `-importURL <link>` opens here and reads that list.
             if job.job == nil, let link = TestArgs.string("importURL") { url = link; read() }
         }
     }
 
-    private var linkField: some View {
-        HStack(spacing: 8) {
+    // MARK: 1. Paste
+
+    private var paste: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("In Google Maps, open Saved, pick a list, and tap Share. Paste that link here. The list has to be shared, not private.")
+                .font(.subheadline).foregroundStyle(.secondary)
             TextField("https://maps.app.goo.gl/…", text: $url)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .keyboardType(.URL)
                 .submitLabel(.go)
                 .onSubmit(read)
-                .padding(.horizontal, 14).padding(.vertical, 10)
+                .padding(.horizontal, 14).padding(.vertical, 12)
                 .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
             if url.isEmpty {
                 PasteButton(payloadType: String.self) { strings in
                     if let s = strings.first { url = s; read() }
                 }
-                .labelStyle(.titleOnly).buttonStyle(.borderless).tint(.primary)
-                .font(.subheadline.weight(.medium))
+                .labelStyle(.titleAndIcon)
+                .buttonBorderShape(.roundedRectangle(radius: 14))
+                .tint(Color(.label))
+                .frame(maxWidth: .infinity)
             } else {
-                Button(job.reading ? "Reading…" : "Read list", action: read)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color(.systemBackground))
-                    .padding(.horizontal, 14).padding(.vertical, 10)
-                    .background(Color(.label), in: RoundedRectangle(cornerRadius: 12))
-                    .disabled(job.reading)
+                Button(action: read) {
+                    Text(job.reading ? "Reading the list…" : "Read list")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color(.systemBackground))
+                        .frame(maxWidth: .infinity).padding(.vertical, 15)
+                        .background(Color(.label), in: RoundedRectangle(cornerRadius: 16))
+                }
+                .disabled(job.reading)
+            }
+            if job.phase == .failed, let error = job.error {
+                Text(error).font(.subheadline).foregroundStyle(.red)
             }
         }
     }
@@ -91,102 +101,149 @@ struct ImportView: View {
         }
     }
 
-    /// The server is finding the places: the count, and that this can be closed.
-    private var progress: some View {
+    // MARK: 2. Finding
+
+    private var finding: some View {
         let done = job.job?.done ?? 0
         let total = max(job.job?.total ?? 0, 1)
-        return VStack(alignment: .leading, spacing: 8) {
-            Text(job.title ?? "Your list").font(.title3.weight(.semibold)).lineLimit(1)
+        return VStack(alignment: .leading, spacing: 10) {
+            Text(job.title ?? "Your list").font(.title2.weight(.semibold)).lineLimit(2)
             ProgressView(value: Double(min(done, total)), total: Double(total)).tint(Color(.label))
+                .padding(.top, 6)
             Text("Finding the places… \(done) of \(total)").font(.subheadline).foregroundStyle(.secondary)
             Text(tells
                  ? "You can close this. We'll let you know when it's ready."
-                 : "You can close this. It keeps going, and the review waits here.")
+                 : "You can close this. It keeps going, and the list waits here.")
                 .font(.subheadline).foregroundStyle(.secondary)
+            Button("Stop this import", role: .destructive) { job.forget(); url = "" }
+                .font(.subheadline).padding(.top, 14)
         }
     }
 
-    // MARK: Review
+    // MARK: 3. The list
 
-    private var review: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .bottom) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(job.title ?? "Your list").font(.title3.weight(.semibold)).lineLimit(1)
-                    Text(summary).font(.subheadline).foregroundStyle(.secondary)
-                }
-                Spacer()
-                if !job.importing {
-                    let anyOff = job.rows.contains { $0.importable && !$0.picked }
-                    Button(anyOff ? "Select all" : "Select none") { setAll(picked: anyOff) }
-                        .font(.subheadline.weight(.medium)).foregroundStyle(.secondary)
-                }
+    private var overview: some View {
+        let picked = job.picked
+        let byType = PlaceCategory.allCases.compactMap { c -> (PlaceCategory, Int)? in
+            let n = picked.filter { $0.category == c }.count
+            return n > 0 ? (c, n) : nil
+        }
+        let missing = job.rows.filter { $0.status == .missing }
+        let already = job.rows.filter { $0.status == .already }.count
+        return VStack(alignment: .leading, spacing: 0) {
+            Text(job.title ?? "Your list").font(.title2.weight(.semibold)).lineLimit(2)
+            if let owner = job.owner {
+                Text("From \(owner)").font(.subheadline).foregroundStyle(.secondary).padding(.top, 2)
             }
-            ForEach(groups, id: \.id) { group in
-                GroupSection(group: group, disabled: job.importing)
-                    .padding(.top, 20)
+
+            // What's going in, by type: icon, type, count.
+            VStack(spacing: 0) {
+                ForEach(Array(byType.enumerated()), id: \.element.0) { i, entry in
+                    HStack(spacing: 12) {
+                        entry.0.icon.resizable().scaledToFit().frame(width: 30, height: 30)
+                        Text(entry.0.rawValue)
+                        Spacer()
+                        Text("\(entry.1)").monospacedDigit().foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    if i < byType.count - 1 { Divider().padding(.leading, 58) }
+                }
+                if byType.isEmpty {
+                    Text("Nothing chosen").foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading).padding(16)
+                }
+                Divider()
+                NavigationLink {
+                    ChooseView()
+                } label: {
+                    HStack {
+                        Text("Choose what to import")
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
+                    }
+                    .padding(16)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(job.importing)
+            }
+            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+            .padding(.top, 20)
+
+            if already > 0 {
+                Text("\(count(already, "place")) already in your list.")
+                    .font(.footnote).foregroundStyle(.secondary).padding(.top, 10).padding(.horizontal, 16)
+            }
+
+            if !missing.isEmpty {
+                Text("Couldn’t find \(missing.count)")
+                    .font(.subheadline.weight(.semibold)).padding(.top, 28).padding(.horizontal, 16)
+                Text("Search finds one by its name.")
+                    .font(.footnote).foregroundStyle(.secondary).padding(.top, 2).padding(.horizontal, 16)
+                VStack(spacing: 0) {
+                    ForEach(Array(missing.enumerated()), id: \.element.id) { i, row in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(row.name).lineLimit(1)
+                                if let address = row.address {
+                                    Text(address).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                }
+                            }
+                            Spacer(minLength: 12)
+                            Button("Search") {
+                                Settings.shared.showingImport = false
+                                Settings.shared.searchName = row.name
+                            }
+                            .font(.subheadline.weight(.medium))
+                        }
+                        .padding(.horizontal, 16).padding(.vertical, 12)
+                        if i < missing.count - 1 { Divider().padding(.leading, 16) }
+                    }
+                }
+                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+                .padding(.top, 8)
+            }
+
+            if !job.importing {
+                Button("Cancel import", role: .destructive) { confirmingCancel = true }
+                    .font(.subheadline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 32)
+                    .confirmationDialog("Cancel this import?", isPresented: $confirmingCancel, titleVisibility: .visible) {
+                        Button("Cancel import", role: .destructive) { job.forget(); dismiss() }
+                        Button("Keep it", role: .cancel) {}
+                    } message: {
+                        Text("Nothing from this list is added. You can paste the link again any time.")
+                    }
             }
         }
     }
 
-    private var summary: String {
-        var parts = [count(job.rows.count, "place")]
-        if job.savedCount > 0 { parts.append("\(job.savedCount) imported") }
-        return parts.joined(separator: " · ")
-    }
+    // MARK: 4. Import
 
-    private func setAll(picked: Bool) {
-        for i in job.rows.indices where job.rows[i].importable && job.rows[i].save == .idle {
-            job.rows[i].picked = picked
-        }
-    }
-
-    fileprivate struct Group: Identifiable {
-        let id: String
-        let title: String
-        let category: PlaceCategory?
-        let rows: [ListImport.Row]
-    }
-
-    /// One section per type in the app's order, then what's already a card, then what
-    /// couldn't be found (at the bottom, Sarp 2026-10-09; each with Search, 2026-10-19).
-    private var groups: [Group] {
-        let rows = job.rows
-        let byType = PlaceCategory.allCases.map { c in
-            Group(id: c.rawValue, title: c.rawValue, category: c, rows: rows.filter { $0.status == .matched && $0.category == c })
-        }
-        return (byType + [
-            Group(id: "already", title: "Already in your list", category: nil, rows: rows.filter { $0.status == .already }),
-            Group(id: "missing", title: "Couldn’t find", category: nil, rows: rows.filter { $0.status == .missing }),
-        ]).filter { !$0.rows.isEmpty }
-    }
-
-    // MARK: Import
-
-    @ViewBuilder
-    /// One black button, always ready: imports are Want to go unless the switch says
-    /// you have been to them (Sarp, 2026-10-19: the bookmark/check pair was too confusing).
-    private var importButton: some View {
+    /// Not over the list: a solid bar of its own. Want to go unless the switch says otherwise
+    /// (Sarp, 2026-10-19); while importing the count, then Done.
+    private var bottomBar: some View {
         let picked = job.picked.count
         let over = picked - ListImport.limit
         let done = job.finished
-        return VStack(spacing: 10) {
-            if !done {
+        let total = job.savedCount + picked
+        return VStack(spacing: 12) {
+            if job.importing && !done {
+                ProgressView(value: Double(job.savedCount), total: Double(max(total, 1))).tint(Color(.label))
+            } else if !done {
                 Toggle("I've been to these", isOn: Binding(get: { job.visited == true }, set: { job.visited = $0 }))
                     .font(.subheadline)
                     .tint(Color(.label))
-                    .disabled(job.importing)
-                    .padding(.horizontal, 16).padding(.vertical, 8)
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
-                    .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
             }
             Button {
                 if done { dismiss() } else { job.startImport() }
             } label: {
                 Text(
                     done ? "Done · \(count(job.savedCount, "place")) imported"
-                    : over > 0 ? "Untick \(over) to import (\(ListImport.limit) at most)"
-                    : picked == 0 ? "Nothing selected"
+                    : job.importing ? "Importing \(job.savedCount) of \(total)…"
+                    : over > 0 ? "Choose \(over) fewer (\(ListImport.limit) at most)"
+                    : picked == 0 ? "Nothing chosen"
                     : "Import \(count(picked, "place"))"
                 )
                 .font(.subheadline.weight(.semibold))
@@ -197,132 +254,76 @@ struct ImportView: View {
             .disabled(!done && (job.importing || picked == 0 || over > 0))
             .opacity(!done && (picked == 0 || over > 0) ? 0.4 : 1)
         }
-        .padding(.horizontal, 16).padding(.bottom, 8)
+        .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 8)
+        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .overlay(alignment: .top) { Divider() }
     }
 }
 
 private func count(_ n: Int, _ word: String) -> String { "\(n) \(word)\(n == 1 ? "" : "s")" }
 
-private struct GroupSection: View {
-    let group: ImportView.Group
-    let disabled: Bool
+/// "Choose what to import": every place, by type. Tap a place to leave it out or put it back;
+/// hold it to give it another type. No checkbox columns, no Move pills (Sarp, 2026-10-19).
+private struct ChooseView: View {
     private var job: ListImport { .shared }
 
     var body: some View {
-        let open = group.rows.filter { $0.importable && $0.save == .idle }
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 10) {
-                if let category = group.category {
-                    let all = !open.isEmpty && open.allSatisfy(\.picked)
-                    Button { set(open, picked: !all) } label: { Check(on: all) }
-                        .disabled(disabled || open.isEmpty)
-                    category.icon.resizable().scaledToFit().frame(width: 28, height: 28)
-                }
-                (Text(group.title).fontWeight(.semibold) + Text(" · \(group.rows.count)").foregroundStyle(.tertiary))
-                    .font(.subheadline)
-                Spacer()
-                if let category = group.category, !open.isEmpty {
-                    MoveMenu(label: "Move all", current: category, disabled: disabled) { c in move(open, to: c) }
+        let rows = job.rows.filter(\.importable)
+        List {
+            Section {
+                Text("Tap a place to leave it out. Hold it to change its type.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4))
+            }
+            ForEach(PlaceCategory.allCases) { c in
+                let group = rows.filter { $0.category == c }
+                if !group.isEmpty {
+                    Section("\(c.rawValue) · \(group.count)") {
+                        ForEach(group) { row in ChooseRow(row: row) }
+                    }
                 }
             }
-            .padding(.horizontal, 16)
-            VStack(spacing: 0) {
-                ForEach(Array(group.rows.enumerated()), id: \.element.id) { i, row in
-                    ImportRowView(row: row, disabled: disabled)
-                    if i < group.rows.count - 1 { Divider().padding(.leading, 16) }
-                }
-            }
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
         }
-        .buttonStyle(.plain)
-    }
-
-    private func set(_ rows: [ListImport.Row], picked: Bool) {
-        for r in rows { if let i = job.rows.firstIndex(where: { $0.id == r.id }) { job.rows[i].picked = picked } }
-    }
-    private func move(_ rows: [ListImport.Row], to c: PlaceCategory) {
-        for r in rows { if let i = job.rows.firstIndex(where: { $0.id == r.id }) { job.rows[i].category = c } }
+        .navigationTitle("Choose what to import")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
-private struct ImportRowView: View {
+private struct ChooseRow: View {
     let row: ListImport.Row
-    let disabled: Bool
     private var job: ListImport { .shared }
 
     var body: some View {
-        let can = row.importable && row.save != .saved
-        HStack(alignment: .top, spacing: 12) {
-            if row.importable {
-                Button { update { $0.picked.toggle() } } label: { Check(on: row.picked && can) }
-                    .disabled(!can || disabled)
-                    .padding(.top, 1)
+        Button { update { $0.picked.toggle() } } label: {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(row.match?.name ?? row.name).lineLimit(1)
+                    if let place = row.match?.city ?? row.address {
+                        Text(place).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                    if let note = row.note {
+                        Text("“\(note)”").font(.caption).italic().foregroundStyle(.secondary).lineLimit(2)
+                    }
+                }
+                .opacity(row.picked ? 1 : 0.45)
+                Spacer(minLength: 8)
+                Image(systemName: row.picked ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundStyle(row.picked ? Color(.label) : Color(.tertiaryLabel))
             }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(row.match?.name ?? row.name).font(.subheadline.weight(.medium)).lineLimit(1)
-                if let place = row.match?.city ?? row.address {
-                    Text(place).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                }
-                if let note = row.note {
-                    Text("“\(note)”").font(.caption).italic().foregroundStyle(.secondary).lineLimit(2)
-                }
-                if row.save == .failed {
-                    Text("Couldn't save. Try again.").font(.caption.weight(.medium)).foregroundStyle(.red)
-                }
-            }
-            .opacity(row.importable || row.save == .saved ? 1 : 0.6)
-            Spacer(minLength: 8)
-            if row.save == .saved {
-                Text("✓ Imported").font(.caption.weight(.medium)).foregroundStyle(.secondary)
-            } else if row.status == .missing {
-                // The save sheet with this name, to find it by hand (the review stays for later).
-                Button {
-                    Settings.shared.showingImport = false
-                    Settings.shared.searchName = row.name
-                } label: {
-                    Text("Search").font(.caption.weight(.medium)).foregroundStyle(.secondary)
-                        .padding(.horizontal, 12).padding(.vertical, 4)
-                        .background(Color(.tertiarySystemFill), in: Capsule())
-                }
-            } else if can {
-                MoveMenu(label: "Move", current: row.category, disabled: disabled) { c in update { $0.category = c } }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(row.picked ? .isSelected : [])
+        .contextMenu {
+            ForEach(PlaceCategory.allCases.filter { $0 != row.category }) { c in
+                Button(c.rawValue) { update { $0.category = c } }
             }
         }
-        .padding(.horizontal, 16).padding(.vertical, 12)
     }
 
     private func update(_ change: (inout ListImport.Row) -> Void) {
         if let i = job.rows.firstIndex(where: { $0.id == row.id }) { change(&job.rows[i]) }
-    }
-}
-
-/// The web's quiet "Move" pill: the system menu of types, minus the current one.
-private struct MoveMenu: View {
-    let label: String
-    let current: PlaceCategory
-    let disabled: Bool
-    let onMove: (PlaceCategory) -> Void
-
-    var body: some View {
-        Menu {
-            ForEach(PlaceCategory.allCases.filter { $0 != current }) { c in
-                Button(c.rawValue) { onMove(c) }
-            }
-        } label: {
-            Text(label).font(.caption.weight(.medium)).foregroundStyle(.secondary)
-                .padding(.horizontal, 12).padding(.vertical, 4)
-                .background(Color(.tertiarySystemFill), in: Capsule())
-        }
-        .disabled(disabled)
-        .opacity(disabled ? 0.4 : 1)
-    }
-}
-
-private struct Check: View {
-    let on: Bool
-    var body: some View {
-        Image(systemName: on ? "checkmark.square.fill" : "square")
-            .font(.body)
-            .foregroundStyle(on ? Color(.label) : Color(.tertiaryLabel))
     }
 }

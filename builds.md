@@ -14,7 +14,7 @@ How it stays true:
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
 ## Next build (since `ios-30`)
-- Importing a list: one Import button, ready straight away; places come in as Want to go unless you turn on "I've been to these" (the bookmark and check icons are gone).
+- Importing a list is calmer: paste the link, then one screen about the list (what's in it by type, what couldn't be found, "I've been to these", Import). "Choose what to import" lists the places to tap out; hold one to change its type. Later keeps the import for another time; Cancel import asks first.
 - On a place, Want to go and Been there are one switch now (one side lit), so they read as a choice, not two buttons; picking Been there adds a 🙋🏻‍♀️.
 - Zoomed far out, the map shows one bubble per city with a few of its photos and how many places it has; tap one to fly into that city.
 - A place imported from a Google Maps list says whose list it came from on its card ("From Emilie’s “Paris” list").
