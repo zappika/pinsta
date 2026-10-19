@@ -147,7 +147,7 @@ function Visit({ place, onVisit }: { place: Place; onVisit: (c: VisitChange) => 
       <div role="radiogroup" aria-label="Want to go or been there" className="flex gap-1 rounded-2xl bg-stone-100 p-1">
         <Segment on={!been} onClick={() => been && onVisit({ visited: false })}>Want to go</Segment>
         <Segment on={been} onClick={() => !been && onVisit({ visited: true })}>
-          <RaisedHand />
+          {been && <span aria-hidden>🙋🏻‍♀️</span>}
           Been there
         </Segment>
       </div>
@@ -180,15 +180,6 @@ function Segment({ on, onClick, children }: { on: boolean; onClick: () => void; 
     >
       {children}
     </button>
-  );
-}
-
-/** A raised hand, "I've been": takes the text colour, so it dims with its side (iOS: hand.raised.fill). */
-function RaisedHand() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>
-      <path d="M12 2.5a1.5 1.5 0 0 1 1.5 1.5v7h.5V5a1.5 1.5 0 0 1 3 0v6.5h.5V7.5a1.5 1.5 0 0 1 3 0V15a7 7 0 0 1-7 7h-1.2a6 6 0 0 1-4.6-2.15L3.6 15.9a1.5 1.5 0 0 1 2.2-2.05L8 15.6V5.5a1.5 1.5 0 0 1 3 0V11h-.5V4A1.5 1.5 0 0 1 12 2.5Z" />
-    </svg>
   );
 }
 
