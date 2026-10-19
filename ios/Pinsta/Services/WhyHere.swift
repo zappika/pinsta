@@ -4,14 +4,19 @@ import Foundation
 /// where a place came from, said the way you'd remember it (Sarp, 2026-10-06).
 ///   Saved from @burro_cafe on Instagram · 14 Sep
 ///   Saved from a Google Maps link · 2 Oct 2025
-/// The web's "From Emilie's "Paris" list" needs the Google import, which iOS
-/// doesn't have yet.
+///   From Emilie’s “Paris” list · 12 Sep
 enum WhyHere {
     static func line(for place: Place, now: Date = .now) -> String {
         "\(origin(place)) · \(when(place.createdAt, now: now))"
     }
 
     private static func origin(_ p: Place) -> String {
+        // A list import (build 31 on): whose list, and its name. "Google Maps list" is what
+        // ListImport stores when the list had no title.
+        if let title = p.fromListTitle, p.fromListOwner != nil || title != "Google Maps list" {
+            let who = p.fromListOwner?.split(separator: " ").first.map { "\($0)’s" } ?? "a"
+            return title == "Google Maps list" ? "From \(who) Google Maps list" : "From \(who) “\(title)” list"
+        }
         let by = p.ownerUsername.map { "@" + $0.trimmingCharacters(in: CharacterSet(charactersIn: "@")) }
         switch SourceURL.parse(p.instagramURL)?.kind {
         case .tiktok:

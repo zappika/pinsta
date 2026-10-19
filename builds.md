@@ -14,6 +14,8 @@ How it stays true:
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
 ## Next build (since `ios-30`)
+- Zoomed far out, the map shows one bubble per city with a few of its photos and how many places it has; tap one to fly into that city.
+- A place imported from a Google Maps list says whose list it came from on its card ("From Emilie’s “Paris” list").
 - A post tagged with just a city ("Athens") now looks for the place in that city, and finds places Apple Maps only knows by their local-script name (Seychelles in Athens, not restaurants in the Seychelles).
 - *(internal)* Counts opening a saved place, Directions, the post button and Been there (no place names), for the backoffice's Pulse page.
 - The Paste button sits inside the link field, with a clipboard icon, so it reads as "paste what you copied", not as a button to tap after pasting.

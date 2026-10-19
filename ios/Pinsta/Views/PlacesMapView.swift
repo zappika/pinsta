@@ -33,6 +33,19 @@ struct PlacesMapView: View {
     private let clusterPoints: CGFloat = 44
     /// From street level on (span under ~1 km), never group.
     private let noClusterSpan: CLLocationDegrees = 0.01
+    /// Zoomed out wider than this (about the web's zoom 7), places become one bubble per city,
+    /// the Where label, for trip planning (Sarp, 2026-10-19). Tap → that city.
+    private let citySpan: CLLocationDegrees = 4.4
+    @State private var cities: [CityBubble] = []
+
+    struct CityBubble: Identifiable {
+        let name: String
+        let members: [Place]
+        let coordinate: CLLocationCoordinate2D
+        /// Where two touch, the bigger city keeps its name.
+        var named = true
+        var id: String { name }
+    }
 
     struct PinGroup: Identifiable {
         let members: [Place]
@@ -44,7 +57,13 @@ struct PlacesMapView: View {
         MapReader { proxy in
             Map(position: $camera, interactionModes: [.pan, .zoom, .rotate]) {
                 UserAnnotation()
-                ForEach(groups.isEmpty ? places.map { PinGroup(members: [$0], coordinate: $0.coordinate) } : groups) { g in
+                ForEach(cities) { c in
+                    Annotation(c.name, coordinate: c.coordinate, anchor: .top) {
+                        cityPin(c).onTapGesture { zoom(to: c.members, minKm: Self.minFrameKm) }
+                    }
+                    .annotationTitles(.hidden)
+                }
+                ForEach(!cities.isEmpty ? [] : groups.isEmpty ? places.map { PinGroup(members: [$0], coordinate: $0.coordinate) } : groups) { g in
                     if g.members.count == 1, let place = g.members.first {
                         Annotation(place.name, coordinate: place.coordinate, anchor: .center) {
                             pin(place).onTapGesture { select(place) }
@@ -85,6 +104,8 @@ struct PlacesMapView: View {
     // MARK: Grouping
 
     private func regroup(proxy: MapProxy, span: MKCoordinateSpan) {
+        guard span.longitudeDelta < citySpan else { return cities = cityBubbles(proxy: proxy) }
+        cities = []
         guard span.latitudeDelta > noClusterSpan else {
             groups = places.map { PinGroup(members: [$0], coordinate: $0.coordinate) }
             return
@@ -104,8 +125,29 @@ struct PlacesMapView: View {
         }
     }
 
-    private func zoom(to members: [Place]) {
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.5)) { camera = .region(region(fitting: members.map(\.coordinate), minKm: 0.45)) }
+    /// One bubble per Where label, biggest first (web: drawCities).
+    private func cityBubbles(proxy: MapProxy) -> [CityBubble] {
+        let labels = Grouping.destinationLabels(places)
+        let byCity = Dictionary(grouping: places) { labels[$0.id] ?? $0.city ?? $0.country ?? "Elsewhere" }
+        var taken: [CGRect] = []
+        return byCity.sorted { $0.value.count > $1.value.count }.map { name, members in
+            let n = Double(members.count)
+            let coord = CLLocationCoordinate2D(latitude: members.map(\.latitude).reduce(0, +) / n,
+                                               longitude: members.map(\.longitude).reduce(0, +) / n)
+            var bubble = CityBubble(name: name, members: members, coordinate: coord)
+            if let pt = proxy.convert(coord, to: .local) {
+                let size = Self.citySize(members.count), w = max(size, CGFloat(name.count) * 7.5 + 24)
+                let box = CGRect(x: pt.x - w / 2, y: pt.y, width: w, height: size + 20)
+                if taken.contains(where: { $0.intersects(box) }) { bubble.named = false } else { taken.append(box) }
+            }
+            return bubble
+        }
+    }
+
+    static func citySize(_ count: Int) -> CGFloat { (min(56, 34 + sqrt(Double(count)) * 3)).rounded() }
+
+    private func zoom(to members: [Place], minKm: Double = 0.45) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.9)) { camera = .region(region(fitting: members.map(\.coordinate), minKm: minKm)) }
     }
 
     private func select(_ place: Place) {
@@ -180,6 +222,54 @@ struct PlacesMapView: View {
     static func fromPost(_ p: Place) -> Bool {
         p.fromListTitle == nil && p.imageData != nil
             && (p.instagramURL.contains("instagram.com") || p.instagramURL.contains("tiktok.com"))
+    }
+
+    /// Up to four of the city's post photos (else its first place's type icon), name and count under it.
+    private func cityPin(_ c: CityBubble) -> some View {
+        let size = Self.citySize(c.members.count)
+        let photos = Array(c.members.filter(Self.fromPost).prefix(4))
+        return VStack(spacing: 3) {
+            Group {
+                if photos.isEmpty, let first = c.members.first {
+                    first.icon.resizable().scaledToFit().padding(size * 0.2)
+                        .background(first.category.tint)
+                } else {
+                    mosaic(photos, size: size)
+                }
+            }
+            .frame(width: size, height: size)
+            .clipShape(Circle())
+            .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 2))
+            .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+            if c.named {
+                (Text(c.name).bold() + Text(" \(c.members.count)").foregroundStyle(.secondary))
+                    .font(.system(size: 12))
+                    .lineLimit(1).fixedSize()
+                    .shadow(color: Color(.systemBackground), radius: 1.5)
+                    .shadow(color: Color(.systemBackground), radius: 1.5)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(c.name), \(c.members.count) places")
+        .accessibilityAddTraits(.isButton)
+    }
+
+    /// 1 photo whole, 2 side by side, 3 one tall and two stacked, 4 a grid (web .pinsta-mosaic).
+    @ViewBuilder
+    private func mosaic(_ ps: [Place], size: CGFloat) -> some View {
+        let half = (size - 1) / 2
+        let photo = { (p: Place, w: CGFloat, h: CGFloat) in PlacePhoto(place: p, points: max(w, h)).frame(width: w, height: h).clipped() }
+        HStack(spacing: 1) {
+            switch ps.count {
+            case 1: photo(ps[0], size, size)
+            case 2: photo(ps[0], half, size); photo(ps[1], half, size)
+            case 3: photo(ps[0], half, size); VStack(spacing: 1) { photo(ps[1], half, half); photo(ps[2], half, half) }
+            default:
+                VStack(spacing: 1) { photo(ps[0], half, half); photo(ps[2], half, half) }
+                VStack(spacing: 1) { photo(ps[1], half, half); photo(ps[3], half, half) }
+            }
+        }
+        .background(Color.white)
     }
 
     private func groupPin(_ g: PinGroup) -> some View {
