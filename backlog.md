@@ -6,9 +6,8 @@ item there when it starts. Beta feedback lives in `beta.md` until it becomes wor
 ## Small improvements
 Things that make what exists better. Hours, not weeks.
 
-- **iOS town names in the local script:** MapKit gives "渋谷区" for Shibuya; the card and Where menu show it. English from the ISO code works for countries; towns need a reverse geocode in English or a lookup.
 - **Splash stills are below phone resolution** (853 × 1844 vs 1206 × 2622): a full-size export would be sharper.
-- **Per-install usage?** The usage numbers are totals per service. Telling friends' saves apart would need an anonymous install id sent with each save: a small privacy call.
+- **Costs per phone?** Save reports and use counts carry an anonymous install id (Pulse shows each phone); the cost tracker (`usage`) is still totals per service.
 - **Share tutorial on the web:** iOS-only for now (Sarp, 2026-10-06: not needed on web).
 - **"Why it's here" wording:** a first draft in `lib/why-here.ts`; see First experience below.
 - **Import photos arrive five at a time** (iOS): `PhotoRetry` takes 5 per run, so after a big list import the rest wait for the next open or return to the app. Keep running until none are due while an import is on.

@@ -5,6 +5,27 @@ new session notes go in plan.md "Last session", the previous one moves here.
 
 ## Session log (newest first)
 
+### 2026-10-17: carousels that hang, why a read failed, build 30
+- A carousel with many slides (a museum, a house tour) hung the save sheet for good: Vision read ten slides at once. Now one at a time on their own queue, 20 s in total, with a label that counts slides and names; "found nothing" says so.
+- The sheet says why a post couldn't be read (private/deleted vs. no answer) and the success card says when there's no photo (iOS only for now, Sarp).
+- Age-restricted posts (Liebling) read from Instagram's preview. Handle cities: New York spelled out, `_ny`, New Orleans, Mexico City, Austin.
+- Nordic caption lift on both apps, one word list. Locate button hidden while a toast shows.
+- **1.0 (30) uploaded**, fine on Sarp's phone the same day. One simulator from now on: iPhone 17 Pro.
+
+### 2026-10-16: builds 26–29, save reports, App Store groundwork
+- **Builds 26–29 in one day**, all fine on Sarp's phone: 26 the + menu, photo pins, place finding from handles and hashtags; 27 the locate button and 4.5 km frame on iOS, the Pophams fix; 28 save reports (every save sheet reports how it ended, backoffice `/saves`); 29 sign names start unticked, anonymous use counts.
+- Place finding from Sarp's own tries (`beta.md`, 2026-10-16 round): the post's city from any handle, a city hashtag keeps a tag search there, transport only when named.
+- Web map pins explored: loud post photos over quiet import dots, mosaics for big groups, names where they fit, a Tiers / Text switch.
+- App Store: submission checklist (`docs/app-store.md`), honest `/privacy` and a `/support` page (both in the iOS menu), privacy manifests, testing args Debug-only, a Help improve Vicolo switch, larger text / Reduce Motion / VoiceOver, listing copy and simulator screenshots.
+- List imports to match on the server (decided, not built).
+
+### 2026-10-15 (work Mac): map fixes from the beta, workflow
+- **Map, Everywhere** frames every place, unless they're over 4,000 km apart (then the country with most places). A tester in Copenhagen was opened on Norway, one bakery. Web + iOS.
+- **List posts (iOS):** slide names Apple Maps misses (Tranen) are asked of Google, at most 6 a post.
+- **Web map:** a locate button above the + and no frame tighter than 4.5 km. Checked in the preview with stub data; waits for Sarp on the phone before iOS.
+- **Not done here:** this Mac has no Xcode (iOS type-checked with swiftc only) and the owner key isn't on it (sensitive in Vercel). Build 26 and the iOS port happen on the other Mac.
+- Earlier the same session: docs restructured (`builds.md`, `beta.md`, `docs/`), `ios-1`…`ios-25` tags, stale branches deleted, build 25 checked on the phone.
+
 ### 2026-10-15: docs and workflow
 - plan.md cut to one screen. Build log → `builds.md` (current vs next, `ios-N` tags on every build), beta feedback → `beta.md`, expansions and roadmap → `backlog.md`, dated decisions → `docs/decisions.md`, sessions and phases → `docs/history.md`.
 - Earlier the same day (other machine): builds 24 and 25 (location primer, caption lists, What sub-rows, Culture, What's new) and the `/changelog` and `/parity` pages. See `builds.md`.

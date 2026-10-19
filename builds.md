@@ -40,7 +40,7 @@ How it stays true:
 - *(internal)* `SlideText.Reading.signs`: a slide with any Vision line under 0.5 confidence is a photo of signs (casa.lawa `DeW-H5LCsup`, slide 5); its names start unticked. Vink's Oslo slides all read at 1.0, still 5 of 5 ticked.
 - *(internal)* `Uses.swift` + `ScreenClock`: per-day running totals (`open`, `pick.<view>`, `sec.<screen>` incl. `tutorial`) in the App Group, sent to open `POST /api/uses` on launch and on background; the server keeps the larger count. Backoffice → Saves shows them, plus where saves came from (link kind × share sheet / in app).
 
-Tags `ios-1` … `ios-25` mark the commit that set each build number (the upload may
+Tags `ios-1` … `ios-30` mark the commit that set each build number (the upload may
 include a commit or two after it).
 
 | Build | Date | What | Phone |
