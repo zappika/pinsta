@@ -175,7 +175,9 @@ private struct PlacesContent: View {
         }
     }
 
-    var body: some View {
+    var body: some View { lifecycle(layout) }
+
+    private var layout: some View {
         ZStack(alignment: .bottom) {
             // Only the save sheet follows the keyboard. The map, the bar and the
             // toasts behind its dim stay put; them resizing too made the sheet jump.
@@ -275,6 +277,11 @@ private struct PlacesContent: View {
         }
         .animation(.snappy(duration: 0.3), value: adding)
         .animation(.snappy(duration: 0.3), value: editing?.id)
+    }
+
+    /// Launch work and what follows a change, apart from the layout: one chain was too long to type-check.
+    private func lifecycle(_ content: some View) -> some View {
+        content
         .task {
             // No web import: the web list is Sarp's, and every install starts empty.
             if launchURL != nil { adding = true }

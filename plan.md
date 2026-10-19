@@ -17,7 +17,6 @@ The friends beta is running (since 2026-10-14). Feedback from it comes first; se
 3. **Pulse** (2026-10-18): backoffice → Pulse says whether people can save, come back and find things; Saves lists the misses (Copy links → work through them in a session) instead of waiting for messages.
 
 ## Waiting on Sarp
-- **Build the server list import on the Mac with Xcode** (written 2026-10-19 on the Mac without it, commit 01e9d6e, never compiled): `cd ios && xcodegen generate`, build, fix what the compiler finds, then try it in the Simulator with `-importURL https://maps.app.goo.gl/2LvBeE5dXwo2iQcz6` (pill, menu row, review, Couldn't find → Search) and a list shared from Google Maps through the share sheet. The server side is live.
 - **APNs key for the "list is ready" push:** developer.apple.com → Keys → + → tick Apple Push Notifications service → download the .p8 (once only) and note its Key ID. In Vercel (pinsta, Production): `APNS_KEY` = the .p8 file's contents (sensitive), `APNS_KEY_ID` = the Key ID, then redeploy. Until then imports work, just without the notification.
 - Pulse: add backoffice.vicolo.space to the Home Screen (asks the owner key once), then mark your own phones and the simulator as Mine (BFA7CCD6, 19 saves, looks like yours) and name the testers.
 - Before the App Store: everything is in `docs/app-store.md` (researched 2026-10-16). Start with the DSA trader declaration (weeks to verify). App Privacy needs more than Product Interaction (§4 there).
