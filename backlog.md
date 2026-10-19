@@ -10,7 +10,6 @@ Things that make what exists better. Hours, not weeks.
 - **Costs per phone?** Save reports and use counts carry an anonymous install id (Pulse shows each phone); the cost tracker (`usage`) is still totals per service.
 - **Share tutorial on the web:** iOS-only for now (Sarp, 2026-10-06: not needed on web).
 - **"Why it's here" wording:** a first draft in `lib/why-here.ts`; see First experience below.
-- **Import photos arrive five at a time** (iOS): `PhotoRetry` takes 5 per run, so after a big list import the rest wait for the next open or return to the app. Keep running until none are due while an import is on.
 - **Towns import as "Other"** (iOS list import): Begur, Portbou… come in with a town photo but no fitting type. Maybe a Town type, or leave them unticked by default.
 - **Location question over the success card:** opening the app straight into a save (`-addURL`) could raise the location question on top of the card. Seen only with the test shortcut; the build 24 primer waits for the card to go, so check whether this is gone.
 - **Neutral icon for plain restaurants** (still the gilda).

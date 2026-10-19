@@ -6,14 +6,26 @@ import SwiftData
 /// this tries again on launch and foreground. Every try is a paid read on the
 /// server, so failures back off, the least-tried go first (one bad post can't
 /// starve the rest), and a deleted or private post is given up on for good.
+/// Places imported from a list all go in one pass, not five per open: a big import
+/// used to fill in over many opens of the app.
 enum PhotoRetry {
     private static var running = false
+    /// Asked again while a pass ran (an import saving place after place): one more pass after it.
+    private static var again = false
 
     @MainActor
     static func run(in context: ModelContext) async {
-        guard !running else { return }
+        guard !running else { again = true; return }
         running = true
         defer { running = false }
+        repeat {
+            again = false
+            await pass(in: context)
+        } while again && !Task.isCancelled
+    }
+
+    @MainActor
+    private static func pass(in context: ModelContext) async {
         let d = FetchDescriptor<Place>(predicate: #Predicate { $0.imageData == nil && !$0.photoGaveUp })
         let now = Date.now
         // A Maps link has no post to read: only places imported from a list qualify,
@@ -21,7 +33,9 @@ enum PhotoRetry {
         let due = ((try? context.fetch(d)) ?? [])
             .filter { (SourceURL.parse($0.instagramURL)?.kind != .google || $0.fromListTitle != nil) && ($0.photoNextTry ?? .distantPast) <= now }
             .sorted { $0.photoAttempts < $1.photoAttempts }
-        for place in due.prefix(5) {
+        // Posts: five per pass (each is a paid read). List places: all of them.
+        let batch = due.filter { $0.fromListTitle == nil }.prefix(5) + due.filter { $0.fromListTitle != nil }
+        for place in batch {
             let id = place.id, url = place.instagramURL
             var data: Data?
             var gone = false
