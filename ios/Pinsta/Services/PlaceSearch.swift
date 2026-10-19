@@ -112,7 +112,12 @@ extension PlaceSearch {
             .trimmingCharacters(in: .whitespaces), handle.count > 2 { queries.append(handle) }
         let split = handleWithCity(ownerUsername)
         if let split { queries.append(split) }
-        if let kindSplit = handleWithKind(ownerUsername) { queries.append(kindSplit) }
+        if let kindSplit = handleWithKind(ownerUsername) {
+            queries.append(kindSplit)
+            // The name alone too: Apple finds "Σεϋχέλλες" for "Seychelles Athens", nothing for "seychelles restaurant Athens".
+            let bare = words(kindSplit).filter { !categoryWords.contains($0) }.joined(separator: " ")
+            if bare.count >= 4 { queries.append(bare) }
+        }
         if let town { queries += queries.filter { $0 != split }.map { "\($0) \(town)" } }
         guard !queries.isEmpty else { return [] }
         // A city glued to the handle pins the search there ("batasthlm": Bata the shoe shop in Spain is not it).
@@ -135,9 +140,18 @@ extension PlaceSearch {
         }
         return merged.filter { c in
             isVenue(c) && isNear(c, near)
-                && (overlaps(words(c.name), nameWords) || words(c.name).contains { $0.count >= 4 && glued.contains($0) })
+                && (overlaps(words(c.name), nameWords) || words(c.name).contains { $0.count >= 4 && glued.contains($0) }
+                    || latinLike(c.name, nameWords))
         }
         .enumerated().sorted { (rank($0.element), $0.offset) < (rank($1.element), $1.offset) }.map(\.element)
+    }
+
+    /// A name in another script, spelled out in Latin, within one letter of a name word: Apple knows
+    /// Seychelles in Athens only as "Σεϋχέλλες" → "seuchelles" (@seychellesrestaurant, 2026-10-19).
+    static func latinLike(_ name: String, _ want: [String]) -> Bool {
+        guard name.unicodeScalars.contains(where: { $0.value > 0x24F && CharacterSet.letters.contains($0) }),
+              let latin = name.applyingTransform(.toLatin, reverse: false) else { return false }
+        return words(latin).contains { w in w.count >= 6 && want.contains { $0.count == w.count && zip($0, w).filter { $0 != $1 }.count <= 1 } }
     }
 
     /// Named after one of the clues, not just in its city: Google asked "Luxury Listings" near Los Angeles
@@ -406,11 +420,13 @@ extension PlaceSearch {
     }()
 
     /// A location tag that names a town, not a place: "Ostuni, Puglia, Italy", "Paris, France".
-    /// Three or more parts, or two ending in a country. Returns the town; nil for a place tag
+    /// Three or more parts, two ending in a country, or a known city alone ("Athens": Seychelles, not the
+    /// islands, 2026-10-19). Returns the town; nil for a place tag
     /// ("Septime, Paris" keeps its name). Same rule as `areaOfTag` in lib/google-places.ts.
     static func areaOfTag(_ tag: String?) -> String? {
         let parts = (tag ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         if parts.count >= 3 || (parts.count == 2 && regionNames.contains(parts[1].lowercased())) { return parts[0] }
+        if parts.count == 1, knownCities.contains(fold(parts[0])) { return parts[0] }
         return nil
     }
 
@@ -452,6 +468,8 @@ extension PlaceSearch {
     }
 
     /// Every city a handle can name, for telling a city word from a name word.
+    /// The handle lists' cities by full name, for a tag that is only a city ("Athens").
+    private static let knownCities: Set<String> = Set((handleCitiesGlued.map(\.1) + handleCitiesLast.values).map { fold($0) })
     private static let handleCityNames: Set<String> = Set((handleCitiesGlued.map(\.1) + handleCitiesLast.values).flatMap { fold($0).split(separator: " ").map(String.init) })
 
     /// "restaurangvra" → "restaurang vra": a category word glued on. Same rule as `handleWithKind` on the web.

@@ -14,6 +14,7 @@ How it stays true:
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
 ## Next build (since `ios-30`)
+- A post tagged with just a city ("Athens") now looks for the place in that city, and finds places Apple Maps only knows by their local-script name (Seychelles in Athens, not restaurants in the Seychelles).
 - *(internal)* Counts opening a saved place, Directions, the post button and Been there (no place names), for the backoffice's Pulse page.
 - The Paste button sits inside the link field, with a clipboard icon, so it reads as "paste what you copied", not as a button to tap after pasting. *(not built yet: written on the Mac without Xcode)*
 - After importing a Google Maps list, every place gets its photo while the app is open, not five each time you open it. *(not built yet)*

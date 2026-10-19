@@ -365,12 +365,14 @@ const REGION_NAMES = (() => {
 
 /**
  * A location tag that names a town, not a place: "Ostuni, Puglia, Italy", "Paris, France".
- * Three or more parts, or two ending in a country. Returns the town; null for a place tag
+ * Three or more parts, two ending in a country, or a known city alone ("Athens": Seychelles, not the
+ * islands, 2026-10-19). Returns the town; null for a place tag
  * ("Bar Brutal", "Septime, Paris" keeps its name). Same rule in PlaceSearch.swift.
  */
 export function areaOfTag(tag: string | null | undefined): string | null {
   const parts = (tag ?? "").split(",").map((p) => p.trim()).filter(Boolean);
   if (parts.length >= 3 || (parts.length === 2 && REGION_NAMES.has(parts[1].toLowerCase()))) return parts[0];
+  if (parts.length === 1 && KNOWN_CITIES.has(fold(parts[0]))) return parts[0];
   return null;
 }
 
@@ -410,6 +412,8 @@ const HANDLE_CITIES_LAST: Record<string, string> = {
   la: "Los Angeles", ny: "New York", nola: "New Orleans", sf: "San Francisco", mtl: "Montréal", atx: "Austin", bsas: "Buenos Aires", cpt: "Cape Town",
 };
 /** Every city a handle can name, for telling a city word from a name word. */
+/** The handle lists' cities by full name, for a tag that is only a city ("Athens"). */
+const KNOWN_CITIES = new Set([...Object.values(HANDLE_CITIES_GLUED), ...Object.values(HANDLE_CITIES_LAST)].map(fold));
 const HANDLE_CITY_NAMES = new Set([...Object.values(HANDLE_CITIES_GLUED), ...Object.values(HANDLE_CITIES_LAST)].flatMap((c) => fold(c).split(/\s+/)));
 
 /** "restaurangvra" → "restaurang vra", "barbrutal" → "bar brutal": a category word glued on. Same rule in PlaceSearch.swift. */
