@@ -1,7 +1,7 @@
 # Vicolo — web ↔ iOS
 
 What each app has, side by side. Kept current with every change that adds or
-closes a difference (CLAUDE.md). Last updated 2026-10-19 (build 30 in TestFlight, 31 next). Also at backoffice.vicolo.space/parity.
+closes a difference (CLAUDE.md). Last updated 2026-10-19 (build 31 in TestFlight). Also at backoffice.vicolo.space/parity.
 
 ## To close
 

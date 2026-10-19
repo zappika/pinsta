@@ -13,7 +13,9 @@ How it stays true:
 - `git log ios-N..HEAD -- ios lib app/api` is the check: anything there that isn't listed under Next build was forgotten.
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
-## Next build (since `ios-30`)
+## Next build (since `ios-31`)
+
+## In TestFlight: 1.0 (31) · 2026-10-19 · `ios-31` · phone ☐
 - Importing a list is calmer: paste the link, then one screen about the list: a map of where its places are, one row per type (tap one to leave places out; hold a place to change its type), what couldn't be found, and "Import all 13 places" (or "Import 12 of 13"). Everything comes in as Want to go. Later keeps the import for another time; Cancel import asks first.
 - On a place, Want to go and Been there are one switch now (one side lit), so they read as a choice, not two buttons; picking Been there adds a 🙋🏻‍♀️.
 - Zoomed far out, the map shows one bubble per city with a few of its photos and how many places it has; tap one to fly into that city.
@@ -24,12 +26,14 @@ How it stays true:
 - After importing a Google Maps list, every place gets its photo while the app is open, not five each time you open it.
 - Importing a Google Maps list keeps going with Vicolo closed: a pill on the map shows how far it is ("Importing … 12/40"), the menu has an Import row, and a notification says when it's ready to review. Vicolo asks to send notifications when you start an import.
 - Long lists import in full (up to 500 places), found with Google, so places Apple Maps lacks are found too.
-- Places the import couldn't find are at the bottom of the review, each with a Search button that opens the save sheet with its name.
+- Places the import couldn't find are listed under the list, each with a Search button that opens the save sheet with its name.
 - A list shared from Google Maps' own Share button now imports (it was dropped before): the card says it's importing, and the app has it when it's ready.
 - *(internal)* Push: `aps-environment` entitlement; the notification needs the APNs key in Vercel (`APNS_KEY`, `APNS_KEY_ID`). Matching moved from MapKit to `POST /api/import/jobs`.
 - *(internal)* Built on the Xcode Mac 2026-10-19: one fix (the list screen's body was too long to type-check, split in two); import of the Bicocca test list ran in the Simulator (notification question, 13 places in review); a 116-place Barcelona list: the pill counted up to "ready to review", Couldn't find had 3, Search opened the save sheet on the name and found it.
 
-## In TestFlight: 1.0 (30) · 2026-10-17 · `ios-30` · phone ☑ (Sarp, 2026-10-17)
+## Earlier builds
+
+### 1.0 (30) · 2026-10-17 · `ios-30` · phone ☑ (Sarp, 2026-10-17)
 - When a post can't be read, the sheet says why (private or deleted, or Instagram didn't answer), and a place saved without a photo says so on the saved card.
 - With a single suggestion, the button under it says "Not this one".
 - A post written in Swedish, Danish, Norwegian, Finnish or Icelandic shows places in that country first.
@@ -45,7 +49,6 @@ How it stays true:
 - *(internal)* Privacy manifests (app + extension) declare UserDefaults (CA92.1, 1C8F.1) and the data that leaves the phone: links/places (Other User Content), usage counts, read errors. For the App Store.
 - *(internal)* Testing launch arguments (`-addURL`, `-importURL`, `-slowNotices`, `-splashHold`) work in Debug builds only (`Views/TestArgs.swift`).
 
-## Earlier builds
 
 ### 1.0 (29) · 2026-10-16 · `ios-29` · phone ☑ (Sarp, 2026-10-16)
 - A post that names places only on signs in a street photo no longer ticks them for you: those names are listed unticked, the post's own places stay ticked.

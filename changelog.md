@@ -8,6 +8,18 @@ backoffice, web-only changes). Headings read "## Build N · D Month".
 
 # What's new in Vicolo
 
+## Build 31 · 19 October
+
+- Importing a Google Maps list is much simpler: paste the link, and you see a map of the list and how many restaurants, bars and so on it has. Tap a type to leave places out, then "Import all". Places come in as Want to go.
+- Imports keep going with Vicolo closed. A pill on the map shows how far along it is, and a notification says when the list is ready. Later keeps an import for another time; it waits in the menu.
+- Long lists import in full (up to 500 places), and lists shared straight from Google Maps' Share button work too.
+- Places the import couldn't find have a Search button that looks them up by name.
+- A place from a list says whose list it came from ("From Emilie’s “Paris” list").
+- Zoom far out on the map: one bubble per city with a few photos and a count. Tap one to fly there.
+- Want to go and Been there are one switch now; picking Been there adds a 🙋🏻‍♀️.
+- In the save sheet, Paste sits inside the link field.
+- A post tagged with just a city finds the place in that city, including places Apple Maps only knows by a name in another script.
+
 ## Build 30 · 17 October
 
 - Sharing a post with many slides (a museum, a house tour) no longer gets stuck on "Finding the place…". The sheet shows which slide it's reading and which name it's looking up, and tells you if the slides don't name a place.
