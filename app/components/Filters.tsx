@@ -21,6 +21,8 @@ type Option = { value: string | null; label: string; count: number | null; sub?:
 /**
  * The header *is* the filter: "Barcelona ▾  Everything ▾".
  * Each half opens an action-sheet picker with counts.
+ * Experiment (Sarp, 2026-10-19): the home shows only What; Where is the What picker's last row,
+ * "In…", and shows in the header only while a town is picked ("Everything in Barcelona").
  */
 export default function Filters({ places, labels, city, category, onCity, onCategory }: Props) {
   const [open, setOpen] = useState<"city" | "category" | null>(null);
@@ -56,16 +58,17 @@ export default function Filters({ places, labels, city, category, onCity, onCate
     <>
       <header className="flex items-baseline gap-3 px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-4">
         <Trigger
-          label={city ?? "Everywhere"}
-          onClick={() => setOpen("city")}
-          // The place name keeps its room; "Everything" gives way first.
-          className="max-w-[65%] shrink-0 text-2xl font-semibold tracking-tight"
-        />
-        <Trigger
           label={category ? whatLabel(category) : "Everything"}
           onClick={() => setOpen("category")}
-          className="text-2xl font-semibold tracking-tight text-stone-400"
+          className="shrink-0 text-2xl font-semibold tracking-tight"
         />
+        {city && (
+          <Trigger
+            label={`in ${city}`}
+            onClick={() => setOpen("city")}
+            className="text-2xl font-semibold tracking-tight text-stone-400"
+          />
+        )}
         <BuddyMenu places={places} />
       </header>
 
@@ -91,6 +94,7 @@ export default function Filters({ places, labels, city, category, onCity, onCate
             setOpen(null);
           }}
           onClose={() => setOpen(null)}
+          more={{ label: city ? `In ${city}…` : "In…", onClick: () => setOpen("city") }}
         />
       )}
     </>
@@ -137,12 +141,15 @@ function Picker({
   selected,
   onSelect,
   onClose,
+  more,
 }: {
   title: string;
   options: Option[];
   selected: string | null;
   onSelect: (v: string | null) => void;
   onClose: () => void;
+  /** A last row that leads somewhere else (What → Where). */
+  more?: { label: string; onClick: () => void };
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -181,6 +188,20 @@ function Picker({
               </li>
             );
           })}
+          {more && (
+            <li>
+              <button
+                type="button"
+                onClick={more.onClick}
+                className="vicolo-picker-row flex w-full items-center justify-between px-4 py-3.5 text-left text-base font-medium text-stone-500 active:bg-stone-50"
+              >
+                {more.label}
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" className="text-stone-400" aria-hidden>
+                  <path d="M6 4l4 4-4 4" />
+                </svg>
+              </button>
+            </li>
+          )}
         </ul>
       </div>
     </div>
