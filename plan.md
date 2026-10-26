@@ -16,7 +16,7 @@ The friends beta is running (since 2026-10-14). Feedback from it comes first; se
 2. **Design pass, list pickers:** see "To design".
 3. **Pulse** (2026-10-18): backoffice → Pulse says whether people can save, come back and find things; Saves lists the misses (Copy links → work through them in a session) instead of waiting for messages.
 
-4. **"Been there?" later + "Around you"** (2026-10-26, decisions.md): web live (`?ask=demo` to look at the sheet), iOS written, not built: on the Xcode Mac run xcodegen, build, try both in the Simulator (builds.md → Next build).
+4. **"Been there?" later + "Around you"** (2026-10-26, decisions.md): web live (`?ask=demo` to look at the sheet), iOS built and tried in the Simulator 2026-10-26; goes out with the next build.
 
 5. **Send to a friend** (2026-10-26, web prototype, decisions.md): + → Send to a friend (paste a list), or the send button once a town is picked; your page at `/w/<id>`; Sent in the buddy menu. Live: the Kreuzberg walk is www.vicolo.space/w/umwi4e3c4r. Ask once how the friend used it, then decide what the iOS version keeps.
 
