@@ -16,6 +16,8 @@ The friends beta is running (since 2026-10-14). Feedback from it comes first; se
 2. **Design pass, list pickers:** see "To design".
 3. **Pulse** (2026-10-18): backoffice → Pulse says whether people can save, come back and find things; Saves lists the misses (Copy links → work through them in a session) instead of waiting for messages.
 
+4. **"Been there?" later + "Around you"** (2026-10-26, decisions.md): web first to see the design, iOS written alongside, built and tried on the Xcode Mac.
+
 ## Waiting on Sarp
 - **APNs key for the "list is ready" push:** developer.apple.com → Keys → + → tick Apple Push Notifications service → download the .p8 (once only) and note its Key ID. In Vercel (pinsta, Production): `APNS_KEY` = the .p8 file's contents (sensitive), `APNS_KEY_ID` = the Key ID, then redeploy. Until then imports work, just without the notification.
 - Pulse: add backoffice.vicolo.space to the Home Screen (asks the owner key once), then mark your own phones and the simulator as Mine (BFA7CCD6, 19 saves, looks like yours) and name the testers.
