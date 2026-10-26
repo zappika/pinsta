@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { places } from "@/lib/db/schema";
 import { getPlace } from "@/lib/google-places";
@@ -42,6 +42,15 @@ export async function PATCH(
     placeId: typeof raw.placeId === "string" ? raw.placeId : undefined,
     removePost: typeof raw.removePost === "string" ? raw.removePost : undefined,
   };
+  // "Been to any of these?" showed it: once more at most, a week on (lib/ask-visit.ts).
+  if (raw.asked === true) {
+    const [updated] = await getDb()
+      .update(places)
+      .set({ askedAt: new Date(), askCount: sql`${places.askCount} + 1` })
+      .where(eq(places.id, id))
+      .returning();
+    return updated ? NextResponse.json({ place: updated }) : notFound();
+  }
   if ("visited" in raw || "rating" in raw) {
     const set: { visitedAt?: Date | null; rating?: number | null } = {};
     if (typeof raw.visited === "boolean") set.visitedAt = raw.visited ? new Date() : null;

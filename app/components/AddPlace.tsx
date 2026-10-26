@@ -5,6 +5,8 @@ import { parseSourceUrl, SOURCE_LABEL, type SourceKind } from "@/lib/sources";
 import { api } from "@/lib/api";
 import { iconFor, placeIcon, tintFor } from "@/lib/categories";
 import { milestoneFor } from "@/lib/milestone";
+import { currentPosition, kmBetween } from "@/lib/geo";
+import { SAVED_HERE_M } from "@/lib/ask-visit";
 import type { Place, PlaceCandidate } from "./types";
 // Type only: nothing of the server route reaches the client bundle.
 import type { ExtractResponse } from "@/app/api/extract/route";
@@ -19,9 +21,12 @@ type Props = {
   onSaved: (place: Place) => void;
   /** Which + menu entry opened the sheet: it sets the field's hint (a post, or a Google Maps place or list). */
   mode?: AddMode;
+  /** Where you are, when the list already knows: typed names rank nearby first, and a save this close counts as saved there. */
+  here?: { lat: number; lng: number } | null;
 };
 
-export type AddMode = "post" | "google";
+/** "here": the places around you, for saving the one you're at (Sarp, 2026-10-26). */
+export type AddMode = "post" | "google" | "here";
 
 /** Saves made by pasting a post link get a word about the share sheet, the first few times. */
 const SHARE_TIP_KEY = "vicolo.shareTipShown";
@@ -56,7 +61,32 @@ type Saved = { place: Place; already: boolean; changed?: boolean; merged?: boole
  * the post is read → the tag becomes a place. One match saves itself; several
  * ask for a tap; none hands over to search.
  */
-export default function AddPlace({ places, editing = null, onUpdated, onClose, onSaved, mode = "post" }: Props) {
+export default function AddPlace({ places, editing = null, onUpdated, onClose, onSaved, mode = "post", here: known = null }: Props) {
+  const [here, setHere] = useState(known);
+  // "Around you": the places within ~150 m, closest first, one tap to save.
+  const [around, setAround] = useState<{ status: "idle" | "loading" | "done" | "error"; list: PlaceCandidate[]; why?: string }>({ status: "idle", list: [] });
+  useEffect(() => {
+    if (mode !== "here") return;
+    let gone = false;
+    setAround({ status: "loading", list: [] });
+    (async () => {
+      try {
+        const pos = await currentPosition();
+        if (gone) return;
+        setHere(pos);
+        const res = await api("/api/places/nearby", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(pos) });
+        const data = (await res.json().catch(() => ({}))) as { candidates?: PlaceCandidate[]; error?: string };
+        if (!res.ok) throw new Error(data.error ?? "Nearby search failed");
+        if (!gone) setAround({ status: "done", list: data.candidates ?? [] });
+      } catch (e) {
+        const off = (e as GeolocationPositionError)?.code === 1;
+        if (!gone) setAround({ status: "error", list: [], why: off ? "Location is off for Vicolo. Type the place's name instead." : "Couldn't see what's around you. Type the place's name instead." });
+      }
+    })();
+    return () => {
+      gone = true;
+    };
+  }, [mode]);
   const [url, setUrl] = useState(editing?.instagramUrl ?? "");
   const [extract, setExtract] = useState<Extract>(
     editing
@@ -189,7 +219,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
         const res = await api("/api/places/search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: q }),
+          body: JSON.stringify({ query: q, near: here }),
           signal: ctrl.signal,
         });
         const data = (await res.json().catch(() => ({}))) as { candidates?: PlaceCandidate[]; error?: string };
@@ -217,7 +247,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
   }, [saved, onClose]);
 
   async function save(c: PlaceCandidate, p: PostInfo | null = post) {
-    if ((!validUrl && !byName) || saving) return;
+    if ((!validUrl && !byName && mode !== "here") || saving) return;
     setSaving(c.placeId);
     setError(null);
     try {
@@ -246,6 +276,8 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
           ownerUsername: p?.ownerUsername ?? null,
           // The read just failed: the server shouldn't pay for another one to find a photo.
           postUnreadable: extract.status === "error",
+          // Saved where you stood: "Been there?" comes on a later day (lib/ask-visit.ts).
+          savedNearby: mode === "here" || (here != null && kmBetween(here, c) * 1000 <= SAVED_HERE_M),
         }),
       });
       const data = (await res.json().catch(() => ({}))) as { place?: Place; merged?: boolean; already?: boolean; error?: string };
@@ -282,6 +314,7 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
   const [shareTip] = useState(() => mode === "post" && !editing && takeShareTip());
   const label = editing ? "Change place"
     : byName ? "Which place is it?"
+    : mode === "here" ? "Around you"
     : !validUrl ? "Save a place"
     : extract.status === "loading" ? "Finding the place…"
     : saving ? "Saving…"
@@ -316,14 +349,14 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
                   autoCapitalize="off"
                   autoCorrect="off"
                   spellCheck={false}
-                  placeholder={mode === "google" ? "Paste a Google Maps link" : "Paste an Instagram link, or type a place"}
+                  placeholder={mode === "google" ? "Paste a Google Maps link" : mode === "here" ? "Or type its name" : "Paste an Instagram link, or type a place"}
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   className={`min-w-0 flex-1 rounded-xl border bg-stone-50 px-3.5 py-2.5 text-base outline-none placeholder:text-stone-400 ${
                     urlTouched && !validUrl && looksLikeLink ? "border-red-300 focus:border-red-400" : "border-stone-200 focus:border-stone-400"
                   }`}
                 />
-                {!url && (
+                {!url && mode !== "here" && (
                   <button type="button" onClick={pasteFromClipboard} className="shrink-0 rounded-xl border border-stone-200 px-3.5 text-sm font-medium text-stone-700 active:bg-stone-50">
                     Paste
                   </button>
@@ -335,6 +368,17 @@ export default function AddPlace({ places, editing = null, onUpdated, onClose, o
               )}
               {!editing && urlTouched && !validUrl && looksLikeLink && (
                 <p className="mt-1.5 text-xs text-red-600">Needs to be an Instagram post or profile, a TikTok video, or a Google Maps place.</p>
+              )}
+
+              {mode === "here" && !url && (
+                <>
+                  {around.status === "loading" && <LoadingBar />}
+                  {around.status === "error" && <p className="mt-3 text-sm text-stone-500">{around.why}</p>}
+                  {around.status === "done" && around.list.length === 0 && (
+                    <p className="mt-3 text-sm text-stone-500">Nothing found right around you. Type the place&apos;s name.</p>
+                  )}
+                  <CandidateList candidates={around.list} saving={saving} onPick={(c) => save(c)} />
+                </>
               )}
 
               {extract.status === "loading" && (

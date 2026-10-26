@@ -17,6 +17,7 @@ export const SERVICES = {
   apify: { label: "Instagram post reads (Apify)", per1000: null, free: null },
   "google.textSearchPro": { label: "Google Text Search Pro", per1000: 32, free: 5000 },
   "google.textSearchEnterprise": { label: "Google Text Search Enterprise", per1000: 35, free: 1000 },
+  "google.nearbyPro": { label: "Google Nearby Search Pro", per1000: 32, free: 5000 },
   "google.detailsPro": { label: "Google Place Details Pro", per1000: 17, free: 5000 },
   "google.detailsEnterprise": { label: "Google Place Details Enterprise", per1000: 20, free: 1000 },
   "google.photos": { label: "Google Place Photos", per1000: 7, free: 1000 },

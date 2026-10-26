@@ -132,6 +132,41 @@ export async function searchPlaces(query: string, near?: { lat: number; lng: num
   return (data.places ?? []).map(toCandidate);
 }
 
+/**
+ * The places around a spot, closest first: "Around you" in the save sheet (Sarp, 2026-10-26: "I'm at
+ * this place, how do I save it?"). Nearby Search Pro, the same fields as a search. Only kinds of
+ * place people go to: unfiltered, a Barcelona block was offices and hair salons (2026-10-26).
+ */
+const GO_TYPES = [
+  "restaurant", "cafe", "coffee_shop", "bakery", "ice_cream_shop", "bar", "wine_bar", "pub", "night_club",
+  "museum", "art_gallery", "performing_arts_theater", "movie_theater", "concert_hall", "tourist_attraction",
+  "park", "market", "book_store", "clothing_store", "gift_shop", "winery", "spa",
+];
+export async function nearbyPlaces(at: { lat: number; lng: number }, radius = 150): Promise<PlaceCandidate[]> {
+  const counted = countCall("google.nearbyPro");
+  const res = await fetch("https://places.googleapis.com/v1/places:searchNearby", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": KEY(),
+      "X-Goog-FieldMask": FIELDS.split(",")
+        .map((f) => `places.${f}`)
+        .join(","),
+    },
+    body: JSON.stringify({
+      maxResultCount: 10,
+      rankPreference: "DISTANCE",
+      includedTypes: GO_TYPES,
+      languageCode: "en",
+      locationRestriction: { circle: { center: { latitude: at.lat, longitude: at.lng }, radius } },
+    }),
+  });
+  await counted;
+  if (!res.ok) throw new Error(`Nearby search failed: ${res.status} ${await res.text()}`);
+  const data = (await res.json()) as { places?: RawPlace[] };
+  return (data.places ?? []).map(toCandidate);
+}
+
 /** `price`: also ask for the price level (Enterprise tier). Only on save. */
 export async function getPlace(placeId: string, opts: { price?: boolean } = {}): Promise<PlaceCandidate> {
   const [res] = await Promise.all([

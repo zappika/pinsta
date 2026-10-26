@@ -24,6 +24,12 @@ export default function AddMenu({ open, onClose, onPick }: Props) {
 
   const items: { mode: AddMode; label: string; hint: string; icon: React.ReactNode }[] = [
     {
+      mode: "here",
+      label: "Where I am",
+      hint: "The place you're at",
+      icon: <path d="M20.5 3.5 3.5 10.6l7.1 2.8 2.8 7.1z" />,
+    },
+    {
       mode: "google",
       label: "Google Maps",
       hint: "A place or a shared list",

@@ -18,6 +18,8 @@ import PeekCard from "./PeekCard";
 import PlaceList from "./PlaceList";
 import MapsChooser from "./MapsChooser";
 import BuddyMenu from "./BuddyMenu";
+import VisitAsk from "./VisitAsk";
+import { dueToAsk } from "@/lib/ask-visit";
 import { MAPS_LABEL, defaultMaps, openIn, setDefaultMaps, type MapsApp } from "@/lib/directions";
 import ViewSwitch, { type View } from "./ViewSwitch";
 import { destinationLabels } from "@/lib/grouping";
@@ -215,6 +217,26 @@ export default function PinstaApp() {
         if (town) setCity((c) => c ?? town);
       })
       .catch(() => undefined); // no fix: the map of everything
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the list first arrives
+  }, [places]);
+
+  // "Been to any of these?", once per open (lib/ask-visit.ts). Showing it is the ask: each row is
+  // stamped then, answered or not. `?ask=demo` shows the newest three and writes nothing, answers neither.
+  const [asking, setAsking] = useState<{ places: Place[]; demo: boolean } | null>(null);
+  const asked = useRef(false);
+  useEffect(() => {
+    if (asked.current || !places || places.length === 0) return;
+    asked.current = true;
+    const demo = new URLSearchParams(window.location.search).get("ask") === "demo";
+    const due = demo ? places.filter((p) => p.visitedAt == null).slice(0, 3) : dueToAsk(places);
+    if (due.length === 0) return;
+    setAsking({ places: due, demo });
+    if (demo) return;
+    for (const p of due) {
+      api(`/api/places/${p.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ asked: true }) })
+        .then(async (res) => res.ok && onUpdated((await res.json()).place))
+        .catch(() => undefined);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the list first arrives
   }, [places]);
 
@@ -428,6 +450,8 @@ export default function PinstaApp() {
         </div>
       )}
 
+      {asking && !adding && <VisitAsk places={asking.places} onVisit={asking.demo ? () => undefined : visit} onClose={() => setAsking(null)} />}
+
       {choosing && (
         <MapsChooser current={defaultMaps()} onPick={pickMaps} onClose={() => setChoosing(null)} />
       )}
@@ -497,6 +521,7 @@ export default function PinstaApp() {
       {(adding || editing) && (
         <AddPlace
           mode={addMode}
+          here={here}
           places={places ?? []}
           editing={editing}
           onClose={() => {

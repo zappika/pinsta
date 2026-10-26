@@ -49,6 +49,12 @@ export const places = pgTable("places", {
   visitedAt: timestamp("visited_at", { withTimezone: true }),
   // How it was, after Been there: 1 😞 2 🙂 3 😃. Null = not said.
   rating: integer("rating"),
+  // Saved within ~150 m of where you stood ("Around you", or any save that close): asked
+  // "Been there?" on a later day, not a week on (lib/ask-visit.ts, Sarp 2026-10-26).
+  savedNearby: boolean("saved_nearby").notNull().default(false),
+  // When "Been to any of these?" last showed it, and how often (twice at most).
+  askedAt: timestamp("asked_at", { withTimezone: true }),
+  askCount: integer("ask_count").notNull().default(0),
   // More posts of the same place, saved later. The first post stays in the columns above.
   posts: jsonb("posts").$type<ExtraPost[]>().notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true })

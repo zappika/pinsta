@@ -45,6 +45,8 @@ export async function POST(req: Request) {
     fromList: listOf(raw.fromList),
     /** Imported as Been there (the import asks for the whole list), not Want to go. */
     visited: raw.visited === true,
+    // Saved where you stood: "Been there?" comes the next day (lib/ask-visit.ts).
+    savedNearby: raw.savedNearby === true,
   };
 
   // Field keeps its old name; it holds any supported link (Instagram, TikTok, Google Maps).
@@ -140,6 +142,7 @@ export async function POST(req: Request) {
         ownerUsername: body.ownerUsername || null,
         fromList: body.fromList,
         visitedAt: body.visited ? new Date() : null,
+        savedNearby: body.savedNearby,
       })
       .returning();
     return NextResponse.json({ place: row }, { status: 201 });
