@@ -6,7 +6,7 @@ import type { AddMode } from "./AddPlace";
 type Props = {
   open: boolean;
   onClose: () => void;
-  onPick: (mode: AddMode) => void;
+  onPick: (mode: AddMode | "send") => void;
 };
 
 /**
@@ -22,7 +22,19 @@ export default function AddMenu({ open, onClose, onPick }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  const items: { mode: AddMode; label: string; hint: string; icon: React.ReactNode }[] = [
+  const items: { mode: AddMode | "send"; label: string; hint: string; icon: React.ReactNode }[] = [
+    {
+      // Places for a friend, saved or not (Sarp, 2026-10-26): a walk or a few tips.
+      mode: "send",
+      label: "Send to a friend",
+      hint: "A walk or a few tips",
+      icon: (
+        <>
+          <path d="M21 3 10.5 13.5" />
+          <path d="M21 3 14.5 21l-4-7.5L3 9.5z" />
+        </>
+      ),
+    },
     {
       mode: "here",
       label: "Where I am",

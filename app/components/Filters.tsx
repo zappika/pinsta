@@ -14,6 +14,8 @@ type Props = {
   category: string | null;
   onCity: (c: string | null) => void;
   onCategory: (c: string | null) => void;
+  /** Send what's shown to a friend; absent while there's nothing to send (no town picked). */
+  onSend?: () => void;
 };
 
 type Option = { value: string | null; label: string; count: number | null; sub?: boolean };
@@ -24,7 +26,7 @@ type Option = { value: string | null; label: string; count: number | null; sub?:
  * Experiment (Sarp, 2026-10-19): the home shows only What; Where is the What picker's last row,
  * "In…", and shows in the header only while a town is picked ("Everything in Barcelona").
  */
-export default function Filters({ places, labels, city, category, onCity, onCategory }: Props) {
+export default function Filters({ places, labels, city, category, onCity, onCategory, onSend }: Props) {
   const [open, setOpen] = useState<"city" | "category" | null>(null);
 
   const cityOptions = useMemo<Option[]>(() => {
@@ -69,7 +71,22 @@ export default function Filters({ places, labels, city, category, onCity, onCate
             className="text-2xl font-semibold tracking-tight text-stone-400"
           />
         )}
+        <div className="ml-auto flex items-center gap-2 self-center">
+        {onSend && (
+          <button
+            type="button"
+            aria-label="Send these to a friend"
+            onClick={onSend}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-stone-200 text-stone-900 active:bg-stone-300"
+          >
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M21 3 10.5 13.5" />
+              <path d="M21 3 14.5 21l-4-7.5L3 9.5z" />
+            </svg>
+          </button>
+        )}
         <BuddyMenu places={places} />
+        </div>
       </header>
 
       {open === "city" && (

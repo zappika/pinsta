@@ -217,3 +217,35 @@ export type ImportMatch = {
   primaryType: string | null;
 };
 export type ImportJob = typeof importJobs.$inferSelect;
+
+/**
+ * Places sent to a friend (Sarp, 2026-10-26): the first thing that leaves the private list.
+ * A copy of what was picked, behind a link nobody can guess (`/w/<id>`, public, no account):
+ * never the list itself, and it doesn't change after sending. `walk` = in this order (numbered,
+ * a dotted line, minutes on foot); `list` = no order ("my Helsinki restaurant tips").
+ * Disposable: it lives in Sent, never on the map; the places in it are saved only if picked.
+ */
+export const sends = pgTable("sends", {
+  id: text("id").primaryKey(),
+  kind: text("kind").$type<"walk" | "list">().notNull(),
+  title: text("title").notNull(),
+  from: text("from"),
+  stops: jsonb("stops").$type<SendStop[]>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type SendStop = {
+  name: string;
+  placeId: string | null;
+  lat: number;
+  lng: number;
+  address: string | null;
+  city: string | null;
+  category: string | null;
+  primaryType: string | null;
+  priceLevel: number | null;
+  imageUrl: string | null;
+  /** The sender's line ("get the Spezial"). */
+  note: string | null;
+};
+export type Send = typeof sends.$inferSelect;

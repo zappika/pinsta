@@ -1,7 +1,7 @@
 "use client";
 
 import BrandIllustration from "./BrandIllustration";
-import { matchesWhat } from "@/lib/subtypes";
+import { matchesWhat, typeLabel } from "@/lib/subtypes";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, setOwnerKey } from "@/lib/api";
@@ -19,6 +19,7 @@ import PlaceList from "./PlaceList";
 import MapsChooser from "./MapsChooser";
 import BuddyMenu from "./BuddyMenu";
 import VisitAsk from "./VisitAsk";
+import SendSheet, { type SendStart } from "./SendSheet";
 import { askedRecently, dueToAsk, markAsked } from "@/lib/ask-visit";
 import { MAPS_LABEL, defaultMaps, openIn, setDefaultMaps, type MapsApp } from "@/lib/directions";
 import ViewSwitch, { type View } from "./ViewSwitch";
@@ -32,6 +33,8 @@ export default function PinstaApp() {
   /** The + fans out its choices first; the sheet opens on one (Sarp, 2026-10-16). */
   const [fan, setFan] = useState(false);
   const [addMode, setAddMode] = useState<AddMode>("post");
+  // Send to a friend (Sarp, 2026-10-26): from the + (paste a list) or from the header (what's shown).
+  const [sending, setSending] = useState<SendStart | null>(null);
   const [editing, setEditing] = useState<Place | null>(null);
   const [openSwipe, setOpenSwipe] = useState<string | null>(null);
   // Deletes are deferred a few seconds so "Undo" can pull them back. Only the
@@ -324,6 +327,12 @@ export default function PinstaApp() {
             setCategory(c);
             setPeek(null);
           }}
+          // What's shown, as a list for a friend: only once a town is picked ("my Helsinki tips").
+          onSend={
+            city !== null && visible.length > 0
+              ? () => setSending({ from: "selection", places: visible, title: category ? `${whatTitle(category)} in ${city}` : `My ${city}` })
+              : undefined
+          }
         />
       ) : (
         // Settings are reachable before the first save too.
@@ -515,10 +524,15 @@ export default function PinstaApp() {
         onClose={() => setFan(false)}
         onPick={(m) => {
           setFan(false);
+          if (m === "send") return setSending({ from: "paste" });
           setAddMode(m);
           setAdding(true);
         }}
       />
+
+      {sending && (
+        <SendSheet start={sending} places={places ?? []} near={city} here={here} onClose={() => setSending(null)} onSaved={onSaved} />
+      )}
 
       {(adding || editing) && (
         <AddPlace
@@ -538,3 +552,11 @@ export default function PinstaApp() {
   );
 }
 
+
+/** "Restaurants" / "Wine bars" for a send's title, like the What header. */
+function whatTitle(what: string): string {
+  const [category, type] = what.split("/");
+  if (type) return `${typeLabel(type)}s`;
+  if (category === "Nature" || category === "Culture" || category === "Other") return category;
+  return category.endsWith("y") ? `${category.slice(0, -1)}ies` : `${category}s`;
+}

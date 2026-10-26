@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import SettingsSheet from "./SettingsSheet";
 import UsageSheet from "./UsageSheet";
 import BeenThereSheet from "./BeenThereSheet";
+import SentSheet from "./SentSheet";
 import type { Place } from "./types";
 import ElephantMark from "./ElephantMark";
 
@@ -17,6 +18,7 @@ export default function BuddyMenu({ places }: { places: Place[] }) {
   const [settings, setSettings] = useState(false);
   const [usage, setUsage] = useState(false);
   const [been, setBeen] = useState(false);
+  const [sent, setSent] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -62,6 +64,14 @@ export default function BuddyMenu({ places }: { places: Place[] }) {
             }}
           />
           <Item
+            icon={<><path d="M21 3 10.5 13.5" /><path d="M21 3 14.5 21l-4-7.5L3 9.5z" /></>}
+            label="Sent"
+            onClick={() => {
+              setOpen(false);
+              setSent(true);
+            }}
+          />
+          <Item
             icon={<><path d="M4 20V10" /><path d="M10 20V4" /><path d="M16 20v-7" /><path d="M22 20H2" /></>}
             label="Usage"
             onClick={() => {
@@ -93,6 +103,7 @@ export default function BuddyMenu({ places }: { places: Place[] }) {
       {settings && <SettingsSheet onClose={() => setSettings(false)} />}
       {been && <BeenThereSheet places={places} onClose={() => setBeen(false)} />}
       {usage && <UsageSheet onClose={() => setUsage(false)} />}
+      {sent && <SentSheet onClose={() => setSent(false)} />}
     </div>
   );
 }

@@ -18,6 +18,8 @@ The friends beta is running (since 2026-10-14). Feedback from it comes first; se
 
 4. **"Been there?" later + "Around you"** (2026-10-26, decisions.md): web live (`?ask=demo` to look at the sheet), iOS written, not built: on the Xcode Mac run xcodegen, build, try both in the Simulator (builds.md → Next build).
 
+5. **Send to a friend** (2026-10-26, web prototype, decisions.md): + → Send to a friend (paste a list), or the send button once a town is picked; your page at `/w/<id>`; Sent in the buddy menu. Try sending a walk to someone, then decide what the iOS version keeps.
+
 ## Waiting on Sarp
 - **APNs key for the "list is ready" push:** developer.apple.com → Keys → + → tick Apple Push Notifications service → download the .p8 (once only) and note its Key ID. In Vercel (pinsta, Production): `APNS_KEY` = the .p8 file's contents (sensitive), `APNS_KEY_ID` = the Key ID, then redeploy. Until then imports work, just without the notification.
 - Pulse: add backoffice.vicolo.space to the Home Screen (asks the owner key once), then mark your own phones and the simulator as Mine (BFA7CCD6, 19 saves, looks like yours) and name the testers.
