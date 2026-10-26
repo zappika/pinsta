@@ -19,7 +19,7 @@ import PlaceList from "./PlaceList";
 import MapsChooser from "./MapsChooser";
 import BuddyMenu from "./BuddyMenu";
 import VisitAsk from "./VisitAsk";
-import { dueToAsk } from "@/lib/ask-visit";
+import { askedRecently, dueToAsk, markAsked } from "@/lib/ask-visit";
 import { MAPS_LABEL, defaultMaps, openIn, setDefaultMaps, type MapsApp } from "@/lib/directions";
 import ViewSwitch, { type View } from "./ViewSwitch";
 import { destinationLabels } from "@/lib/grouping";
@@ -228,10 +228,12 @@ export default function PinstaApp() {
     if (asked.current || !places || places.length === 0) return;
     asked.current = true;
     const demo = new URLSearchParams(window.location.search).get("ask") === "demo";
+    if (!demo && askedRecently()) return;
     const due = demo ? places.filter((p) => p.visitedAt == null).slice(0, 3) : dueToAsk(places);
     if (due.length === 0) return;
     setAsking({ places: due, demo });
     if (demo) return;
+    markAsked();
     for (const p of due) {
       api(`/api/places/${p.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ asked: true }) })
         .then(async (res) => res.ok && onUpdated((await res.json()).place))

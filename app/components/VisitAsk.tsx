@@ -63,7 +63,30 @@ export default function VisitAsk({
                 </div>
                 {open && (
                   <div className="pinsta-fade mt-3">
-                    <p className="mb-2 text-sm text-stone-500">How was it?</p>
+                    {/* A Yes tapped by mistake folds back: Want to go again, and no face from here. */}
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-sm text-stone-500">How was it?</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setYes((s) => {
+                            const n = new Set(s);
+                            n.delete(p.id);
+                            return n;
+                          });
+                          const hadFace = rated.has(p.id);
+                          setRated((m) => {
+                            const n = new Map(m);
+                            n.delete(p.id);
+                            return n;
+                          });
+                          onVisit(p, hadFace ? { visited: false, rating: null } : { visited: false });
+                        }}
+                        className="-mr-2 rounded-full px-2 py-1 text-sm font-medium text-stone-500 active:bg-stone-100"
+                      >
+                        Not yet
+                      </button>
+                    </div>
                     <div role="radiogroup" aria-label={`How was ${p.name}`} className="flex gap-2">
                       {FACES.map((name, i) => {
                         const on = rated.get(p.id) === i + 1;

@@ -2,6 +2,8 @@
  * "Been to any of these?" (Sarp, 2026-10-26): asked later, never at the save. A place saved where you
  * stood (`savedNearby`) is asked on the first open on a later day; one saved from a post or a share a
  * week on. Twice at most, a week apart, then never. Never list imports or places already marked.
+ * Only places saved from the day it came (2026-10-26) on: the list before it would all be due at once.
+ * One sheet a day at most (`ASK_GAP_HOURS`): a refresh showed four more (Sarp, 2026-10-26).
  * Same rule as `Services/AskVisit.swift`. Change one, change the other.
  */
 type Askable = {
@@ -19,6 +21,8 @@ export const ASK_AT_MOST = 2;
 export const ASK_ROWS = 4;
 
 const DAY = 86_400_000;
+export const ASK_SINCE = new Date("2026-10-26T00:00:00Z");
+export const ASK_GAP_HOURS = 24;
 
 function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -30,10 +34,29 @@ export function dueToAsk<P extends Askable>(places: P[], now = new Date()): P[] 
       if (p.visitedAt != null || p.fromList != null || (p.askCount ?? 0) >= ASK_AT_MOST) return false;
       if (p.askedAt && now.getTime() - new Date(p.askedAt).getTime() < ASK_AFTER_DAYS * DAY) return false;
       const saved = new Date(p.createdAt);
+      if (saved < ASK_SINCE) return false;
       return p.savedNearby ? startOfDay(saved) < startOfDay(now) : now.getTime() - saved.getTime() >= ASK_AFTER_DAYS * DAY;
     })
     .sort((a, b) => Number(!!b.savedNearby) - Number(!!a.savedNearby) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, ASK_ROWS);
+}
+
+const SHOWN_KEY = "vicolo.visitAskShown";
+
+/** The last sheet was under ASK_GAP_HOURS ago (this browser). */
+export function askedRecently(now = Date.now()): boolean {
+  try {
+    const last = Number(localStorage.getItem(SHOWN_KEY));
+    return last > 0 && now - last < ASK_GAP_HOURS * 3_600_000;
+  } catch {
+    return false;
+  }
+}
+
+export function markAsked(now = Date.now()) {
+  try {
+    localStorage.setItem(SHOWN_KEY, String(now));
+  } catch {}
 }
 
 /** A save this close to where you stood counts as saved there. */

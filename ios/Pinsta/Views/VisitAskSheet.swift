@@ -9,6 +9,8 @@ struct VisitAskSheet: View {
     let onClose: () -> Void
     @Environment(\.modelContext) private var context
     @State private var yes: Set<UUID> = []
+    /// Faces picked in this sheet: undoing a Yes takes those back, not one from before.
+    @State private var faced: Set<UUID> = []
 
     private var label: String { places.count == 1 ? "Been to \(places[0].name)?" : "Been to any of these?" }
 
@@ -73,12 +75,25 @@ struct VisitAskSheet: View {
                 }
             }
             if yes.contains(place.id) {
-                Text("How was it?").font(.subheadline).foregroundStyle(.secondary)
+                // A Yes tapped by mistake folds back: Want to go again, and no face from here.
+                HStack {
+                    Text("How was it?").font(.subheadline).foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Not yet") {
+                        yes.remove(place.id)
+                        place.visitedAt = nil
+                        if faced.contains(place.id) { place.rating = nil; faced.remove(place.id) }
+                        try? context.save()
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+                }
                 HStack(spacing: 8) {
                     ForEach(1...3, id: \.self) { kind in
                         let on = place.rating == kind
                         Button {
                             place.rating = kind
+                            faced.insert(place.id)
                             try? context.save()
                         } label: {
                             FaceView(kind: kind, size: 26)

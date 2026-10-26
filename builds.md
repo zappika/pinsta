@@ -18,7 +18,7 @@ How it stays true:
 - A restaurant's own carousel with a receipt or bottle labels in the photos no longer turns into a list of random places: only text laid over a picture is read as place names (El Roca, Barcelona).
 - A post tagged with a small town and naming the place as a co-author finds it (a building-materials yard in Eemnes).
 - **Where I am** in the + menu: the places right around you, closest first, one tap to save the one you're at.
-- Vicolo asks later whether you've been: the day after you saved a place where you stood, a week after one from a post. "Been to any of these?" lists up to four; Yes opens the faces to say how it was. Each place is asked twice at most.
+- Vicolo asks later whether you've been: the day after you saved a place where you stood, a week after one from a post. "Been to any of these?" lists up to four; Yes opens the faces to say how it was. Each place is asked twice at most, one sheet a day at most, and "Not yet" undoes a Yes tapped by mistake.
 - *(internal)* Not built yet: written 2026-10-26 on a Mac without Xcode. Run `xcodegen generate` (new AskVisit.swift, VisitAskSheet.swift), build, and try both in the Simulator (`simctl location` for Where I am; to see the ask, set a place's createdAt back 8 days or save one nearby and move the clock a day).
 
 ## In TestFlight: 1.0 (31) · 2026-10-19 · `ios-31` · phone ☐

@@ -365,11 +365,12 @@ private struct PlacesContent: View {
         guard started, !busy() else { return }
         Task {
             try? await Task.sleep(for: .seconds(0.8))
-            guard !busy(), scenePhase == .active else { return }
+            guard !busy(), scenePhase == .active, !AskVisit.askedRecently() else { return }
             let due = AskVisit.due(places)
             guard !due.isEmpty else { return }
             for p in due { p.askedAt = .now; p.askCount += 1 }
             try? context.save()
+            AskVisit.markAsked()
             screen.askingVisit = due
         }
     }
