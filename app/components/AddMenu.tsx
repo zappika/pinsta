@@ -27,7 +27,15 @@ export default function AddMenu({ open, onClose, onPick }: Props) {
       mode: "here",
       label: "Where I am",
       hint: "The place you're at",
-      icon: <path d="M20.5 3.5 3.5 10.6l7.1 2.8 2.8 7.1z" />,
+      // A shop front, not the locate arrow: the two read as one button on the map (Sarp, 2026-10-26).
+      icon: (
+        <>
+          <path d="M4 9.5 5.5 4.5h13L20 9.5" />
+          <path d="M4 9.5a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0" />
+          <path d="M5.5 12v7.5h13V12" />
+          <path d="M10 19.5v-4.5h4v4.5" />
+        </>
+      ),
     },
     {
       mode: "google",
