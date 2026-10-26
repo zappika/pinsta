@@ -23,6 +23,23 @@ struct PlaceCandidate: Identifiable, Hashable {
 
 enum PlaceSearch {
     /// Worldwide point-of-interest search. No key, no quota, on Apple's servers.
+    /// The places around a spot, closest first: "Where I am" in the save sheet (Sarp, 2026-10-26: "I'm
+    /// at this place, how do I save it?"). Apple's points of interest, free; only kinds of place people go
+    /// (web: `nearbyPlaces`, Google, the same 150 m).
+    static func around(_ at: CLLocationCoordinate2D, meters: Double = 150, limit: Int = 6) async -> [PlaceCandidate] {
+        let request = MKLocalPointsOfInterestRequest(center: at, radius: meters)
+        request.pointOfInterestFilter = MKPointOfInterestFilter(including: [
+            .restaurant, .cafe, .bakery, .brewery, .winery, .nightlife, .foodMarket, .museum, .theater,
+            .movieTheater, .musicVenue, .park, .nationalPark, .beach, .store, .spa, .landmark, .castle,
+        ])
+        let items = (try? await MKLocalSearch(request: request).start().mapItems) ?? []
+        let here = CLLocation(latitude: at.latitude, longitude: at.longitude)
+        return items.map(PlaceCandidate.init)
+            .filter { isVenue($0) }
+            .sorted { here.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude)) < here.distance(from: CLLocation(latitude: $1.latitude, longitude: $1.longitude)) }
+            .prefix(limit).map { $0 }
+    }
+
     static func search(_ query: String, limit: Int = 5, near: CLLocationCoordinate2D? = nil) async throws -> [PlaceCandidate] {
         let request = MKLocalSearch.Request()
         request.naturalLanguageQuery = query

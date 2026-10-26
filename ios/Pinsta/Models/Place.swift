@@ -51,6 +51,13 @@ final class Place {
     /// How it was after Been there: 1 😞 2 🙂 3 😃; nil = not said.
     var rating: Int?
 
+    /// Saved within ~150 m of where you stood ("Where I am", or any save that close): asked
+    /// "Been there?" on a later day, not a week on (`AskVisit`, web: `saved_nearby`, 2026-10-26).
+    var savedNearby: Bool = false
+    /// When "Been to any of these?" last showed it, and how often (twice at most).
+    var askedAt: Date?
+    var askCount: Int = 0
+
     /// Imported from a shared Google Maps list (web: `from_list`): its name and owner. Not shown yet.
     var fromListTitle: String?
     var fromListOwner: String?

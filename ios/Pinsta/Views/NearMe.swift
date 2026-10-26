@@ -61,6 +61,13 @@ final class NearMe: NSObject, CLLocationManagerDelegate {
         }
     }
 
+    /// To the street, for "Where I am" (the opening town needs only a kilometre).
+    func locatePrecisely() async -> CLLocation? {
+        manager.desiredAccuracy = kCLLocationAccuracyBest
+        defer { manager.desiredAccuracy = kCLLocationAccuracyKilometer }
+        return await locate()
+    }
+
     /// nil when location is off or refused.
     func locate() async -> CLLocation? {
         switch manager.authorizationStatus {

@@ -18,6 +18,7 @@ struct AddMenu: View {
     }
 
     private let items = [
+        Item(mode: .here, label: "Where I am", hint: "The place you're at", icon: "location"),
         Item(mode: .google, label: "Google Maps", hint: "A place or a shared list", icon: "mappin.and.ellipse"),
         Item(mode: .post, label: "Instagram post", hint: "Paste its link", icon: "camera"),
     ]

@@ -27,8 +27,18 @@ struct AddPlaceView: View {
     var mode: AddMode = .post
     /// A Google Maps list was pasted: Import takes it from here.
     var onList: ((String) -> Void)? = nil
+    /// Where you are, when the list already knows: a save this close counts as saved there (`AskVisit`).
+    var here: CLLocation? = nil
+    /// A fix to the street, for "Where I am" (the app's `NearMe`; the share extension has none).
+    var locate: (() async -> CLLocation?)? = nil
 
-    enum AddMode { case post, google }
+    /// `here`: the places around you, for saving the one you're at (Sarp, 2026-10-26).
+    enum AddMode { case post, google, here }
+
+    /// "Where I am": the places within ~150 m, closest first, one tap to save.
+    private enum Around: Equatable { case idle, loading, done([PlaceCandidate]), failed(String) }
+    @State private var around: Around = .idle
+    @State private var fix: CLLocation?
 
     /// In-app saves of a pasted post mention the share sheet, the first few times. The how is for the tutorial.
     private static let shareTipKey = "shareTipShown"
@@ -135,6 +145,7 @@ struct AddPlaceView: View {
         if editing != nil { return "Change place" }
         if !many.isEmpty { return saving != nil ? "Saving…" : "This post has \(many.count) places" }
         if byName { return "Which place is it?" }
+        if mode == .here { return "Around you" }
         if validURL == nil { return "Save a place" }
         if finding, let slideStep {
             switch slideStep {
@@ -227,6 +238,7 @@ struct AddPlaceView: View {
         .onDisappear { reportGaveUp() }
         .task(id: validURL) { if editing == nil { await readPost() } }
         .task(id: typed) { await manualSearch() }
+        .task { await findAround() }
     }
 
     /// What changes the sheet's size: one value, so each change animates once.
@@ -239,6 +251,7 @@ struct AddPlaceView: View {
         VStack(alignment: .leading, spacing: 12) {
             // A shared link is already known: the field would only look like a task (Sarp, 2026-10-09).
             if editing == nil, initialURL == nil { urlField }
+            if mode == .here, urlText.isEmpty { aroundSection }
             postSection
             if !many.isEmpty {
                 ManyList(many: many, picked: $picked, saving: saving != nil)
@@ -261,11 +274,11 @@ struct AddPlaceView: View {
     private var urlField: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                TextField(mode == .google ? "Paste a Google Maps link" : "Paste an Instagram link, or type a place", text: $urlText)
+                TextField(mode == .google ? "Paste a Google Maps link" : mode == .here ? "Or type its name" : "Paste an Instagram link, or type a place", text: $urlText)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .focused($focus, equals: .url)
-                if urlText.isEmpty && allowsPasteboard {
+                if urlText.isEmpty && allowsPasteboard && mode != .here {
                     // The system paste control reads the pasteboard without the permission prompt.
                     // A chip inside the field, with the clipboard icon: beside the field it read
                     // as "submit after pasting" (Sarp, 2026-10-19).
@@ -279,7 +292,7 @@ struct AddPlaceView: View {
                     .foregroundStyle(.primary)
                 }
             }
-            .padding(.leading, 14).padding(.trailing, urlText.isEmpty && allowsPasteboard ? 6 : 14)
+            .padding(.leading, 14).padding(.trailing, urlText.isEmpty && allowsPasteboard && mode != .here ? 6 : 14)
             .frame(minHeight: 30)  // the chip's height, so the field doesn't shrink once it goes
             .padding(.vertical, 7)
             .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
@@ -326,6 +339,28 @@ struct AddPlaceView: View {
     }
 
     private var suggested: some View { candidateList }
+
+    @ViewBuilder
+    private var aroundSection: some View {
+        switch around {
+        case .idle, .loading: LoadingBar(read: false, started: readStarted)
+        case .failed(let why): Text(why).font(.subheadline).foregroundStyle(.secondary)
+        case .done(let list) where list.isEmpty:
+            Text("Nothing found right around you. Type the place's name.").font(.subheadline).foregroundStyle(.secondary)
+        case .done(let list): CandidateList(candidates: list, saving: saving) { save($0) }
+        }
+    }
+
+    private func findAround() async {
+        guard mode == .here, editing == nil else { return }
+        around = .loading
+        guard let l = await locate?() else {
+            around = .failed("Location is off for Vicolo. Type the place's name instead.")
+            return
+        }
+        fix = l
+        around = .done(await PlaceSearch.around(l.coordinate))
+    }
 
     private var queryField: some View {
         TextField(
@@ -557,7 +592,7 @@ struct AddPlaceView: View {
         searching = true
         defer { searching = false }
         // MapKit throws when it finds nothing; then Google may know it (a new opening Apple hasn't got).
-        var results = ((try? await PlaceSearch.search(q, limit: 6)) ?? []).filter { PlaceSearch.isVenue($0, asked: q) }
+        var results = ((try? await PlaceSearch.search(q, limit: 6, near: mode == .here ? fix?.coordinate : nil)) ?? []).filter { PlaceSearch.isVenue($0, asked: q) }
         guard !Task.isCancelled else { return }
         wider = nil
         if results.isEmpty {
@@ -597,7 +632,7 @@ struct AddPlaceView: View {
 
     private func save(_ c: PlaceCandidate, auto: Bool = false) {
         // Saved by name, no post: a Maps link to the place stands in, as for list imports.
-        guard let validURL = validURL ?? (byName ? Self.mapsLink(c) : nil), saving == nil else { return }
+        guard let validURL = validURL ?? (byName || mode == .here ? Self.mapsLink(c) : nil), saving == nil else { return }
         saving = c.id
         tried.rank = candidates.firstIndex { $0.id == c.id }
         tried.google = c.id.hasPrefix("google:")
@@ -666,6 +701,9 @@ struct AddPlaceView: View {
             )
             place.website = c.website
             place.subtypeRaw = c.subtype
+            // Saved where you stood: "Been there?" comes on a later day (`AskVisit`).
+            let you = fix ?? here
+            place.savedNearby = mode == .here || (you.map { $0.distance(from: CLLocation(latitude: c.latitude, longitude: c.longitude)) <= AskVisit.savedHereMeters } ?? false)
             // Saved before the photo downloads: closing the share card mid-download
             // used to lose the save. The photo follows (PhotoRetry covers a failure).
             context.insert(place)

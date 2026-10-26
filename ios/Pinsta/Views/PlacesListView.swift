@@ -22,6 +22,8 @@ final class Screen {
     var stuck = false
     /// `LocationPrimer` is up: the list reached `NearMe.askAfter` places, location never asked.
     var askingLocation = false
+    /// "Been to any of these?" is up with these places (`AskVisit`).
+    var askingVisit: [Place]?
     /// The empty list's tutorial is what's on screen, not the chosen view.
     var tutorial = false
     /// Testing: `-addURL <link>` opens the save sheet with that link, the way a share arrives.
@@ -231,6 +233,14 @@ private struct PlacesContent: View {
                 }
             }
         }
+        .overlay {
+            if let asking = screen.askingVisit {
+                FloatingSheet(onClose: { screen.askingVisit = nil }) {
+                    VisitAskSheet(places: asking) { screen.askingVisit = nil }
+                }
+            }
+        }
+        .animation(.snappy(duration: 0.3), value: screen.askingVisit?.map(\.id))
         .overlay(alignment: .bottom) {
             if let peek, view != .cards {
                 PeekCardView(
@@ -313,10 +323,11 @@ private struct PlacesContent: View {
         .onDisappear { commitPending() }
         // Leaving the app stops the Undo timer: off to Instagram to share the post again, the place was
         // still there and the share said "Already in Vicolo" (Sarp, 2026-10-16). Gone means gone.
-        .onChange(of: scenePhase) { _, phase in
+        .onChange(of: scenePhase) { old, phase in
             if phase == .background { commitPending() }
             // A list import started here or from the share sheet: follow it again.
             if phase == .active { ListImport.shared.resume(context: context) }
+            if phase == .active, old == .background { askVisitIfDue() }
         }
     }
 
@@ -341,6 +352,25 @@ private struct PlacesContent: View {
             case .ask: askIfDue()
             case .wait, .refused: break
             }
+            askVisitIfDue()
+        }
+    }
+
+    /// "Been to any of these?" (`AskVisit`, Sarp 2026-10-26): on open and back from the background, never
+    /// over a sheet or the location question. Showing it is the ask: each row is stamped then, answered or not.
+    private func askVisitIfDue() {
+        let busy = { adding || editing != nil || screen.askingLocation || screen.askingVisit != nil || settings.showingSheet
+            || settings.showingBeenThere || settings.showingImport || settings.showingTutorial
+            || settings.webPage != nil || shown.isEmpty }
+        guard started, !busy() else { return }
+        Task {
+            try? await Task.sleep(for: .seconds(0.8))
+            guard !busy(), scenePhase == .active else { return }
+            let due = AskVisit.due(places)
+            guard !due.isEmpty else { return }
+            for p in due { p.askedAt = .now; p.askCount += 1 }
+            try? context.save()
+            screen.askingVisit = due
         }
     }
 
@@ -747,7 +777,7 @@ private struct PlacesContent: View {
     private var newPlaceSheet: AddPlaceView {
         AddPlaceView(initialURL: launchURL, initialName: settings.searchName,
                      onFinish: { adding = false; launchURL = nil; settings.searchName = nil },
-                     mode: launchURL == nil ? addMode : .post, onList: handOff)
+                     mode: launchURL == nil ? addMode : .post, onList: handOff, here: here, locate: { await nearMe.locatePrecisely() })
     }
 
     /// A Google Maps list pasted into the save sheet: Import reads it.
