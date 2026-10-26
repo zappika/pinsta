@@ -1,7 +1,7 @@
 # Vicolo — web ↔ iOS
 
 What each app has, side by side. Kept current with every change that adds or
-closes a difference (CLAUDE.md). Last updated 2026-10-19 (build 31 in TestFlight). Also at backoffice.vicolo.space/parity.
+closes a difference (CLAUDE.md). Last updated 2026-10-26 (build 31 in TestFlight). Also at backoffice.vicolo.space/parity.
 
 ## To close
 
@@ -13,7 +13,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-19 (build 31 in TestFlight
 | Map pins | Loud and quiet, being explored (2026-10-16): photos of places picked one at a time sized by zoom, list imports small tinted dots (type icon at street level), names where they fit, a Tiers / Text switch; zoomed out past 7, one bubble per city (its Where label, photos, count), tap flies there (2026-10-19) | Post photo, else type icon on its tint (`PlacesMapView.fromPost`); the city bubbles too from build 31 (wider than 4.4°); the rest once Sarp picks · Going ahead on the web, design not locked yet (Sarp, 2026-10-17) |
 | "Been to any of these?" on open (`lib/ask-visit.ts` ↔ `AskVisit.swift`): places saved where you stood the next day, the rest a week on, Yes folds open into the faces, twice at most | Yes (2026-10-26; `?ask=demo` shows it without writing) | Written 2026-10-26, not built yet (needs the Xcode Mac) |
 | "Where I am" in the + menu: the places around you, closest first; typed names rank nearby | Google Nearby Search (paid, counted as Nearby Search Pro) | Apple Maps points of interest (free); written 2026-10-26, not built yet |
-| Send to a friend: a walk (in order, numbered, dotted line, Walk it in Google Maps) or a list of places, as a public link `/w/<id>`; + menu → Send to a friend (paste a list or type), or the send button on a Where selection; Sent in the buddy menu | Prototype (2026-10-26) | No · design first on the web; the friend's "Save these to Vicolo" waits for the app to open a send |
+| Send to a friend: a walk (in order, numbered, dotted line, Walk it in Google Maps) or a list of places, as a public link `/w/<id>` (white hairline pins, names under them); + menu → Send to a friend (paste a list or type), or the send button on a Where selection; Sent in the buddy menu | Prototype (2026-10-26) | No · design first on the web; the friend's "Save these to Vicolo" waits for the app to open a send |
 | Accessibility: larger text, Reduce Motion, VoiceOver | Not checked | Build 30: Where/What titles stack at large sizes, motion becomes fades, VoiceOver card actions |
 
 ## Different on purpose

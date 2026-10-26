@@ -5,6 +5,11 @@ new session notes go in plan.md "Last session", the previous one moves here.
 
 ## Session log (newest first)
 
+### 2026-10-18/19: Pulse, docs
+- **Backoffice Pulse** (`/pulse`, now the backoffice home): four questions answered in phones, not percentages: saves that worked (found alone / after digging / gave up), which kinds of post miss, phones that saved on 2+ days and who went quiet, phones that came back to find a place. One row per phone; tap to name it or mark it Mine (left out of the numbers). Saves keeps the misses with a Copy links button; Pulse, Saves and Usage share a tab bar; the backoffice installs on the Home Screen (dark app icon, opens on Pulse).
+- **iOS, for build 31:** counts a place opened, Directions, the post button and Been there (no place names), the data "come back to find something" needs. Built for the simulator, not run.
+- **Docs:** parity.md caught up (it still said build 24), history has 10-15 to 10-17, stale backlog and beta lines cleared.
+
 ### 2026-10-17: carousels that hang, why a read failed, build 30
 - A carousel with many slides (a museum, a house tour) hung the save sheet for good: Vision read ten slides at once. Now one at a time on their own queue, 20 s in total, with a label that counts slides and names; "found nothing" says so.
 - The sheet says why a post couldn't be read (private/deleted vs. no answer) and the success card says when there's no photo (iOS only for now, Sarp).

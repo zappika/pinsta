@@ -18,7 +18,7 @@ The friends beta is running (since 2026-10-14). Feedback from it comes first; se
 
 4. **"Been there?" later + "Around you"** (2026-10-26, decisions.md): web live (`?ask=demo` to look at the sheet), iOS written, not built: on the Xcode Mac run xcodegen, build, try both in the Simulator (builds.md → Next build).
 
-5. **Send to a friend** (2026-10-26, web prototype, decisions.md): + → Send to a friend (paste a list), or the send button once a town is picked; your page at `/w/<id>`; Sent in the buddy menu. Try sending a walk to someone, then decide what the iOS version keeps.
+5. **Send to a friend** (2026-10-26, web prototype, decisions.md): + → Send to a friend (paste a list), or the send button once a town is picked; your page at `/w/<id>`; Sent in the buddy menu. Live: the Kreuzberg walk is www.vicolo.space/w/umwi4e3c4r. Ask once how the friend used it, then decide what the iOS version keeps.
 
 ## Waiting on Sarp
 - **APNs key for the "list is ready" push:** developer.apple.com → Keys → + → tick Apple Push Notifications service → download the .p8 (once only) and note its Key ID. In Vercel (pinsta, Production): `APNS_KEY` = the .p8 file's contents (sensitive), `APNS_KEY_ID` = the Key ID, then redeploy. Until then imports work, just without the notification.
@@ -45,7 +45,8 @@ The friends beta is running (since 2026-10-14). Feedback from it comes first; se
 - **iCloud backup: deferred until the beta settles (CTO call, 2026-10-02).** SwiftData + CloudKit means dropping `@Attribute(.unique)` on `Place.id`, a CloudKit container, and deploying the schema to production in the CloudKit dashboard, or TestFlight builds silently don't sync. None of it can be checked on the simulator without an iCloud sign-in. Revisit when a friend loses a list.
 - **Apify: keep, cache, or replace.** Decide from the Usage sheet once the beta has run a while.
 
-## Last session — 2026-10-18/19: Pulse, docs
-- **Backoffice Pulse** (`/pulse`, now the backoffice home): four questions answered in phones, not percentages: saves that worked (found alone / after digging / gave up), which kinds of post miss, phones that saved on 2+ days and who went quiet, phones that came back to find a place. One row per phone; tap to name it or mark it Mine (left out of the numbers). Saves keeps the misses with a Copy links button; Pulse, Saves and Usage share a tab bar; the backoffice installs on the Home Screen (dark app icon, opens on Pulse).
-- **iOS, for build 31:** counts a place opened, Directions, the post button and Been there (no place names), the data "come back to find something" needs. Built for the simulator, not run.
-- **Docs:** parity.md caught up (it still said build 24), history has 10-15 to 10-17, stale backlog and beta lines cleared.
+## Last session — 2026-10-26: Send to a friend (web)
+- **Why:** Sarp gave a friend a Kreuzberg afternoon (Voo Store → Hasir → Bonanza → König Galerie) as a ChatGPT map and wanted to send it with Vicolo, saved or not; also "my Helsinki restaurant tips". Thinking it through: decisions.md 2026-10-26.
+- **Built and live:** + → Send to a friend (paste a list, "In" city, Not this one?, notes, In order / Any order, Shortest walk, From), the send button once a town is picked, the public page `/w/<id>` (map, photos, notes, Walk it in Google Maps, link preview image), "Keep any of these?" after sending, Sent in the buddy menu. Pins on that page: white, hairline, soft shadow, names under them (Sarp preferred ChatGPT's look; numbers over photos for a walk).
+- **Real sends:** Kreuzberg afternoon www.vicolo.space/w/umwi4e3c4r (sent to the friend), My Tokyo /w/yzma88ns5q (a test of the list kind, delete from Sent when done).
+- **Open:** how the friend reacts (did she walk it, did she ask how to save); her "Save these to Vicolo" only explains the app; no iOS yet; Helsinki tips not tried (one Helsinki place on the web list). Next steps in backlog.md → Sending.
