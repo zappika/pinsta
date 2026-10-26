@@ -196,15 +196,19 @@ enum SlideText {
     }
 
     /// Short label-like lines: 3–40 characters, four words at most, not a sentence,
-    /// a handle, a hashtag, a link or a number.
+    /// a handle, a hashtag, a link or a number, in letters big enough to be laid over the picture.
+    /// Small print is a photo of things: a receipt's "BARRA", "PRIMERS", "SEGONS" and wine labels
+    /// became six Barcelona places on El Roca's own post (De2C6PSDd5l, 2026-10-26). Letters there were
+    /// under 1.3% of the picture's width; Vink's names are 2% and more.
     static func lines(in data: Data) -> Reading {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = false
         guard (try? VNImageRequestHandler(data: data).perform([request])) != nil else { return Reading() }
-        let tops = (request.results ?? []).compactMap { $0.topCandidates(1).first }
-        let lines = tops.compactMap { top -> String? in
-            guard top.confidence >= 0.5 else { return nil }
+        let observed = (request.results ?? []).compactMap { o in o.topCandidates(1).first.map { (o.boundingBox.width, $0) } }
+        let tops = observed.map(\.1)
+        let lines = observed.compactMap { width, top -> String? in
+            guard top.confidence >= 0.5, width / Double(max(top.string.count, 1)) >= minLetterWidth else { return nil }
             let s = top.string.trimmingCharacters(in: CharacterSet.alphanumerics.inverted.subtracting(CharacterSet(charactersIn: "&'’")))
             guard (3...40).contains(s.count), s.split(separator: " ").count <= 4,
                   s.rangeOfCharacter(from: .letters) != nil,
@@ -214,6 +218,9 @@ enum SlideText {
         }
         return Reading(lines: lines, signs: tops.contains { $0.confidence < 0.5 })
     }
+
+    /// A line's width per character, as a share of the picture's width.
+    static let minLetterWidth = 0.015
 
     private static func search(_ name: String, near: CLLocationCoordinate2D?) async throws -> [PlaceCandidate] {
         let request = MKLocalSearch.Request()

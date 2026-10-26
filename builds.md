@@ -15,6 +15,9 @@ How it stays true:
 
 ## Next build (since `ios-31`)
 
+- A restaurant's own carousel with a receipt or bottle labels in the photos no longer turns into a list of random places: only text laid over a picture is read as place names (El Roca, Barcelona).
+- A post tagged with a small town and naming the place as a co-author finds it (a building-materials yard in Eemnes).
+
 ## In TestFlight: 1.0 (31) · 2026-10-19 · `ios-31` · phone ☐
 - Importing a list is calmer: paste the link, then one screen about the list: a map of where its places are, one row per type (tap one to leave places out; hold a place to change its type), what couldn't be found, and "Import all 13 places" (or "Import 12 of 13"). Everything comes in as Want to go. Later keeps the import for another time; Cancel import asks first.
 - On a place, Want to go and Been there are one switch now (one side lit), so they read as a choice, not two buttons; picking Been there adds a 🙋🏻‍♀️.

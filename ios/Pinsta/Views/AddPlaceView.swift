@@ -434,6 +434,7 @@ struct AddPlaceView: View {
             var from: Source = .account
             let tagged = post.locationName.flatMap { PlaceSearch.areaOfTag($0) == nil && PlaceSearch.streetOfTag($0) == nil ? $0 : nil }
             var streetPin: CLLocationCoordinate2D?
+            var townTag: String?
             // Where the post is (a street tag, or the city in a handle): Google is asked there too.
             var postNear: CLLocationCoordinate2D?
             if post.kind == "google", let name = post.locationName {
@@ -447,6 +448,12 @@ struct AddPlaceView: View {
                     extraQueries: post.city.map { ["\(tag) \($0)"] } ?? []
                 ).prefix(5))
                 from = .tag
+                // A small town's tag ("Eemnes") finds only a spot named after the town: the tag says where, as a
+                // known city's does. Ateljee Leen's post with @oudebouwmaterialenbv, a yard in Eemnes (2026-10-26).
+                if !found.isEmpty, found.allSatisfy({ $0.category == .other && PlaceSearch.sameName($0.name, tag) }) {
+                    found = []
+                    townTag = tag
+                }
             }
             // A tag that found nothing ("VRÅ" on Broth Boy x Vrå, Mert 2026-10-14) is read as no tag.
             if post.kind != "google", found.isEmpty {
@@ -455,8 +462,8 @@ struct AddPlaceView: View {
                 if PlaceSearch.streetOfTag(post.locationName) != nil { streetPin = await PlaceSearch.locate(post.locationName!) }
                 let r = await PlaceSearch.resolveUntagged(
                     caption: post.caption, ownerFullName: post.ownerFullName, ownerUsername: post.ownerUsername,
-                    coauthors: post.coauthors ?? [], town: PlaceSearch.areaOfTag(post.locationName), near: streetPin,
-                    hint: tagged
+                    coauthors: post.coauthors ?? [], town: townTag ?? PlaceSearch.areaOfTag(post.locationName), near: streetPin,
+                    hint: townTag == nil ? tagged : nil
                 )
                 found = r.candidates
                 postNear = r.near
@@ -478,10 +485,12 @@ struct AddPlaceView: View {
                 let withCity = PlaceSearch.handleWithCity(post.ownerUsername)
                 let name = withCity ?? post.ownerFullName ?? PlaceSearch.handleWithKind(post.ownerUsername)
                 // A co-author carrying a city is the venue more often than the poster ("strakers_nyc" on Thomas Straker's post).
-                let coauthor = (post.coauthors ?? []).filter { $0 != post.ownerUsername }.lazy.compactMap(PlaceSearch.handleWithCity).first
+                let others = (post.coauthors ?? []).filter { $0 != post.ownerUsername }
+                // Else the first co-author as it is: Google finds "oudebouwmaterialenbv" near Eemnes, Apple doesn't.
+                let coauthor = others.lazy.compactMap(PlaceSearch.handleWithCity).first ?? (townTag != nil ? others.first : nil)
                 var near = streetPin ?? postNear
                 if near == nil, let city = PlaceSearch.cityOfHandle(post.ownerUsername) { near = await PlaceSearch.locate(city) }
-                let clues = [tagged, PlaceSearch.pinnedPlaceQuery(post.caption), coauthor, PlaceSearch.captionPlaceQuery(post.caption), name].compactMap { $0 }
+                let clues = [townTag == nil ? tagged : nil, PlaceSearch.pinnedPlaceQuery(post.caption), coauthor, PlaceSearch.captionPlaceQuery(post.caption), name].compactMap { $0 }
                 if found.isEmpty {
                     // Apple found nothing at all: ask Google straight away.
                     found = narrow(await GoogleFallback.search(clues, near: near).filter { PlaceSearch.namedLike($0, clues) })

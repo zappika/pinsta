@@ -569,6 +569,9 @@ extension PlaceSearch {
         fold(s).split { !$0.isLetter && !$0.isNumber }.map(String.init).filter { $0.count > 2 }
     }
     private static func overlaps(_ a: [String], _ b: [String]) -> Bool { a.contains { b.contains($0) } }
+
+    /// The same name, case, accents and punctuation aside: a tag "Eemnes" and Apple's spot "Eemnes".
+    static func sameName(_ a: String, _ b: String) -> Bool { words(a) == words(b) }
 }
 
 extension PlaceCandidate {
