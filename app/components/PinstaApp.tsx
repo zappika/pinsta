@@ -3,7 +3,7 @@
 import BrandIllustration from "./BrandIllustration";
 import { matchesWhat, typeLabel } from "@/lib/subtypes";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { api, setOwnerKey } from "@/lib/api";
 import type { Place } from "./types";
 import AddPlace, { type AddMode } from "./AddPlace";
@@ -26,7 +26,26 @@ import ViewSwitch, { type View } from "./ViewSwitch";
 import { destinationLabels } from "@/lib/grouping";
 import { NEAR_KM, currentPosition, kmBetween, SPREAD_KM, spreadKm, locationOnOpen } from "@/lib/geo";
 
+/** Wide enough for the map with a floating list panel: iPad mini portrait (768) and up. */
+const WIDE = "(min-width: 768px)";
+const PANEL_WIDTH = 400;
+/** Where the panel ends: its 12 px inset + its width. Sheets line up with it (globals.css). */
+const PANEL_RIGHT = 12 + PANEL_WIDTH;
+
+function useWide() {
+  return useSyncExternalStore(
+    (on) => {
+      const mq = matchMedia(WIDE);
+      mq.addEventListener("change", on);
+      return () => mq.removeEventListener("change", on);
+    },
+    () => matchMedia(WIDE).matches,
+    () => false,
+  );
+}
+
 export default function PinstaApp() {
+  const wide = useWide();
   const [places, setPlaces] = useState<Place[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -308,141 +327,176 @@ export default function PinstaApp() {
     );
   }
 
-  return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col">
-      {places && places.length > 0 ? (
-        <Filters
-          places={places}
-          labels={labels}
-          city={city}
-          category={category}
-          onCity={(c) => {
-            // Locating can take seconds on open; a Where picked meanwhile wins over a late fix.
-            wherePick.current++;
-            setCity(c);
-            setCategory(null);
-            setPeek(null);
-          }}
-          onCategory={(c) => {
-            setCategory(c);
-            setPeek(null);
-          }}
-          // What's shown, as a list for a friend: only once a town is picked ("my Helsinki tips").
-          onSend={
-            city !== null && visible.length > 0
-              ? () => setSending({ from: "selection", places: visible, title: category ? `${whatTitle(category)} in ${city}` : `My ${city}` })
-              : undefined
-          }
-        />
-      ) : (
-        // Settings are reachable before the first save too.
-        <header className="flex items-center px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-4">
-          <h1 className="text-2xl font-semibold tracking-tight">Vicolo</h1>
-          <BuddyMenu places={places ?? []} />
-        </header>
+  // Wide screens (iPad, Mac): the map always fills the window and the list floats on it in a
+  // panel at the left, like Flighty (Sarp, 2026-10-27). The panel shows List, Cards or Tiles.
+  const body: View = wide && view === "map" ? "list" : view;
+  const hasPlaces = places !== null && places.length > 0;
+
+  const header = hasPlaces ? (
+    <Filters
+      places={places}
+      labels={labels}
+      city={city}
+      category={category}
+      onCity={(c) => {
+        // Locating can take seconds on open; a Where picked meanwhile wins over a late fix.
+        wherePick.current++;
+        setCity(c);
+        setCategory(null);
+        setPeek(null);
+      }}
+      onCategory={(c) => {
+        setCategory(c);
+        setPeek(null);
+      }}
+      // What's shown, as a list for a friend: only once a town is picked ("my Helsinki tips").
+      onSend={
+        city !== null && visible.length > 0
+          ? () => setSending({ from: "selection", places: visible, title: category ? `${whatTitle(category)} in ${city}` : `My ${city}` })
+          : undefined
+      }
+    />
+  ) : (
+    // Settings are reachable before the first save too.
+    <header className="flex items-center px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-4">
+      <h1 className="text-2xl font-semibold tracking-tight">Vicolo</h1>
+      <BuddyMenu places={places ?? []} />
+    </header>
+  );
+
+  const map = hasPlaces && (wide || view === "map") && (
+    <PlacesMap
+      places={visible}
+      focus={framed?.places}
+      here={here}
+      goHere={goHere}
+      onAway={() => setOnYou(false)}
+      selected={peekId}
+      onSelect={setPeek}
+      padLeft={wide ? PANEL_RIGHT : 0}
+      onFail={() => {
+        if (wide) return setNotice("The map didn't load.");
+        setView("list");
+        setNotice("The map didn't load, so here is the list.");
+      }}
+    />
+  );
+
+  const listed = (
+    <>
+      {error && (
+        <p className="mt-6 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>
       )}
 
-      <section
-        className={
-          view === "map" && places && places.length > 0
-            ? "relative flex-1"
-            : view === "tiles"
-              ? "flex-1 pb-28" // the grid bleeds to the edges
-              : "flex-1 px-5 pb-28"
-        }
-      >
-        {error && (
-          <p className="mt-6 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>
-        )}
+      {places === null && !error && (
+        <ul className="mt-4 space-y-3">
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="h-28 animate-pulse rounded-2xl bg-white" />
+          ))}
+        </ul>
+      )}
 
-        {places === null && !error && (
-          <ul className="mt-4 space-y-3">
-            {[0, 1, 2].map((i) => (
-              <li key={i} className="h-28 animate-pulse rounded-2xl bg-white" />
-            ))}
-          </ul>
-        )}
+      {places && places.length === 0 && (
+        <div className="mx-auto mt-10 max-w-[300px] text-center">
+          <BrandIllustration />
+          <h2 className="mt-5 text-xl font-semibold">Your next favorite starts here</h2>
+          <p className="mt-2 text-sm leading-relaxed text-stone-500">Save a place you want to try. Keep it for when you’re nearby.</p>
+          <button type="button" onClick={() => setFan(true)} className="mt-5 min-h-11 rounded-full bg-stone-900 px-5 py-3 text-sm font-medium text-white active:opacity-80">Save your first place</button>
+          <p className="mt-3 text-xs leading-relaxed text-stone-500">Paste a link from Instagram, TikTok, or Google Maps.</p>
+        </div>
+      )}
 
-        {places && places.length === 0 && (
-          <div className="mx-auto mt-10 max-w-[300px] text-center">
-            <BrandIllustration />
-            <h2 className="mt-5 text-xl font-semibold">Your next favorite starts here</h2>
-            <p className="mt-2 text-sm leading-relaxed text-stone-500">Save a place you want to try. Keep it for when you’re nearby.</p>
-            <button type="button" onClick={() => setFan(true)} className="mt-5 min-h-11 rounded-full bg-stone-900 px-5 py-3 text-sm font-medium text-white active:opacity-80">Save your first place</button>
-            <p className="mt-3 text-xs leading-relaxed text-stone-500">Paste a link from Instagram, TikTok, or Google Maps.</p>
-          </div>
-        )}
+      {hasPlaces && visible.length === 0 && body !== "map" && (
+        <div className="mx-auto mt-10 max-w-[280px] text-center">
+          <BrandIllustration coffee={category?.startsWith("Cafe") ?? false} />
+          <h2 className="mt-4 text-base font-medium">No places here yet</h2>
+          <p className="mt-2 text-sm text-stone-500">Try another area or clear your filters.</p>
+          <button type="button" onClick={() => { setCity(null); setCategory(null); }} className="mt-3 min-h-11 rounded-full px-4 text-sm font-medium underline underline-offset-4">Show all places</button>
+        </div>
+      )}
 
-        {places && places.length > 0 && visible.length === 0 && view !== "map" && (
-          <div className="mx-auto mt-10 max-w-[280px] text-center">
-            <BrandIllustration coffee={category?.startsWith("Cafe") ?? false} />
-            <h2 className="mt-4 text-base font-medium">No places here yet</h2>
-            <p className="mt-2 text-sm text-stone-500">Try another area or clear your filters.</p>
-            <button type="button" onClick={() => { setCity(null); setCategory(null); }} className="mt-3 min-h-11 rounded-full px-4 text-sm font-medium underline underline-offset-4">Show all places</button>
-          </div>
-        )}
+      {body === "tiles" && (
+        <PlaceTiles places={visible} selected={peekId} onSelect={(p) => setPeekId((c) => (c === p.id ? null : p.id))} />
+      )}
 
-        {places && places.length > 0 && view === "map" && (
-          <PlacesMap
-            places={visible}
-            focus={framed?.places}
-            here={here}
-            goHere={goHere}
-            onAway={() => setOnYou(false)}
-            selected={peekId}
-            onSelect={setPeek}
-            onFail={() => {
-              setView("list");
-              setNotice("The map didn't load, so here is the list.");
-            }}
-          />
-        )}
+      {body === "list" && (
+        <PlaceList
+          places={visible}
+          selected={peekId}
+          onSelect={(p) => setPeekId((c) => (c === p.id ? null : p.id))}
+          here={here}
+          hideCategory={category !== null}
+          hideCity={(p) => city !== null && p.city === city}
+        />
+      )}
 
-        {view === "tiles" && (
-          <PlaceTiles places={visible} selected={peekId} onSelect={(p) => setPeekId((c) => (c === p.id ? null : p.id))} />
-        )}
+      {/* Only in Cards: a hidden list still downloads every photo. */}
+      {body === "cards" && (
+        <ul className="space-y-3">
+          {visible.map((p) => (
+            <SwipeCard
+              key={p.id}
+              open={openSwipe === p.id}
+              onOpen={() => setOpenSwipe(p.id)}
+              onClose={() => setOpenSwipe((o) => (o === p.id ? null : o))}
+              onEdit={() => {
+                setOpenSwipe(null);
+                setEditing(p);
+              }}
+              onDelete={() => remove(p)}
+            >
+              <PlaceCard
+                place={p}
+                hideCategory={category !== null}
+                // A region row ("Halland") still wants the town on the card.
+                hideCity={city !== null && p.city === city}
+              />
+            </SwipeCard>
+          ))}
+        </ul>
+      )}
+    </>
+  );
 
-        {view === "list" && (
-          <PlaceList
-            places={visible}
-            selected={peekId}
-            onSelect={(p) => setPeekId((c) => (c === p.id ? null : p.id))}
-            here={here}
-            hideCategory={category !== null}
-            hideCity={(p) => city !== null && p.city === city}
-          />
-        )}
+  // Not over the Undo toast, which it covered (2026-10-17).
+  const locateButton = (wide || view === "map") && hasPlaces && !adding && !fan && !(peekId && !wide) && !toast && (
+    <button
+      type="button"
+      aria-label="Show where I am"
+      aria-pressed={onYou}
+      onClick={locate}
+      className={`pointer-events-auto absolute flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#1a73e8] shadow-lg shadow-stone-900/10 active:scale-95 transition-transform ${
+        wide ? "right-4 bottom-[calc(env(safe-area-inset-bottom)+1.25rem)]" : "right-1.5 bottom-[calc(100%+0.75rem)]"
+      }`}
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden className={locating ? "animate-pulse" : ""}
+        fill={onYou ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+        <path d="M20.5 3.5 3.5 10.6l7.1 2.8 2.8 7.1z" />
+      </svg>
+    </button>
+  );
 
-        {/* Only in Cards: a hidden list still downloads every photo. */}
-        {view === "cards" && (
-          <ul className="space-y-3">
-            {visible.map((p) => (
-              <SwipeCard
-                key={p.id}
-                open={openSwipe === p.id}
-                onOpen={() => setOpenSwipe(p.id)}
-                onClose={() => setOpenSwipe((o) => (o === p.id ? null : o))}
-                onEdit={() => {
-                  setOpenSwipe(null);
-                  setEditing(p);
-                }}
-                onDelete={() => remove(p)}
-              >
-                <PlaceCard
-                  place={p}
-                  hideCategory={category !== null}
-                  // A region row ("Halland") still wants the town on the card.
-                  hideCity={city !== null && p.city === city}
-                />
-              </SwipeCard>
-            ))}
-          </ul>
-        )}
-      </section>
+  const plus = (
+    <button
+      type="button"
+      aria-label={adding || fan ? "Close" : "Save a place"}
+      aria-expanded={fan}
+      onClick={() => (adding ? setAdding(false) : setFan((o) => !o))}
+      className="pinsta-fab pointer-events-auto absolute right-0 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-stone-900 text-white shadow-lg shadow-stone-900/20"
+    >
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden
+        className="transition-transform duration-300 [transition-timing-function:cubic-bezier(.34,1.56,.64,1)]"
+        style={{ transform: adding || fan ? "rotate(135deg)" : "rotate(0deg)" }}>
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+    </button>
+  );
 
+  const overlays = (
+    <>
       {/* Always mounted: given null it slides the last place away instead of vanishing. */}
       <PeekCard
-        place={view !== "cards" ? peek : null}
+        place={body !== "cards" ? peek : null}
         onClose={() => setPeek(null)}
         onEdit={(p) => {
           setPeek(null);
@@ -478,47 +532,6 @@ export default function PinstaApp() {
         </div>
       )}
 
-      <div className={`pointer-events-none fixed inset-x-0 bottom-0 mx-auto max-w-md ${adding || fan ? "z-30" : ""} px-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-6 ${
-        view === "map" || adding ? "" : "bg-gradient-to-t from-stone-100 via-stone-100/90 to-transparent"
-      }`}>
-        {/* One row: the view pill centered, a round + at the right edge. */}
-        <div className="relative flex h-14 items-center justify-center">
-          {places && places.length > 0 && (
-            <div className={`transition-opacity duration-200 ${adding || fan ? "pointer-events-none opacity-0" : "opacity-100"}`}>
-              <ViewSwitch view={view} onChange={setView} />
-            </div>
-          )}
-          {/* Not over the Undo toast, which it covered (2026-10-17). */}
-          {view === "map" && places && places.length > 0 && !adding && !fan && !peekId && !toast && (
-            <button
-              type="button"
-              aria-label="Show where I am"
-              aria-pressed={onYou}
-              onClick={locate}
-              className="pointer-events-auto absolute right-1.5 bottom-[calc(100%+0.75rem)] flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#1a73e8] shadow-lg shadow-stone-900/10 active:scale-95 transition-transform"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden className={locating ? "animate-pulse" : ""}
-                fill={onYou ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
-                <path d="M20.5 3.5 3.5 10.6l7.1 2.8 2.8 7.1z" />
-              </svg>
-            </button>
-          )}
-          <button
-            type="button"
-            aria-label={adding || fan ? "Close" : "Save a place"}
-            aria-expanded={fan}
-            onClick={() => (adding ? setAdding(false) : setFan((o) => !o))}
-            className="pinsta-fab pointer-events-auto absolute right-0 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-stone-900 text-white shadow-lg shadow-stone-900/20"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden
-              className="transition-transform duration-300 [transition-timing-function:cubic-bezier(.34,1.56,.64,1)]"
-              style={{ transform: adding || fan ? "rotate(135deg)" : "rotate(0deg)" }}>
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
       <AddMenu
         open={fan}
         onClose={() => setFan(false)}
@@ -548,6 +561,71 @@ export default function PinstaApp() {
           onUpdated={onUpdated}
         />
       )}
+    </>
+  );
+
+  if (wide) {
+    return (
+      // data-wide moves every phone-width sheet (`mx-auto max-w-md`) onto the panel: globals.css.
+      <main data-wide className="fixed inset-0 overflow-hidden">
+        {map}
+        {locateButton}
+        <aside
+          className="absolute left-3 top-3 bottom-3 flex flex-col overflow-hidden rounded-[28px] bg-stone-100 shadow-[0_8px_40px_rgb(0_0_0/0.16)]"
+          style={{ width: PANEL_WIDTH }}
+        >
+          {header}
+          <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain pb-28 ${body === "tiles" ? "" : "px-5"}`}>{listed}</div>
+          {/* z-0 keeps the + under the place card; z-30 lifts it over a sheet, where it is the ×. */}
+          <div className={`pointer-events-none absolute inset-x-0 bottom-0 ${adding || fan ? "z-30" : "z-0"} bg-gradient-to-t from-stone-100 via-stone-100/90 to-transparent px-5 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-6`}>
+            <div className="relative flex h-14 items-center">
+              {hasPlaces && (
+                <div className={`transition-opacity duration-200 ${adding || fan ? "pointer-events-none opacity-0" : "opacity-100"}`}>
+                  <ViewSwitch view={body} onChange={setView} views={["list", "cards", "tiles"]} />
+                </div>
+              )}
+              {plus}
+            </div>
+          </div>
+        </aside>
+        {overlays}
+      </main>
+    );
+  }
+
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col">
+      {header}
+
+      <section
+        className={
+          view === "map" && hasPlaces
+            ? "relative flex-1"
+            : view === "tiles"
+              ? "flex-1 pb-28" // the grid bleeds to the edges
+              : "flex-1 px-5 pb-28"
+        }
+      >
+        {map}
+        {listed}
+      </section>
+
+      <div className={`pointer-events-none fixed inset-x-0 bottom-0 mx-auto max-w-md ${adding || fan ? "z-30" : ""} px-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-6 ${
+        view === "map" || adding ? "" : "bg-gradient-to-t from-stone-100 via-stone-100/90 to-transparent"
+      }`}>
+        {/* One row: the view pill centered, a round + at the right edge. */}
+        <div className="relative flex h-14 items-center justify-center">
+          {hasPlaces && (
+            <div className={`transition-opacity duration-200 ${adding || fan ? "pointer-events-none opacity-0" : "opacity-100"}`}>
+              <ViewSwitch view={view} onChange={setView} />
+            </div>
+          )}
+          {locateButton}
+          {plus}
+        </div>
+      </div>
+
+      {overlays}
     </main>
   );
 }

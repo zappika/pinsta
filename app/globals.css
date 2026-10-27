@@ -362,3 +362,12 @@ body {
 }
 .vicolo-stop-label.at-right { top: 50%; left: calc(100% + 6px); transform: translateY(-50%); }
 .vicolo-stop-label.at-left { top: 50%; left: auto; right: calc(100% + 6px); transform: translateY(-50%); }
+
+/* Wide layout (PinstaApp, iPad/Mac): the phone-width sheets, toasts and the + fan sit on the
+   floating list panel at the left instead of the middle of the window. 0.75rem / 25rem =
+   the panel's inset and PANEL_WIDTH. */
+main[data-wide] .mx-auto.max-w-md {
+  margin-left: 0.75rem;
+  margin-right: auto;
+  max-width: 25rem;
+}

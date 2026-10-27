@@ -83,6 +83,8 @@ type Props = {
   goHere?: number;
   /** The person moved the map after a locate: the button goes back to its outline. */
   onAway?: () => void;
+  /** Wide screens: the list panel floats over this many pixels on the left; frames keep clear of it. */
+  padLeft?: number;
 };
 
 /**
@@ -99,7 +101,12 @@ function fromPost(p: Place): string | null {
   return p.fromList ? null : p.imageUrl;
 }
 
-export default function PlacesMap({ places, selected, onSelect, onFail, focus, here = null, goHere = 0, onAway }: Props) {
+export default function PlacesMap({ places, selected, onSelect, onFail, focus, here = null, goHere = 0, onAway, padLeft = 0 }: Props) {
+  const padLeftRef = useRef(padLeft);
+  padLeftRef.current = padLeft;
+  /** FRAME_PADDING, clear of the panel. Wide: the place card sits on the panel, not the map, so no extra bottom. */
+  const framePad = () =>
+    padLeftRef.current ? { ...FRAME_PADDING, bottom: 60, left: FRAME_PADDING.left + padLeftRef.current } : FRAME_PADDING;
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markers = useRef<Map<string, { marker: maplibregl.Marker; pin: HTMLDivElement }>>(new Map());
@@ -216,7 +223,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     const lib = libRef.current, m = map.current;
     if (!goHere || !here || !lib || !m || !ready.current) return;
     const box = atLeastMinFrame(lib, new lib.LngLatBounds([here.lng, here.lat], [here.lng, here.lat]));
-    m.fitBounds(box, { padding: FRAME_PADDING, duration: 600 });
+    m.fitBounds(box, { padding: framePad(), duration: 600 });
   }, [goHere, here]);
 
   const placesRef = useRef(places);
@@ -253,7 +260,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     const at = hereRef.current;
     if (at && list.some((p) => kmBetween(at, p) <= NEAR_KM)) bounds.extend([at.lng, at.lat]);
     // Never tighter than a piece of the city (MIN_FRAME_KM), so one place isn't a dot at max zoom either.
-    m.fitBounds(atLeastMinFrame(lib, bounds), { padding: FRAME_PADDING, maxZoom: 15, duration: 600 });
+    m.fitBounds(atLeastMinFrame(lib, bounds), { padding: framePad(), maxZoom: 15, duration: 600 });
     // Pins that overlap at this zoom are grouped; regroup whenever the map settles.
     m.off("moveend", redraw.current);
     redraw.current = () => draw(lib, m);
@@ -356,7 +363,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
         const open = () => {
           onSelectRef.current(p);
           // Nudge the pin up so the PeekCard doesn't sit on top of it.
-          m.easeTo({ center: [p.lng, p.lat], offset: [0, -140] });
+          m.easeTo({ center: [p.lng, p.lat], offset: padLeftRef.current ? [padLeftRef.current / 2, 0] : [0, -140] });
         };
         el.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -400,7 +407,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
       const zoomIn = () => {
         const b = new lib.LngLatBounds();
         for (const p of g.members) b.extend([p.lng, p.lat]);
-        m.fitBounds(b, { padding: 90, maxZoom: Math.max(m.getZoom() + 2, 17), duration: 500 });
+        m.fitBounds(b, { padding: { top: 90, bottom: 90, right: 90, left: 90 + padLeftRef.current }, maxZoom: Math.max(m.getZoom() + 2, 17), duration: 500 });
       };
       el.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -478,7 +485,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
       const go = () => {
         const b = new lib.LngLatBounds();
         for (const p of members) b.extend([p.lng, p.lat]);
-        m.fitBounds(atLeastMinFrame(lib, b), { padding: FRAME_PADDING, maxZoom: 15, duration: 900 });
+        m.fitBounds(atLeastMinFrame(lib, b), { padding: framePad(), maxZoom: 15, duration: 900 });
       };
       el.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -505,6 +512,15 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     for (const [id, { pin }] of markers.current) pin.classList.toggle("active", id === selected);
   }, [selected, places]);
 
+  // Wide: a place picked in the panel list is brought into the map beside it.
+  useEffect(() => {
+    const m = map.current;
+    const p = selected && padLeft ? placesRef.current.find((x) => x.id === selected) : null;
+    if (!m || !p || !ready.current) return;
+    m.easeTo({ center: [p.lng, p.lat], zoom: Math.max(m.getZoom(), 14), offset: [padLeft / 2, 0], duration: 600 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the pick changes
+  }, [selected]);
+
   /** Pins are plain divs: give them a button's role, focus and keys. */
   function keyboardButton(el: HTMLElement, label: string, act: () => void) {
     el.setAttribute("role", "button");
@@ -524,7 +540,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     <div className="absolute inset-0">
       <div ref={container} className="h-full w-full" />
       {/* Temporary: compare the two pin styles on the real list (Sarp, 2026-10-16). */}
-      <div className="absolute left-3 top-[calc(env(safe-area-inset-top)+5.5rem)] z-10 flex rounded-full bg-white/90 p-0.5 text-xs font-medium shadow-sm backdrop-blur">
+      <div style={padLeft ? { left: padLeft + 12, top: 12 } : undefined} className="absolute left-3 top-[calc(env(safe-area-inset-top)+5.5rem)] z-10 flex rounded-full bg-white/90 p-0.5 text-xs font-medium shadow-sm backdrop-blur">
         {(["tiers", "text"] as const).map((s) => (
           <button
             key={s}

@@ -53,10 +53,10 @@ const VIEWS: { value: View; label: string; icon: ReactNode }[] = [
 ];
 
 /** Segmented pill of glyphs: how the current Where/What selection is shown. */
-export default function ViewSwitch({ view, onChange }: { view: View; onChange: (v: View) => void }) {
+export default function ViewSwitch({ view, onChange, views }: { view: View; onChange: (v: View) => void; views?: View[] }) {
   return (
     <div role="tablist" className="pointer-events-auto mx-auto flex w-fit gap-0.5 rounded-full bg-white p-1 shadow-lg shadow-stone-900/10">
-      {VIEWS.map((v) => {
+      {VIEWS.filter((v) => !views || views.includes(v.value)).map((v) => {
         const active = v.value === view;
         return (
           <button
