@@ -13,15 +13,19 @@ How it stays true:
 - `git log ios-N..HEAD -- ios lib app/api` is the check: anything there that isn't listed under Next build was forgotten.
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
-## Next build (since `ios-31`)
+## Next build (since `ios-32`)
 
+
+## In TestFlight: 1.0 (32) · 2026-10-27 · `ios-32` · phone ☐
 - A restaurant's own carousel with a receipt or bottle labels in the photos no longer turns into a list of random places: only text laid over a picture is read as place names (El Roca, Barcelona).
 - A post tagged with a small town and naming the place as a co-author finds it (a building-materials yard in Eemnes).
 - **Where I am** in the + menu: the places right around you, closest first, one tap to save the one you're at.
 - Vicolo asks later whether you've been: the day after you saved a place where you stood, a week after one from a post. "Been to any of these?" lists up to four; Yes opens the faces to say how it was. Each place is asked twice at most, one sheet a day at most, and "Not yet" undoes a Yes tapped by mistake.
 - *(internal)* Built and tried in the Simulator 2026-10-26: Where I am lists nearby places; the ask sheet shows, Yes opens the faces, Not yet undoes it. The locate button no longer sits on the ask sheet.
 
-## In TestFlight: 1.0 (31) · 2026-10-19 · `ios-31` · phone ☐
+## Earlier builds
+
+### 1.0 (31) · 2026-10-19 · `ios-31` · phone ☐
 - Importing a list is calmer: paste the link, then one screen about the list: a map of where its places are, one row per type (tap one to leave places out; hold a place to change its type), what couldn't be found, and "Import all 13 places" (or "Import 12 of 13"). Everything comes in as Want to go. Later keeps the import for another time; Cancel import asks first.
 - On a place, Want to go and Been there are one switch now (one side lit), so they read as a choice, not two buttons; picking Been there adds a 🙋🏻‍♀️.
 - Zoomed far out, the map shows one bubble per city with a few of its photos and how many places it has; tap one to fly into that city.
@@ -36,8 +40,6 @@ How it stays true:
 - A list shared from Google Maps' own Share button now imports (it was dropped before): the card says it's importing, and the app has it when it's ready.
 - *(internal)* Push: `aps-environment` entitlement; the notification needs the APNs key in Vercel (`APNS_KEY`, `APNS_KEY_ID`). Matching moved from MapKit to `POST /api/import/jobs`.
 - *(internal)* Built on the Xcode Mac 2026-10-19: one fix (the list screen's body was too long to type-check, split in two); import of the Bicocca test list ran in the Simulator (notification question, 13 places in review); a 116-place Barcelona list: the pill counted up to "ready to review", Couldn't find had 3, Search opened the save sheet on the name and found it.
-
-## Earlier builds
 
 ### 1.0 (30) · 2026-10-17 · `ios-30` · phone ☑ (Sarp, 2026-10-17)
 - When a post can't be read, the sheet says why (private or deleted, or Instagram didn't answer), and a place saved without a photo says so on the saved card.

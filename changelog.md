@@ -8,6 +8,13 @@ backoffice, web-only changes). Headings read "## Build N · D Month".
 
 # What's new in Vicolo
 
+## Build 32 · 27 October
+
+- **Where I am** in the + menu: the places right around you, closest first. One tap saves the one you are at.
+- Vicolo asks later whether you have been: the day after you saved a place where you stood, a week after one from a post. "Been to any of these?" shows up to four; Yes lets you pick a face for how it was, and "Not yet" undoes a Yes tapped by mistake. At most one question a day.
+- A restaurant posting its own photos (a receipt, wine labels) no longer turns into a list of random places.
+- A post tagged with a small town that names the place as a co-author now finds it.
+
 ## Build 31 · 19 October
 
 - Importing a Google Maps list is much simpler: paste the link, and you see a map of the list and how many restaurants, bars and so on it has. Tap a type to leave places out, then "Import all". Places come in as Want to go.
