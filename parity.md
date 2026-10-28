@@ -23,7 +23,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-26 (build 31 in TestFlight
 | List posts: several places on a carousel's slides or a numbered list in the caption, pick many | No: slides need text reading on the server (a caption list would not) | Yes (Vision on the phone); a slide name Apple Maps lacks is asked of Google; names off a street photo's signs start unticked · iOS-only for now (Sarp, 2026-10-17) |
 | Why a post couldn't be read (private/deleted vs. no answer) on the search screen, and "no photo" on the success card | One generic line | Yes · iOS-only for now (Sarp, 2026-10-17) |
 | Asset library | Backoffice `/library`, web-only artwork browser | No library UI |
-| Wide screens (iPad, Mac) | 768 px and up: the map fills the window, the list floats on it in a panel at the left (List / Cards / Tiles), sheets and the place card open on the panel; Flighty-style, for Sarp's iPad mini and Mac (2026-10-27) | iPhone only (`TARGETED_DEVICE_FAMILY` 1) |
+| Wide screens (iPad, Mac) | 768 px and up: the map fills the window, the list floats on it in a panel at the left (List / Cards / Tiles), sheets and the place card open on the panel; a Phone / Wide switch top right (Phone by default with a mouse, Wide on the iPad); Flighty-style, for Sarp's iPad mini and Mac (2026-10-27) | iPhone only (`TARGETED_DEVICE_FAMILY` 1) |
 | Whose list | Sarp's, behind the owner key ("Lock this browser") | Each phone's own |
 | Where the list lives | Neon database | SwiftData on the phone |
 | Finding places | Google Places (paid, counted) | Apple MapKit (free) |

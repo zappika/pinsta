@@ -32,8 +32,30 @@ const PANEL_WIDTH = 400;
 /** Where the panel ends: its 12 px inset + its width. Sheets line up with it (globals.css). */
 const PANEL_RIGHT = 12 + PANEL_WIDTH;
 
-function useWide() {
-  return useSyncExternalStore(
+/** Which layout a big screen shows: set by the Phone / Wide switch (Sarp, 2026-10-28: the browser
+ * is mostly for testing the phone layout). Unset: Wide on a touch screen (the iPad), Phone with a mouse. */
+const LAYOUT_KEY = "vicolo.layout";
+type Layout = "phone" | "wide";
+
+function storedLayout(): Layout | null {
+  try {
+    const v = localStorage.getItem(LAYOUT_KEY);
+    return v === "phone" || v === "wide" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function setLayout(l: Layout) {
+  try {
+    localStorage.setItem(LAYOUT_KEY, l);
+  } catch {}
+  window.dispatchEvent(new Event("vicolo:layout"));
+}
+
+/** [the screen fits the wide layout, the wide layout is on]. */
+function useWide(): [boolean, boolean] {
+  const big = useSyncExternalStore(
     (on) => {
       const mq = matchMedia(WIDE);
       mq.addEventListener("change", on);
@@ -42,10 +64,49 @@ function useWide() {
     () => matchMedia(WIDE).matches,
     () => false,
   );
+  const layout = useSyncExternalStore(
+    (on) => {
+      window.addEventListener("vicolo:layout", on);
+      return () => window.removeEventListener("vicolo:layout", on);
+    },
+    () => storedLayout() ?? (matchMedia("(pointer: coarse)").matches ? "wide" : "phone"),
+    () => "phone" as Layout,
+  );
+  return [big, big && layout === "wide"];
+}
+
+/** Big screens only: switch between the phone layout and the wide one. */
+function LayoutSwitch({ wide }: { wide: boolean }) {
+  const options: { value: Layout; label: string; icon: React.ReactNode }[] = [
+    { value: "phone", label: "Phone layout", icon: <rect x="7" y="3" width="10" height="18" rx="2.5" /> },
+    { value: "wide", label: "Wide layout", icon: <><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="M9 5v14" /></> },
+  ];
+  return (
+    <div className="fixed right-4 top-4 z-10 flex gap-0.5 rounded-full bg-white p-1 shadow-lg shadow-stone-900/10">
+      {options.map((o) => {
+        const active = (o.value === "wide") === wide;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            aria-label={o.label}
+            aria-pressed={active}
+            title={o.label}
+            onClick={() => setLayout(o.value)}
+            className={`flex h-8 w-9 items-center justify-center rounded-full transition-colors ${active ? "bg-stone-900 text-white" : "text-stone-500 hover:bg-stone-100"}`}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              {o.icon}
+            </svg>
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function PinstaApp() {
-  const wide = useWide();
+  const [big, wide] = useWide();
   const [places, setPlaces] = useState<Place[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -589,6 +650,7 @@ export default function PinstaApp() {
           </div>
         </aside>
         {overlays}
+        <LayoutSwitch wide />
       </main>
     );
   }
@@ -626,6 +688,7 @@ export default function PinstaApp() {
       </div>
 
       {overlays}
+      {big && <LayoutSwitch wide={false} />}
     </main>
   );
 }
