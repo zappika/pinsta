@@ -443,7 +443,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
         rest.slice(0, behind).forEach((p, i) => {
           const back = document.createElement("div");
           back.className = "pinsta-pin pinsta-pin-loud pinsta-stack-back";
-          back.style.cssText = `width:${size}px;height:${size}px;left:${(i + 1) * 5}px;top:${-(i + 1) * 4}px`;
+          back.style.cssText = `width:${size}px;height:${size}px;left:${(i + 1) * 8}px;top:${-(i + 1) * 6}px`;
           const img = document.createElement("img");
           img.src = fromPost(p)!;
           img.alt = "";
@@ -464,15 +464,17 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
         }
         const label = document.createElement("div");
         label.className = "pinsta-pin-label";
-        label.style.left = `${size + 5 + behind * 5}px`;
+        label.style.left = `${size + 5 + behind * 8}px`;
         label.textContent = first.name;
         const more = document.createElement("div");
         more.className = "pinsta-pin-more";
         more.textContent = `+${rest.length} more`;
         label.append(more);
         el.append(pin, label);
-        taken.push({ x0: g.x - size / 2, y0: g.y - size / 2, x1: g.x + size / 2 + 10, y1: g.y + size / 2 });
-        named.push({ el, x: g.x + behind * 5, y: g.y, size, name: first.name, loud: true });
+        // The photos behind reach behind * 8 px right: its own name starts past them, so it must not
+        // count as taken (it did, and every stack lost its name, Venice 2026-10-29).
+        taken.push({ x0: g.x - size / 2, y0: g.y - size / 2 - behind * 6, x1: g.x + size / 2 + behind * 8, y1: g.y + size / 2 });
+        named.push({ el, x: g.x + behind * 8, y: g.y, size, name: first.name, loud: true });
         const zoomIn = () => {
           const b = new lib.LngLatBounds();
           for (const p of g.members) b.extend([p.lng, p.lat]);
