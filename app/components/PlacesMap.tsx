@@ -23,8 +23,8 @@ type Tier = "city" | "hood" | "street";
 const tierAt = (z: number): Tier => (z < 13.5 ? "city" : z < NO_CLUSTER_ZOOM ? "hood" : "street");
 const LOUD_PX: Record<Tier, number> = { city: 30, hood: 36, street: 44 };
 const QUIET_PX: Record<Tier, number> = { city: 12, hood: 12, street: 32 };
-/** Exploring (Sarp, 2026-10-16): "tiers" as above, or "text": zoomed out, a post's place is its
- * name on a small dark dot, the photo from neighbourhood level. Temporary switch on the map. */
+/** "tiers" as above, or "text": zoomed out, a post's place is its name on a small dark dot, the
+ * photo from neighbourhood level (explored 2026-10-16, both lost to "mix"; no switch any more). */
 type PinStyle = "tiers" | "text" | "mix";
 /** "mix" (Sarp, 2026-10-29, from Venice screenshots and Instagram's map): zoom decides. Far out, a
  * mosaic per group; across a city, named dots; closer in, photos with names, and places that would
@@ -53,8 +53,6 @@ function deepen(hex: string): string {
   const to = (v: number) => Math.round((v + m0) * 255).toString(16).padStart(2, "0");
   return `#${to(r)}${to(g)}${to(b)}`;
 }
-const PIN_STYLE_KEY = "vicolo.pinStyle";
-const LIVE_KEY = "vicolo.pinLive";
 /** From street level on, never group — two entries at one address would never split. */
 const NO_CLUSTER_ZOOM = 16;
 /** Zoomed out past this, places become one bubble per city (the Where label), for trip planning
@@ -239,22 +237,8 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
   const clusterMarkers = useRef<maplibregl.Marker[]>([]);
-  const [pinStyle, setPinStyle] = useState<PinStyle>("mix");
+  /** Mix, picked over Tiers and Text (Sarp, 2026-10-29); the other two are kept as the rules they were. */
   const styleRef = useRef<PinStyle>("mix");
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(PIN_STYLE_KEY);
-      if (saved === "text" || saved === "tiers") setPinStyle(saved);
-    } catch {}
-  }, []);
-  useEffect(() => {
-    styleRef.current = pinStyle;
-    try {
-      localStorage.setItem(PIN_STYLE_KEY, pinStyle);
-    } catch {}
-    if (libRef.current && map.current && ready.current) draw(libRef.current, map.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pinStyle]);
 
   /** New selection: frame it, then draw. */
   function setPlaces(lib: typeof maplibregl, m: maplibregl.Map) {
@@ -284,21 +268,8 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
    * so dots don't pop into photos (Sarp, 2026-10-29: "transitions a little clunky"). A pan doesn't. */
   const lookRef = useRef("");
   const midZoom = useRef<() => void>(() => {});
-  /** Exploring (Sarp, 2026-10-29): fade after the pinch, or switch looks during it. */
-  const [live, setLive] = useState(false);
-  const liveRef = useRef(false);
-  liveRef.current = live;
-  useEffect(() => {
-    try {
-      if (localStorage.getItem(LIVE_KEY) === "1") setLive(true);
-    } catch {}
-  }, []);
-  function toggleLive() {
-    setLive(!live);
-    try {
-      localStorage.setItem(LIVE_KEY, live ? "0" : "1");
-    } catch {}
-  }
+  /** Picked (Sarp, 2026-10-29): the look changes mid-pinch, the moment a zoom step is crossed. */
+  const liveRef = useRef(true);
   /** Which look this zoom gets: the same key draw() ends on. */
   function lookAt(m: maplibregl.Map): string {
     const z = m.getZoom();
@@ -677,24 +648,6 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
   return (
     <div className="absolute inset-0">
       <div ref={container} className="h-full w-full" />
-      {/* Temporary: compare the pin styles on the real list (Sarp, 2026-10-16). */}
-      <div style={padLeft ? { left: padLeft + 12, top: 12 } : undefined} className="absolute left-3 top-[calc(env(safe-area-inset-top)+5.5rem)] z-10 flex rounded-full bg-white/90 p-0.5 text-xs font-medium shadow-sm backdrop-blur">
-        {(["mix", "tiers", "text"] as const).map((s) => (
-          <button
-            key={s}
-            onClick={() => setPinStyle(s)}
-            className={`rounded-full px-2.5 py-1 capitalize ${pinStyle === s ? "bg-stone-900 text-white" : "text-stone-500"}`}
-          >
-            {s}
-          </button>
-        ))}
-        <button
-          onClick={toggleLive}
-          className={`ml-1 rounded-full px-2.5 py-1 ${live ? "bg-stone-900 text-white" : "text-stone-500"}`}
-        >
-          Live
-        </button>
-      </div>
     </div>
   );
 }
