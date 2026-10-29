@@ -53,7 +53,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-26 (build 31 in TestFlight
 - Views: Map, List, Cards, Tiles; the view pill with the round + apart from it (Liquid Glass on iOS 26+).
 - Category icons: Sarp's 3D set (web `public/types`, iOS `Type*` assets).
 - The post button opens the post; no embedded posts.
-- Where/What pickers (web experiment, 2026-10-19: the header shows only What, plus "in <town>" while one is picked; Where is the What picker's last row, "In…"; iOS keeps both in the header), grouping (`lib/grouping.ts` ↔ `Grouping.swift`), metros, same-place merging.
+- Where/What pickers, both in the header (a web experiment with only What there was dropped, 2026-10-29), grouping (`lib/grouping.ts` ↔ `Grouping.swift`), metros, same-place merging.
 - Opens on the town you're in (nearest place within 50 km), with a blue dot where you are; location asked only from 2 places. iOS first shows `LocationPrimer` (why, one Continue button → the system question; App Review rejects a skip button); web asks the browser directly (the web list is Sarp's). No Near me row.
 - Settings: Directions app, Appearance.
 - Swipe-to-delete with a 5 s Undo.
