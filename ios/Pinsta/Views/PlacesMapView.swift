@@ -1,12 +1,12 @@
 import SwiftUI
 import MapKit
 
-/// The current Where·What selection on a map, framed to fit it. A place saved from a post
-/// shows the post's photo, round; one from a list or a Maps link the category icon on its
-/// tint, so the map shows how much came from where (Sarp, 2026-10-16, as the web).
-/// Pins that would overlap on screen group into a count on the tint of their
-/// most common type; tap a group to zoom until it splits. Port of the web's
-/// PlacesMap: same 44pt rule, no grouping at street level.
+/// The current Where·What selection on a map, framed to fit it. Port of the web's PlacesMap
+/// "Mix" (Sarp, 2026-10-29): a place saved from a post is loud, its look set by zoom: far out a
+/// group is a mosaic of its photos with "N places" beside it, across a city a named dot, closer in
+/// its photo with its name; places that would collide stack as one ("Name +N more"). Everything
+/// else is quiet: a small dot on its type's tint, the type icon at street level. The look changes
+/// mid-pinch when a zoom step is crossed, and new pins fade in. Zoomed out past 7: city bubbles.
 struct PlacesMapView: View {
     let places: [Place]
     @Binding var selected: Place?
@@ -28,14 +28,18 @@ struct PlacesMapView: View {
     @State private var groups: [PinGroup] = []
     /// Where the map last came to rest; `camera.region` is nil once the user pans or zooms.
     @State private var lastRegion: MKCoordinateRegion?
+    /// The look last drawn: crossing into another one mid-pinch redraws at once.
+    @State private var lookKey = ""
+    @State private var mapWidth: CGFloat = 400
 
-    /// Pins closer than this on screen are shown as one numbered circle.
-    private let clusterPoints: CGFloat = 44
-    /// From street level on (span under ~1 km), never group.
-    private let noClusterSpan: CLLocationDegrees = 0.01
-    /// Zoomed out wider than this (about the web's zoom 7), places become one bubble per city,
-    /// the Where label, for trip planning (Sarp, 2026-10-19). Tap → that city.
-    private let citySpan: CLLocationDegrees = 4.4
+    /// Web zoom levels (MapLibre's), worked out from the span and the map's width.
+    static let cityZoom = 7.0
+    static let dotsFrom = 12.5
+    static let photosFrom = 13.8
+    /// From street level on, never group: two entries at one address would never split.
+    static let noClusterZoom = 16.0
+    /// This few places on screen: everything at full size and named.
+    static let roomy = 8
     @State private var cities: [CityBubble] = []
 
     struct CityBubble: Identifiable {
@@ -47,10 +51,20 @@ struct PlacesMapView: View {
         var id: String { name }
     }
 
+    enum Look: String { case far, mid, close }
+
     struct PinGroup: Identifiable {
         let members: [Place]
         let coordinate: CLLocationCoordinate2D
-        var id: String { members.map(\.id.uuidString).joined(separator: ",") }
+        /// Saved from a post (a photo) or not (a dot).
+        let loud: Bool
+        let look: Look
+        let size: CGFloat
+        /// At street level (or few places): quiet places show their type icon.
+        let street: Bool
+        var named = false
+        /// The look is part of the id, so a new look makes new views, which fade in.
+        var id: String { look.rawValue + ":" + members.map(\.id.uuidString).joined(separator: ",") }
     }
 
     var body: some View {
@@ -63,18 +77,13 @@ struct PlacesMapView: View {
                     }
                     .annotationTitles(.hidden)
                 }
-                ForEach(!cities.isEmpty ? [] : groups.isEmpty ? places.map { PinGroup(members: [$0], coordinate: $0.coordinate) } : groups) { g in
-                    if g.members.count == 1, let place = g.members.first {
-                        Annotation(place.name, coordinate: place.coordinate, anchor: .center) {
-                            pin(place).onTapGesture { select(place) }
+                ForEach(cities.isEmpty ? shownGroups : []) { g in
+                    Annotation(g.members.count == 1 ? g.members[0].name : "\(g.members.count) places", coordinate: g.coordinate, anchor: .center) {
+                        groupView(g).onTapGesture {
+                            if g.members.count == 1 { select(g.members[0]) } else { zoom(to: g.members) }
                         }
-                        .annotationTitles(.automatic)
-                    } else {
-                        Annotation("\(g.members.count) places", coordinate: g.coordinate, anchor: .center) {
-                            groupPin(g).onTapGesture { zoom(to: g.members) }
-                        }
-                        .annotationTitles(.hidden)
                     }
+                    .annotationTitles(.hidden)
                 }
             }
             .mapStyle(.standard(pointsOfInterest: .excludingAll))
@@ -91,38 +100,107 @@ struct PlacesMapView: View {
             .onChange(of: places.map(\.id)) { _, _ in
                 // Pins follow the selection at once; the camera may not move at all
                 // (a pin removed from the middle), so don't wait for it to settle.
-                if let span = lastRegion?.span { regroup(proxy: proxy, span: span) } else { groups = [] }
+                if let lastRegion { regroup(proxy: proxy, region: lastRegion) } else { groups = [] }
                 frame(animated: true)
             }
             .onMapCameraChange(frequency: .onEnd) { ctx in
                 lastRegion = ctx.region
-                regroup(proxy: proxy, span: ctx.region.span)
+                regroup(proxy: proxy, region: ctx.region)
             }
+            // Live (Sarp, 2026-10-29): mid-pinch, only when a zoom step is crossed, not every frame.
+            .onMapCameraChange(frequency: .continuous) { ctx in
+                if Self.key(at: zoom(of: ctx.region)) != lookKey { regroup(proxy: proxy, region: ctx.region) }
+            }
+            .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { mapWidth = $0 }
         }
     }
 
     // MARK: Grouping
 
-    private func regroup(proxy: MapProxy, span: MKCoordinateSpan) {
-        guard span.longitudeDelta < citySpan else { return cities = cityBubbles(proxy: proxy) }
-        cities = []
-        guard span.latitudeDelta > noClusterSpan else {
-            groups = places.map { PinGroup(members: [$0], coordinate: $0.coordinate) }
+    /// Before the map has settled once: every place on its own.
+    private var shownGroups: [PinGroup] {
+        guard groups.isEmpty else { return groups }
+        return places.map { PinGroup(members: [$0], coordinate: $0.coordinate, loud: Self.fromPost($0), look: .close, size: 44, street: true) }
+    }
+
+    private func zoom(of region: MKCoordinateRegion) -> Double {
+        log2(360 * Double(max(mapWidth, 1)) / (256 * max(region.span.longitudeDelta, 0.000_001)))
+    }
+
+    private static func look(at z: Double) -> Look { z < dotsFrom ? .far : z < photosFrom ? .mid : .close }
+    private static func key(at z: Double) -> String { z < cityZoom ? "cities" : look(at: z).rawValue }
+
+    private static func contains(_ r: MKCoordinateRegion, _ c: CLLocationCoordinate2D) -> Bool {
+        abs(c.latitude - r.center.latitude) <= r.span.latitudeDelta / 2
+            && abs(c.longitude - r.center.longitude) <= r.span.longitudeDelta / 2
+    }
+
+    /// Greedy screen-space grouping, loud and quiet apart (web: draw). Then names, loud first,
+    /// each only where it hits no photo and no name already placed.
+    private func regroup(proxy: MapProxy, region: MKCoordinateRegion) {
+        let z = zoom(of: region)
+        lookKey = Self.key(at: z)
+        guard z >= Self.cityZoom else {
+            groups = []
+            cities = cityBubbles(proxy: proxy)
             return
         }
-        var buckets: [(point: CGPoint, members: [Place])] = []
+        cities = []
+        let look = Self.look(at: z)
+        let roomy = places.filter { Self.contains(region, $0.coordinate) }.count <= Self.roomy
+        let street = roomy || z >= Self.noClusterZoom
+        let photoSize: CGFloat = street ? 44 : z < 13.5 ? 30 : 36
+        let loudSize: CGFloat = look == .mid ? 10 : photoSize
+        let quietSize: CGFloat = street ? 32 : 12
+
+        var buckets: [(point: CGPoint, members: [Place], loud: Bool)] = []
         for p in places {
             guard let pt = proxy.convert(p.coordinate, to: .local) else { continue }
-            if let i = buckets.firstIndex(where: { hypot($0.point.x - pt.x, $0.point.y - pt.y) < clusterPoints }) {
+            let loud = Self.fromPost(p)
+            // Past the mosaic, places whose names would collide become one "Name +N more".
+            let near: CGFloat = !loud ? max(quietSize - 2, 8) : look == .far ? loudSize + 2 : look == .mid ? 22 : loudSize * 1.3
+            if z < Self.noClusterZoom,
+               let i = buckets.firstIndex(where: { $0.loud == loud && hypot($0.point.x - pt.x, $0.point.y - pt.y) < near }) {
                 buckets[i].members.append(p)
             } else {
-                buckets.append((pt, [p]))
+                buckets.append((pt, [p], loud))
             }
         }
-        groups = buckets.map { b in
-            let first = b.members[0]
-            return PinGroup(members: b.members, coordinate: b.members.count == 1 ? first.coordinate : (proxy.convert(b.point, from: .local) ?? first.coordinate))
+
+        var taken: [CGRect] = []
+        var made: [(group: PinGroup, point: CGPoint)] = buckets.map { b in
+            let many = b.members.count > 1
+            let size: CGFloat = b.loud ? (many && look == .far ? max(loudSize, 40) : loudSize) : (many && !street ? 16 : quietSize)
+            let coord = many ? (proxy.convert(b.point, from: .local) ?? b.members[0].coordinate) : b.members[0].coordinate
+            let g = PinGroup(members: b.members, coordinate: coord, loud: b.loud, look: look, size: size, street: street)
+            if b.loud {
+                let reach = CGFloat(Self.behind(g)) * 8
+                // A mosaic's "N places" always shows: it takes its room too.
+                let extra: CGFloat = many && look == .far ? 75 : 0
+                taken.append(CGRect(x: b.point.x - size / 2, y: b.point.y - size / 2, width: size + reach + extra, height: size))
+            }
+            return (g, b.point)
         }
+        let order = made.indices.sorted { made[$0].group.loud && !made[$1].group.loud }
+        for i in order {
+            let g = made[i].group, pt = made[i].point
+            let many = g.members.count > 1
+            let wants = g.loud ? (look != .far || roomy) && !(many && look == .far) : !many && (roomy || z >= 14.5)
+            guard wants else { continue }
+            let name = g.members[0].name
+            let w = CGFloat(name.count) * (g.loud ? 7.2 : 6.4) + 4
+            let h: CGFloat = many ? 32 : 18
+            let box = CGRect(x: pt.x + g.size / 2 + 3 + CGFloat(Self.behind(g)) * 8, y: pt.y - h / 2, width: w, height: h)
+            if taken.contains(where: { $0.intersects(box) }) { continue }
+            taken.append(box)
+            made[i].group.named = true
+        }
+        groups = made.map(\.group)
+    }
+
+    /// How many photos peek out behind a stack (close in only).
+    private static func behind(_ g: PinGroup) -> Int {
+        g.loud && g.look == .close ? min(g.members.count - 1, 2) : 0
     }
 
     /// One bubble per Where label, biggest first (web: drawCities).
@@ -197,25 +275,98 @@ struct PlacesMapView: View {
 
     // MARK: Pins
 
-    private func pin(_ place: Place) -> some View {
-        let active = selected?.id == place.id
-        return Group {
-            if Self.fromPost(place) {
-                PlacePhoto(place: place, points: 44)
-                    .frame(width: 44, height: 44)
-                    .background(place.category.tint)
+    private func groupView(_ g: PinGroup) -> some View {
+        let n = g.members.count, first = g.members[0]
+        let behind = Self.behind(g)
+        let peeking = Array(g.members.dropFirst().prefix(behind).enumerated().reversed())
+        return ZStack {
+            if !g.loud {
+                quietPin(g)
+            } else if g.look == .mid {
+                Circle().fill(Color.primary)
+                    .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 1.5))
+                    .scaleEffect(n == 1 && selected?.id == first.id ? 1.6 : 1)
+            } else if n > 1 && g.look == .far {
+                mosaic(Array(g.members.prefix(4)), size: g.size)
                     .clipShape(Circle())
+                    .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 2))
+                    .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
             } else {
-                place.icon.resizable().scaledToFit()
-                    .frame(width: 28, height: 28)
-                    .frame(width: 44, height: 44)
-                    .background(place.category.tint, in: Circle())
+                ForEach(peeking, id: \.offset) { item in
+                    photoCircle(item.element, size: g.size, active: false)
+                        .offset(x: CGFloat(item.offset + 1) * 8, y: -CGFloat(item.offset + 1) * 6)
+                }
+                photoCircle(first, size: g.size, active: n == 1 && selected?.id == first.id)
             }
         }
-            .overlay(Circle().strokeBorder(active ? Color.primary : Color(.systemBackground), lineWidth: 3))
-            .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
-            .scaleEffect(active ? 1.2 : 1)
+        .frame(width: g.size, height: g.size)
+        .overlay(alignment: .leading) {
+            pinLabel(g).fixedSize().offset(x: g.size + 5 + CGFloat(behind) * 8)
+        }
+        .modifier(FadeIn())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(n == 1 ? first.name : "\(first.name) and \(n - 1) more")
+        .accessibilityAddTraits(.isButton)
+    }
+
+    private func photoCircle(_ p: Place, size: CGFloat, active: Bool) -> some View {
+        PlacePhoto(place: p, points: size)
+            .frame(width: size, height: size)
+            .background(p.category.tint)
+            .clipShape(Circle())
+            .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 2))
+            .shadow(color: .black.opacity(active ? 0.35 : 0.2), radius: active ? 8 : 4, y: 2)
+            .scaleEffect(active ? 1.25 : 1)
             .animation(.snappy, value: active)
+    }
+
+    /// A tinted dot (deeper than the pastel, which vanished on the grey map), the type icon at street level.
+    @ViewBuilder
+    private func quietPin(_ g: PinGroup) -> some View {
+        let first = g.members[0]
+        let top = Dictionary(grouping: g.members, by: \.category).max { $0.value.count < $1.value.count }?.key ?? first.category
+        let active = g.members.count == 1 && selected?.id == first.id
+        if g.street && g.members.count == 1 {
+            first.icon.resizable().scaledToFit()
+                .padding(g.size * 0.18)
+                .background(first.category.tint, in: Circle())
+                .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 1.5))
+                .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
+                .scaleEffect(active ? 1.25 : 1)
+        } else if g.street {
+            Text("\(g.members.count)")
+                .font(.system(size: 11, weight: .bold).monospacedDigit())
+                .foregroundStyle(Color(white: 0.1))
+                .frame(width: g.size, height: g.size)
+                .background(top.tint, in: Circle())
+                .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 1.5))
+        } else {
+            Circle().fill(top.tint)
+                .overlay(Circle().fill(Color.black.opacity(0.2)))
+                .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 1.5))
+                .shadow(color: top.tint, radius: 4)
+                .scaleEffect(active ? 1.6 : 1)
+        }
+    }
+
+    /// Beside the pin: "N places" by a mosaic, else the name (and "+N more") where it fits.
+    @ViewBuilder
+    private func pinLabel(_ g: PinGroup) -> some View {
+        let n = g.members.count
+        if g.loud && n > 1 && g.look == .far {
+            Text("\(n) places").font(.system(size: 13, weight: .semibold)).halo()
+        } else if g.named {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(g.members[0].name)
+                    .font(.system(size: g.loud ? 13 : 11.5, weight: g.loud ? .semibold : .medium))
+                    .foregroundStyle(g.loud ? Color.primary : Color.secondary)
+                if n > 1 {
+                    Text("+\(n - 1) more").font(.system(size: 12, weight: .medium)).foregroundStyle(.secondary)
+                }
+            }
+            .lineLimit(1)
+            .halo()
+        }
     }
 
     /// Saved from an Instagram or TikTok post, with its picture; not a list import or a Maps link.
@@ -272,15 +423,24 @@ struct PlacesMapView: View {
         .background(Color.white)
     }
 
-    private func groupPin(_ g: PinGroup) -> some View {
-        let top = Dictionary(grouping: g.members, by: \.category).max { $0.value.count < $1.value.count }?.key ?? .other
-        return Text("\(g.members.count)")
-            .font(.system(size: 16, weight: .bold).monospacedDigit())
-            .foregroundStyle(Color(white: 0.1))
-            .frame(width: 44, height: 44)
-            .background(top.tint, in: Circle())
-            .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 3))
-            .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+}
+
+/// New pins (a new look, a new group) fade in instead of popping (web: .pinsta-appear).
+private struct FadeIn: ViewModifier {
+    @State private var shown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(shown || reduceMotion ? 1 : 0)
+            .onAppear { withAnimation(.easeOut(duration: 0.22)) { shown = true } }
+    }
+}
+
+private extension View {
+    /// A label on the map: a soft outline in the background colour, so it reads on any tile.
+    func halo() -> some View {
+        shadow(color: Color(.systemBackground), radius: 1.5).shadow(color: Color(.systemBackground), radius: 1.5)
     }
 }
 

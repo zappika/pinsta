@@ -33,7 +33,7 @@ The friends beta is running (since 2026-10-14). Feedback from it comes first; se
 ## To design (Sarp)
 - **Google list import on the server**: built 2026-10-19 (server live, iOS waits for the Xcode build and the APNs key above).
 - **Tutorial says what Vicolo is** (Sarp's list, 2026-10-16): next after the easy ones.
-- **Map pins, loud and quiet** (web): Mix picked 2026-10-29 (decisions.md), switch removed. Next: iOS.
+- **Map pins, loud and quiet** (web): Mix picked 2026-10-29 (decisions.md), switch removed. iOS port written on the Mac without Xcode, not compiled: build it on the Xcode Mac, check Venice in the Simulator, upload as build 33.
 - **The "This post has N places" picker and the Google list import review, in one pass** (Sarp, 2026-10-15): the slide/caption list picker should look like the list import review.
 - List import success state (many places at once, not the one-place card).
 - What to offer for list places that couldn't be found (web has the same gap).

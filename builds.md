@@ -14,6 +14,8 @@ How it stays true:
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
 ## Next build (since `ios-32`)
+- The map changes with zoom: far out, places close together show as one round picture of their photos with how many there are; across a city, dots with names; closer in, photos with names. Places right next to each other stack into one photo with "+1 more"; tap it to zoom in. Places from an imported list are small coloured dots, with their type icon up close.
+- *(internal)* Port of the web's Mix pins (`PlacesMapView`), written on a Mac without Xcode: **not compiled yet**. First build on the Xcode Mac, check in the Simulator (Venice: zoom in from the lagoon), then upload.
 
 
 ## In TestFlight: 1.0 (32) · 2026-10-27 · `ios-32` · phone ☑ (Sarp, 2026-10-27)
