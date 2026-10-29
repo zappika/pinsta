@@ -348,7 +348,9 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
       const loud = fromPost(p) !== null;
       const pt = m.project([p.lng, p.lat]);
       // Dots barely overlap at 12 px: they group only when nearly on top of each other.
-      const near = loud ? loudPx + 2 : Math.max(quietPx - 2, 8);
+      // "mix" past the mosaic: places close enough that their names would collide become one
+      // "Name +N more" (a second dot without its name read as a mystery; touching photos too).
+      const near = loud ? (mix && phase !== "far" ? (text ? 22 : loudPx * 1.3) : loudPx + 2) : Math.max(quietPx - 2, 8);
       const g = z < NO_CLUSTER_ZOOM ? groups.find((g) => g.loud === loud && Math.hypot(g.x - pt.x, g.y - pt.y) < near) : undefined;
       if (g) g.members.push(p);
       else groups.push({ x: pt.x, y: pt.y, members: [p], loud });
@@ -432,11 +434,13 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
         continue;
       }
       // "mix", close in: one photo, the others peeking out behind it, "+N more" under its name.
-      if (stack && g.loud) {
+      // Across the city the same, as one dot.
+      if (mix && phase !== "far" && g.loud) {
         const [first, ...rest] = g.members;
         const el = document.createElement("div");
         el.style.cssText = `width:${size}px;height:${size}px;cursor:pointer;z-index:3`;
-        rest.slice(0, 2).forEach((p, i) => {
+        const behind = stack ? Math.min(rest.length, 2) : 0;
+        rest.slice(0, behind).forEach((p, i) => {
           const back = document.createElement("div");
           back.className = "pinsta-pin pinsta-pin-loud pinsta-stack-back";
           back.style.cssText = `width:${size}px;height:${size}px;left:${(i + 1) * 5}px;top:${-(i + 1) * 4}px`;
@@ -448,17 +452,19 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
           el.append(back);
         });
         const pin = document.createElement("div");
-        pin.className = "pinsta-pin pinsta-pin-loud";
+        pin.className = `pinsta-pin ${stack ? "pinsta-pin-loud" : "pinsta-pin-text"}`;
         pin.style.cssText = `width:${size}px;height:${size}px;position:relative`;
-        const img = document.createElement("img");
-        img.src = fromPost(first)!;
-        img.alt = "";
-        img.draggable = false;
-        img.className = "pinsta-pin-photo";
-        pin.append(img);
+        if (stack) {
+          const img = document.createElement("img");
+          img.src = fromPost(first)!;
+          img.alt = "";
+          img.draggable = false;
+          img.className = "pinsta-pin-photo";
+          pin.append(img);
+        }
         const label = document.createElement("div");
         label.className = "pinsta-pin-label";
-        label.style.left = `${size + 5 + Math.min(rest.length, 2) * 5}px`;
+        label.style.left = `${size + 5 + behind * 5}px`;
         label.textContent = first.name;
         const more = document.createElement("div");
         more.className = "pinsta-pin-more";
@@ -466,7 +472,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
         label.append(more);
         el.append(pin, label);
         taken.push({ x0: g.x - size / 2, y0: g.y - size / 2, x1: g.x + size / 2 + 10, y1: g.y + size / 2 });
-        named.push({ el, x: g.x + Math.min(rest.length, 2) * 5, y: g.y, size, name: first.name, loud: true });
+        named.push({ el, x: g.x + behind * 5, y: g.y, size, name: first.name, loud: true });
         const zoomIn = () => {
           const b = new lib.LngLatBounds();
           for (const p of g.members) b.extend([p.lng, p.lat]);
@@ -520,7 +526,20 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
       });
       keyboardButton(el, `${g.members.length} places`, zoomIn);
       const at = m.unproject([g.x, g.y]);
-      clusterMarkers.current.push(new lib.Marker({ element: el }).setLngLat(at).addTo(m));
+      // A mosaic shows four photos at most: its number beside it, so five places don't read as four.
+      let marker: HTMLElement = el;
+      if (photos.length) {
+        marker = document.createElement("div");
+        marker.className = "labelled";
+        marker.style.cssText = `width:${csize}px;height:${csize}px;z-index:3`;
+        const count = document.createElement("div");
+        count.className = "pinsta-pin-label";
+        count.style.left = `${csize + 5}px`;
+        count.textContent = `${g.members.length} places`;
+        marker.append(el, count);
+        taken.push({ x0: g.x + csize / 2, y0: g.y - 9, x1: g.x + csize / 2 + 70, y1: g.y + 9 });
+      }
+      clusterMarkers.current.push(new lib.Marker({ element: marker }).setLngLat(at).addTo(m));
     }
 
     // Names: a post's place from city level in "text", from 12.5 in "tiers" (a phone shows all of
@@ -586,9 +605,19 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
       el.append(bubble, label);
       const pt = m.project([lng, lat]);
       const w = Math.max(size, name.length * 7.5 + 24);
-      const box = { x0: pt.x - w / 2, y0: pt.y - size / 2, x1: pt.x + w / 2, y1: pt.y + size / 2 + 20 };
-      if (taken.some((t) => box.x0 < t.x1 && box.x1 > t.x0 && box.y0 < t.y1 && box.y1 > t.y0)) label.style.display = "none";
-      else taken.push(box);
+      // The name goes under the bubble, or above it when that's taken (Turin under Milan's name
+      // lost its own, 2026-10-29); hidden only when neither fits.
+      const hits = (b: Box) => taken.some((t) => b.x0 < t.x1 && b.x1 > t.x0 && b.y0 < t.y1 && b.y1 > t.y0);
+      const below = { x0: pt.x - w / 2, y0: pt.y - size / 2, x1: pt.x + w / 2, y1: pt.y + size / 2 + 20 };
+      const above = { x0: pt.x - w / 2, y0: pt.y - size / 2 - 20, x1: pt.x + w / 2, y1: pt.y + size / 2 };
+      let up = false;
+      if (!hits(below)) taken.push(below);
+      else if (!hits(above)) {
+        taken.push(above);
+        up = true;
+        el.style.flexDirection = "column-reverse";
+        label.style.margin = "0 0 3px";
+      } else label.style.display = "none";
       const go = () => {
         const b = new lib.LngLatBounds();
         for (const p of members) b.extend([p.lng, p.lat]);
@@ -599,7 +628,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
         go();
       });
       keyboardButton(el, `${name}, ${members.length} places`, go);
-      clusterMarkers.current.push(new lib.Marker({ element: el, anchor: "top", offset: [0, -size / 2] }).setLngLat([lng, lat]).addTo(m));
+      clusterMarkers.current.push(new lib.Marker({ element: el, anchor: up ? "bottom" : "top", offset: [0, up ? size / 2 : -size / 2] }).setLngLat([lng, lat]).addTo(m));
     }
   }
 
