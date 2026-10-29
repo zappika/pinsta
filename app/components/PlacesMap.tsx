@@ -54,6 +54,7 @@ function deepen(hex: string): string {
   return `#${to(r)}${to(g)}${to(b)}`;
 }
 const PIN_STYLE_KEY = "vicolo.pinStyle";
+const LIVE_KEY = "vicolo.pinLive";
 /** From street level on, never group — two entries at one address would never split. */
 const NO_CLUSTER_ZOOM = 16;
 /** Zoomed out past this, places become one bubble per city (the Where label), for trip planning
@@ -269,13 +270,45 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     m.fitBounds(atLeastMinFrame(lib, bounds), { padding: framePad(), maxZoom: 15, duration: 600 });
     // Pins that overlap at this zoom are grouped; regroup whenever the map settles.
     m.off("moveend", redraw.current);
+    m.off("zoom", midZoom.current);
     redraw.current = () => draw(lib, m);
+    // "Live": the look also changes mid-pinch, the moment a zoom step is crossed (one redraw per step).
+    midZoom.current = () => {
+      if (liveRef.current && lookAt(m) !== lookRef.current) draw(lib, m);
+    };
     m.on("moveend", redraw.current);
+    m.on("zoom", midZoom.current);
   }
   const redraw = useRef<() => void>(() => {});
   /** The look last drawn (cities, or the style and its zoom step): a change fades the new pins in,
    * so dots don't pop into photos (Sarp, 2026-10-29: "transitions a little clunky"). A pan doesn't. */
   const lookRef = useRef("");
+  const midZoom = useRef<() => void>(() => {});
+  /** Exploring (Sarp, 2026-10-29): fade after the pinch, or switch looks during it. */
+  const [live, setLive] = useState(false);
+  const liveRef = useRef(false);
+  liveRef.current = live;
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(LIVE_KEY) === "1") setLive(true);
+    } catch {}
+  }, []);
+  function toggleLive() {
+    setLive(!live);
+    try {
+      localStorage.setItem(LIVE_KEY, live ? "0" : "1");
+    } catch {}
+  }
+  /** Which look this zoom gets: the same key draw() ends on. */
+  function lookAt(m: maplibregl.Map): string {
+    const z = m.getZoom();
+    if (z < CITY_ZOOM) return "cities";
+    if (styleRef.current === "mix") return `mix-${z < MIX_DOTS_FROM ? "far" : z < MIX_PHOTOS_FROM ? "mid" : "close"}`;
+    if (styleRef.current === "text" && z < 15) return "text";
+    const view = m.getBounds();
+    const onScreen = placesRef.current.filter((p) => view.contains([p.lng, p.lat])).length;
+    return `tiers-${onScreen <= ROOMY ? "street" : tierAt(z)}`;
+  }
   function fadeInIfNewLook(look: string) {
     if (look === lookRef.current) return;
     const first = !lookRef.current;
@@ -298,7 +331,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     const z = m.getZoom();
     if (z < CITY_ZOOM) {
       drawCities(lib, m);
-      return fadeInIfNewLook("cities");
+      return fadeInIfNewLook(lookAt(m));
     }
     const view = m.getBounds();
     const onScreen = placesRef.current.filter((p) => view.contains([p.lng, p.lat])).length;
@@ -503,7 +536,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
       taken.push(box);
       n.el.classList.add("labelled");
     }
-    fadeInIfNewLook(mix ? `mix-${phase}` : text ? "text" : `tiers-${tier}`);
+    fadeInIfNewLook(lookAt(m));
   }
 
   /** One bubble per city: up to four of its post photos (else its commonest type icon), name and count. */
@@ -624,6 +657,12 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
             {s}
           </button>
         ))}
+        <button
+          onClick={toggleLive}
+          className={`ml-1 rounded-full px-2.5 py-1 ${live ? "bg-stone-900 text-white" : "text-stone-500"}`}
+        >
+          Live
+        </button>
       </div>
     </div>
   );
