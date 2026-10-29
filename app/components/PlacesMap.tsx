@@ -273,6 +273,17 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     m.on("moveend", redraw.current);
   }
   const redraw = useRef<() => void>(() => {});
+  /** The look last drawn (cities, or the style and its zoom step): a change fades the new pins in,
+   * so dots don't pop into photos (Sarp, 2026-10-29: "transitions a little clunky"). A pan doesn't. */
+  const lookRef = useRef("");
+  function fadeInIfNewLook(look: string) {
+    if (look === lookRef.current) return;
+    const first = !lookRef.current;
+    lookRef.current = look;
+    if (first) return;
+    for (const { marker } of markers.current.values()) marker.getElement().classList.add("pinsta-appear");
+    for (const c of clusterMarkers.current) c.getElement().classList.add("pinsta-appear");
+  }
 
   /**
    * Greedy screen-space grouping, loud and quiet apart: a pin joins a group it would overlap.
@@ -285,7 +296,10 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     clusterMarkers.current = [];
 
     const z = m.getZoom();
-    if (z < CITY_ZOOM) return drawCities(lib, m);
+    if (z < CITY_ZOOM) {
+      drawCities(lib, m);
+      return fadeInIfNewLook("cities");
+    }
     const view = m.getBounds();
     const onScreen = placesRef.current.filter((p) => view.contains([p.lng, p.lat])).length;
     const tier: Tier = onScreen <= ROOMY ? "street" : tierAt(z);
@@ -489,6 +503,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
       taken.push(box);
       n.el.classList.add("labelled");
     }
+    fadeInIfNewLook(mix ? `mix-${phase}` : text ? "text" : `tiers-${tier}`);
   }
 
   /** One bubble per city: up to four of its post photos (else its commonest type icon), name and count. */

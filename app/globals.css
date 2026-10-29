@@ -237,6 +237,10 @@ body {
   font-weight: 500;
   color: #57534e;
 }
+/* Pins after a change of look (mosaic → dots → photos) fade in instead of popping. */
+.pinsta-appear {
+  animation: pinsta-fade 0.22s ease-out;
+}
 .labelled .pinsta-pin-label {
   display: block;
 }
