@@ -25,7 +25,12 @@ const LOUD_PX: Record<Tier, number> = { city: 30, hood: 36, street: 44 };
 const QUIET_PX: Record<Tier, number> = { city: 12, hood: 12, street: 32 };
 /** Exploring (Sarp, 2026-10-16): "tiers" as above, or "text": zoomed out, a post's place is its
  * name on a small dark dot, the photo from neighbourhood level. Temporary switch on the map. */
-type PinStyle = "tiers" | "text";
+type PinStyle = "tiers" | "text" | "mix";
+/** "mix" (Sarp, 2026-10-29, from Venice screenshots and Instagram's map): zoom decides. Far out, a
+ * mosaic per group; across a city, named dots; closer in, photos with names, and places that would
+ * overlap stack into one photo with "+N more" under the name (no side-by-side fan). */
+const MIX_DOTS_FROM = 12.5;
+const MIX_PHOTOS_FROM = 13.8;
 /** This few places on screen: no reason to shrink anything, every pin at full size (Sarp: "not much
  * point of showing things very small where there are only 2–3–4 pins"). */
 const ROOMY = 8;
@@ -233,11 +238,12 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
   const clusterMarkers = useRef<maplibregl.Marker[]>([]);
-  const [pinStyle, setPinStyle] = useState<PinStyle>("tiers");
-  const styleRef = useRef<PinStyle>("tiers");
+  const [pinStyle, setPinStyle] = useState<PinStyle>("mix");
+  const styleRef = useRef<PinStyle>("mix");
   useEffect(() => {
     try {
-      if (localStorage.getItem(PIN_STYLE_KEY) === "text") setPinStyle("text");
+      const saved = localStorage.getItem(PIN_STYLE_KEY);
+      if (saved === "text" || saved === "tiers") setPinStyle(saved);
     } catch {}
   }, []);
   useEffect(() => {
@@ -283,7 +289,10 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     const view = m.getBounds();
     const onScreen = placesRef.current.filter((p) => view.contains([p.lng, p.lat])).length;
     const tier: Tier = onScreen <= ROOMY ? "street" : tierAt(z);
-    const text = styleRef.current === "text" && z < 15;
+    const mix = styleRef.current === "mix";
+    const phase = z < MIX_DOTS_FROM ? "far" : z < MIX_PHOTOS_FROM ? "mid" : "close";
+    const text = mix ? phase === "mid" : styleRef.current === "text" && z < 15;
+    const stack = mix && phase === "close";
     const loudPx = text ? 10 : LOUD_PX[tier];
     const quietPx = QUIET_PX[tier];
     type Group = { x: number; y: number; members: Place[]; loud: boolean; fanBy?: number; fanned?: boolean };
@@ -307,7 +316,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
 
     // A few post places together sit side by side, centred on the group, each its own photo.
     const drawn: Group[] = groups.flatMap((g) =>
-      g.loud && g.members.length > 1 && g.members.length <= FAN_MAX
+      !mix && g.loud && g.members.length > 1 && g.members.length <= FAN_MAX
         ? g.members.map((p, i) => ({ ...g, members: [p], fanBy: i - (g.members.length - 1) / 2, fanned: true }))
         : [{ ...g, fanBy: 0 }],
     );
@@ -375,6 +384,55 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
         markers.current.set(p.id, { marker, pin });
         continue;
       }
+      // "mix", close in: one photo, the others peeking out behind it, "+N more" under its name.
+      if (stack && g.loud) {
+        const [first, ...rest] = g.members;
+        const el = document.createElement("div");
+        el.style.cssText = `width:${size}px;height:${size}px;cursor:pointer;z-index:3`;
+        rest.slice(0, 2).forEach((p, i) => {
+          const back = document.createElement("div");
+          back.className = "pinsta-pin pinsta-pin-loud pinsta-stack-back";
+          back.style.cssText = `width:${size}px;height:${size}px;left:${(i + 1) * 5}px;top:${-(i + 1) * 4}px`;
+          const img = document.createElement("img");
+          img.src = fromPost(p)!;
+          img.alt = "";
+          img.className = "pinsta-pin-photo";
+          back.append(img);
+          el.append(back);
+        });
+        const pin = document.createElement("div");
+        pin.className = "pinsta-pin pinsta-pin-loud";
+        pin.style.cssText = `width:${size}px;height:${size}px;position:relative`;
+        const img = document.createElement("img");
+        img.src = fromPost(first)!;
+        img.alt = "";
+        img.draggable = false;
+        img.className = "pinsta-pin-photo";
+        pin.append(img);
+        const label = document.createElement("div");
+        label.className = "pinsta-pin-label";
+        label.style.left = `${size + 5 + Math.min(rest.length, 2) * 5}px`;
+        label.textContent = first.name;
+        const more = document.createElement("div");
+        more.className = "pinsta-pin-more";
+        more.textContent = `+${rest.length} more`;
+        label.append(more);
+        el.append(pin, label);
+        taken.push({ x0: g.x - size / 2, y0: g.y - size / 2, x1: g.x + size / 2 + 10, y1: g.y + size / 2 });
+        named.push({ el, x: g.x + Math.min(rest.length, 2) * 5, y: g.y, size, name: first.name, loud: true });
+        const zoomIn = () => {
+          const b = new lib.LngLatBounds();
+          for (const p of g.members) b.extend([p.lng, p.lat]);
+          m.fitBounds(b, { padding: { top: 90, bottom: 90, right: 90, left: 90 + padLeftRef.current }, maxZoom: Math.max(m.getZoom() + 2, 17), duration: 500 });
+        };
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          zoomIn();
+        });
+        keyboardButton(el, `${first.name} and ${rest.length} more`, zoomIn);
+        clusterMarkers.current.push(new lib.Marker({ element: el }).setLngLat(m.unproject([g.x, g.y])).addTo(m));
+        continue;
+      }
       // More picked places than fit side by side: a mosaic of up to four of their photos in one circle
       // (a dark count read as a black dot from afar, Venice and Tokyo, 2026-10-16). "Text" style: a
       // dark count. Quiet ones: a slightly bigger dot and no number; counts shouted as loud as the photos.
@@ -422,7 +480,8 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     // central Barcelona at ~12.5); the rest from 14.5.
     // With few places on screen, every name.
     const roomy = onScreen <= ROOMY;
-    const wants = (n: (typeof named)[number]) => roomy || (n.loud ? text || z >= 12.5 : z >= 14.5);
+    const wants = (n: (typeof named)[number]) =>
+      mix ? (n.loud ? phase !== "far" || roomy : roomy || z >= 14.5) : roomy || (n.loud ? text || z >= 12.5 : z >= 14.5);
     for (const n of named.filter(wants).sort((a, b) => Number(b.loud) - Number(a.loud))) {
       const w = n.name.length * (n.loud ? 7.2 : 6.4) + 4;
       const box = { x0: n.x + n.size / 2 + 3, y0: n.y - 9, x1: n.x + n.size / 2 + 5 + w, y1: n.y + 9 };
@@ -539,9 +598,9 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
   return (
     <div className="absolute inset-0">
       <div ref={container} className="h-full w-full" />
-      {/* Temporary: compare the two pin styles on the real list (Sarp, 2026-10-16). */}
+      {/* Temporary: compare the pin styles on the real list (Sarp, 2026-10-16). */}
       <div style={padLeft ? { left: padLeft + 12, top: 12 } : undefined} className="absolute left-3 top-[calc(env(safe-area-inset-top)+5.5rem)] z-10 flex rounded-full bg-white/90 p-0.5 text-xs font-medium shadow-sm backdrop-blur">
-        {(["tiers", "text"] as const).map((s) => (
+        {(["mix", "tiers", "text"] as const).map((s) => (
           <button
             key={s}
             onClick={() => setPinStyle(s)}

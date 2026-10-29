@@ -227,6 +227,16 @@ body {
   text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
   pointer-events: none;
 }
+/* "mix": photos behind a stacked pin, and its "+N more" line. */
+.pinsta-stack-back {
+  position: absolute;
+  z-index: -1;
+}
+.pinsta-pin-more {
+  font-size: 12px;
+  font-weight: 500;
+  color: #57534e;
+}
 .labelled .pinsta-pin-label {
   display: block;
 }
