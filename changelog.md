@@ -8,6 +8,10 @@ backoffice, web-only changes). Headings read "## Build N · D Month".
 
 # What's new in Vicolo
 
+## Build 33 · 31 October
+
+- The map changes as you zoom: far out, places close together become one round picture with how many there are; across a city, dots with names; closer in, photos with names. Places right next to each other stack into one photo with "+1 more"; tap it to zoom in. Places from an imported list are small coloured dots.
+
 ## Build 32 · 27 October
 
 - **Where I am** in the + menu: the places right around you, closest first. One tap saves the one you are at.

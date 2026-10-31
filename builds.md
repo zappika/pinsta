@@ -13,19 +13,21 @@ How it stays true:
 - `git log ios-N..HEAD -- ios lib app/api` is the check: anything there that isn't listed under Next build was forgotten.
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
-## Next build (since `ios-32`)
+## Next build (since `ios-33`)
+
+
+## In TestFlight: 1.0 (33) · 2026-10-31 · `ios-33` · phone ☐
 - The map changes with zoom: far out, places close together show as one round picture of their photos with how many there are; across a city, dots with names; closer in, photos with names. Places right next to each other stack into one photo with "+1 more"; tap it to zoom in. Places from an imported list are small coloured dots, with their type icon up close.
-- *(internal)* Port of the web's Mix pins (`PlacesMapView`), written on a Mac without Xcode: **not compiled yet**. First build on the Xcode Mac, check in the Simulator (Venice: zoom in from the lagoon), then upload.
+- *(internal)* Compiled and tried in the Simulator 2026-10-31 (new iPhone 17 Pro on iOS 27.0; 27.1 refuses new devices): Venice opens with type-icon pins and names, two places 50 m apart group as "2". Zooming not checked in the Simulator.
 
+## Earlier builds
 
-## In TestFlight: 1.0 (32) · 2026-10-27 · `ios-32` · phone ☑ (Sarp, 2026-10-27)
+### 1.0 (32) · 2026-10-27 · `ios-32` · phone ☑ (Sarp, 2026-10-27)
 - A restaurant's own carousel with a receipt or bottle labels in the photos no longer turns into a list of random places: only text laid over a picture is read as place names (El Roca, Barcelona).
 - A post tagged with a small town and naming the place as a co-author finds it (a building-materials yard in Eemnes).
 - **Where I am** in the + menu: the places right around you, closest first, one tap to save the one you're at.
 - Vicolo asks later whether you've been: the day after you saved a place where you stood, a week after one from a post. "Been to any of these?" lists up to four; Yes opens the faces to say how it was. Each place is asked twice at most, one sheet a day at most, and "Not yet" undoes a Yes tapped by mistake.
 - *(internal)* Built and tried in the Simulator 2026-10-26: Where I am lists nearby places; the ask sheet shows, Yes opens the faces, Not yet undoes it. The locate button no longer sits on the ask sheet.
-
-## Earlier builds
 
 ### 1.0 (31) · 2026-10-19 · `ios-31` · phone ☐
 - Importing a list is calmer: paste the link, then one screen about the list: a map of where its places are, one row per type (tap one to leave places out; hold a place to change its type), what couldn't be found, and "Import all 13 places" (or "Import 12 of 13"). Everything comes in as Want to go. Later keeps the import for another time; Cancel import asks first.
