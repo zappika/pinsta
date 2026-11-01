@@ -12,7 +12,10 @@
     "db:studio": "drizzle-kit studio",
     "postinstall": "sh scripts/copy-maplibre-worker.sh",
     "prebuild": "node scripts/build-library.mjs",
-    "predev": "node scripts/build-library.mjs"
+    "predev": "node scripts/build-library.mjs",
+    "review:sync": "tsx --env-file=.env.local scripts/review/sync.mts",
+    "review:replay": "tsx --env-file=.env.local scripts/review/replay.mts",
+    "review:post": "tsx --env-file=.env.local scripts/review/post.mts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

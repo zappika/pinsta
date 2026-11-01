@@ -249,3 +249,59 @@ export type SendStop = {
   note: string | null;
 };
 export type Send = typeof sends.$inferSelect;
+
+/**
+ * The search's regression set (Sarp, 2026-11-01): every save someone dug for or gave up on, as a
+ * case to replay — this link should find this place. `expect` comes from the save itself (the
+ * place they ended up choosing); a gave-up has none until Sarp types it on /review ("-" = skip,
+ * not a venue). `post` is the read, cached so a replay is free and survives a deleted post.
+ * Kept in the database, not the repo: the repo is public and these are testers' links.
+ * Made by `scripts/create-reviews.mts`; filled by `scripts/review/sync.mts`.
+ */
+export const reviewCases = pgTable("review_cases", {
+  url: text("url").primaryKey(),
+  expect: text("expect"),
+  /** The saved place came from Google: Apple finding nothing is right too (the app then asks Google). */
+  google: boolean("google").notNull().default(false),
+  outcome: text("outcome").notNull(),
+  addedAt: timestamp("added_at", { withTimezone: true }).notNull().defaultNow(),
+  post: jsonb("post").$type<CasePost | null>(),
+  note: text("note"),
+});
+
+export type CasePost = {
+  kind: "instagram" | "profile" | "tiktok";
+  locationName: string | null;
+  caption: string | null;
+  ownerFullName: string | null;
+  ownerUsername: string | null;
+  coauthors: string[];
+  hashtags: string[];
+  category: string | null;
+  city: string | null;
+};
+export type ReviewCase = typeof reviewCases.$inferSelect;
+
+/**
+ * What the weekly reviewer found (`scripts/review/`, a scheduled task on Sarp's Mac): the replay's
+ * score, the causes of what still fails, and the change it proposes on a local branch (never pushed).
+ * Shown on /review.
+ */
+export const reviews = pgTable("reviews", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  passed: integer("passed").notNull(),
+  total: integer("total").notNull(),
+  report: jsonb("report").$type<ReviewReport>().notNull(),
+});
+
+export type ReviewReport = {
+  /** One or two sentences: what changed since last week, what fails. */
+  summary: string;
+  /** Per case, from the replay (before any proposed change). */
+  results: { url: string; expect: string | null; got: string[]; pass: boolean; auto: boolean }[];
+  causes: { title: string; count: number; examples: string[]; code: string; fix: string }[];
+  /** The change tried on a branch, if any. */
+  proposal?: { branch: string; title: string; why: string; files: string[]; passedAfter: number; broke: string[] } | null;
+};
+export type Review = typeof reviews.$inferSelect;

@@ -6,12 +6,13 @@ import { usePathname } from "next/navigation";
  * The backoffice's tab bar, on every backoffice page (Sarp, 2026-10-18: one place for the beta's
  * numbers, kept on the phone's Home Screen; 2026-10-19: every page in it, nothing reached only
  * through another page). Pulse is home: is Vicolo working for people. Saves: every save sheet,
- * misses first. Usage: what the paid services cost. Parity: web vs iOS. Library: the art.
+ * misses first. Review: the weekly reviewer's findings and proposed fix (2026-11-01). Usage: what the paid services cost. Parity: web vs iOS. Library: the art.
  * Sandbox: the save flow's design sandbox (/success).
  */
 const TABS = [
   { href: "/pulse", label: "Pulse" },
   { href: "/saves", label: "Saves" },
+  { href: "/review", label: "Review" },
   { href: "/usage", label: "Usage" },
   { href: "/parity", label: "Parity" },
   { href: "/library", label: "Library" },
