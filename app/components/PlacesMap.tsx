@@ -332,7 +332,8 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     type Box = { x0: number; y0: number; x1: number; y1: number };
     const taken: Box[] = [];
     const hit = (b: Box) => taken.some((t) => b.x0 < t.x1 && b.x1 > t.x0 && b.y0 < t.y1 && b.y1 > t.y0);
-    const named: { el: HTMLElement; x: number; y: number; size: number; name: string; loud: boolean }[] = [];
+    /** x: where the name starts (past any photos peeking out to the right); cx: the pin's middle. */
+    const named: { el: HTMLElement; x: number; cx: number; y: number; size: number; name: string; loud: boolean }[] = [];
 
     // A few post places together sit side by side, centred on the group, each its own photo.
     const drawn: Group[] = groups.flatMap((g) =>
@@ -388,7 +389,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
         if (size < 24) el.classList.add("pinsta-pin-tap");
         const x = g.x + fan * (size + 4);
         if (g.loud) taken.push({ x0: x - size / 2, y0: g.y - size / 2, x1: x + size / 2, y1: g.y + size / 2 });
-        if (!twin) named.push({ el, x, y: g.y, size, name: p.name, loud: g.loud });
+        if (!twin) named.push({ el, x, cx: x, y: g.y, size, name: p.name, loud: g.loud });
         const open = () => {
           onSelectRef.current(p);
           // Nudge the pin up so the PeekCard doesn't sit on top of it.
@@ -445,7 +446,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
         // The photos behind reach behind * 8 px right: its own name starts past them, so it must not
         // count as taken (it did, and every stack lost its name, Venice 2026-10-29).
         taken.push({ x0: g.x - size / 2, y0: g.y - size / 2 - behind * 6, x1: g.x + size / 2 + behind * 8, y1: g.y + size / 2 });
-        named.push({ el, x: g.x + behind * 8, y: g.y, size, name: first.name, loud: true });
+        named.push({ el, x: g.x + behind * 8, cx: g.x, y: g.y, size, name: first.name, loud: true });
         const zoomIn = () => {
           const b = new lib.LngLatBounds();
           for (const p of g.members) b.extend([p.lng, p.lat]);
@@ -523,10 +524,19 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
       mix ? (n.loud ? phase !== "far" || roomy : roomy || z >= 14.5) : roomy || (n.loud ? text || z >= 12.5 : z >= 14.5);
     for (const n of named.filter(wants).sort((a, b) => Number(b.loud) - Number(a.loud))) {
       const w = n.name.length * (n.loud ? 7.2 : 6.4) + 4;
-      const box = { x0: n.x + n.size / 2 + 3, y0: n.y - 9, x1: n.x + n.size / 2 + 5 + w, y1: n.y + 9 };
-      if (hit(box)) continue;
+      const right = { x0: n.x + n.size / 2 + 3, y0: n.y - 9, x1: n.x + n.size / 2 + 5 + w, y1: n.y + 9 };
+      // The right taken: the left, before giving the name up (Sarp, 2026-11-01, a Copenhagen dot lost its name).
+      const left = { x0: n.cx - n.size / 2 - 5 - w, y0: n.y - 9, x1: n.cx - n.size / 2 - 3, y1: n.y + 9 };
+      const box = !hit(right) ? right : !hit(left) ? left : null;
+      if (!box) continue;
       taken.push(box);
       n.el.classList.add("labelled");
+      const label = n.el.querySelector<HTMLElement>(".pinsta-pin-label");
+      if (label && box === left) {
+        label.style.left = "auto";
+        label.style.right = `${n.size + 5}px`;
+        label.style.textAlign = "right";
+      }
     }
     fadeInIfNewLook(lookAt(m));
   }

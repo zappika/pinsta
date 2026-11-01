@@ -63,6 +63,8 @@ struct PlacesMapView: View {
         /// At street level (or few places): quiet places show their type icon.
         let street: Bool
         var named = false
+        /// The name sits on the left: the right was taken (Sarp, 2026-11-01, a Copenhagen dot lost its name).
+        var nameLeft = false
         /// The look is part of the id, so a new look makes new views, which fade in.
         var id: String { look.rawValue + ":" + members.map(\.id.uuidString).joined(separator: ",") }
     }
@@ -190,10 +192,12 @@ struct PlacesMapView: View {
             let name = g.members[0].name
             let w = CGFloat(name.count) * (g.loud ? 7.2 : 6.4) + 4
             let h: CGFloat = many ? 32 : 18
-            let box = CGRect(x: pt.x + g.size / 2 + 3 + CGFloat(Self.behind(g)) * 8, y: pt.y - h / 2, width: w, height: h)
-            if taken.contains(where: { $0.intersects(box) }) { continue }
+            let right = CGRect(x: pt.x + g.size / 2 + 3 + CGFloat(Self.behind(g)) * 8, y: pt.y - h / 2, width: w, height: h)
+            let left = CGRect(x: pt.x - g.size / 2 - 3 - w, y: pt.y - h / 2, width: w, height: h)
+            guard let box = [right, left].first(where: { b in !taken.contains(where: { $0.intersects(b) }) }) else { continue }
             taken.append(box)
             made[i].group.named = true
+            made[i].group.nameLeft = box == left
         }
         groups = made.map(\.group)
     }
@@ -300,8 +304,8 @@ struct PlacesMapView: View {
             }
         }
         .frame(width: g.size, height: g.size)
-        .overlay(alignment: .leading) {
-            pinLabel(g).fixedSize().offset(x: g.size + 5 + CGFloat(behind) * 8)
+        .overlay(alignment: g.nameLeft ? .trailing : .leading) {
+            pinLabel(g).fixedSize().offset(x: g.nameLeft ? -(g.size + 5) : g.size + 5 + CGFloat(behind) * 8)
         }
         .modifier(FadeIn())
         .accessibilityElement(children: .ignore)
@@ -341,10 +345,11 @@ struct PlacesMapView: View {
                 .background(top.tint, in: Circle())
                 .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 1.5))
         } else {
-            Circle().fill(top.tint)
-                .overlay(Circle().fill(Color.black.opacity(0.2)))
+            // The glow is the deep tint too: a pastel glow washed the dot out (Sarp, 2026-11-01).
+            Circle().fill(top.deepTint)
                 .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 1.5))
-                .shadow(color: top.tint, radius: 4)
+                .shadow(color: top.deepTint.opacity(0.55), radius: 4)
+                .shadow(color: .black.opacity(0.2), radius: 1, y: 1)
                 .scaleEffect(active ? 1.6 : 1)
         }
     }
@@ -356,7 +361,7 @@ struct PlacesMapView: View {
         if g.loud && n > 1 && g.look == .far {
             Text("\(n) places").font(.system(size: 13, weight: .semibold)).halo()
         } else if g.named {
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: g.nameLeft ? .trailing : .leading, spacing: 0) {
                 Text(g.members[0].name)
                     .font(.system(size: g.loud ? 13 : 11.5, weight: g.loud ? .semibold : .medium))
                     .foregroundStyle(g.loud ? Color.primary : Color.secondary)
@@ -369,10 +374,10 @@ struct PlacesMapView: View {
         }
     }
 
-    /// Saved from an Instagram or TikTok post, with its picture; not a list import or a Maps link.
+    /// Picked one at a time (a post, a name, a Maps link) and with a photo: loud. List imports are
+    /// quiet (web: fromPost; Sarp, 2026-10-16: places saved by name count too).
     static func fromPost(_ p: Place) -> Bool {
         p.fromListTitle == nil && p.imageData != nil
-            && (p.instagramURL.contains("instagram.com") || p.instagramURL.contains("tiktok.com"))
     }
 
     /// Up to four of the city's post photos (else its first place's type icon), name and count under it.

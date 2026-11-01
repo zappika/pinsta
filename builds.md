@@ -15,6 +15,11 @@ How it stays true:
 
 ## Next build (since `ios-33`)
 
+- Map dots for imported places are a stronger colour, easier to see on the map.
+- A place name that would run into a nearby pin now shows on the other side instead of disappearing.
+- Places saved by name or from a Google Maps link show their photo on the map, like places saved from a post.
+- *(internal)* Compiled for device only; the Simulator was down (CoreSimulator out of date after the Xcode update), not tried on screen yet.
+
 
 ## In TestFlight: 1.0 (33) · 2026-10-31 · `ios-33` · phone ☐
 - The map changes with zoom: far out, places close together show as one round picture of their photos with how many there are; across a city, dots with names; closer in, photos with names. Places right next to each other stack into one photo with "+1 more"; tap it to zoom in. Places from an imported list are small coloured dots, with their type icon up close.

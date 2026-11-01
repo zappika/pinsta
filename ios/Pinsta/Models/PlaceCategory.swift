@@ -21,21 +21,41 @@ enum PlaceCategory: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     /// Soft fill behind the type icon (map pins, photo-less tiles). Same values as the web.
-    var tint: Color {
+    var tint: Color { Color(hex: tintHex) }
+
+    /// The tint, deeper, for a map dot with no icon: the pastels vanished on the grey map (web: deepen).
+    var deepTint: Color { Color(hex: Self.deepen(tintHex)) }
+
+    private var tintHex: UInt32 {
         switch self {
-        case .restaurant: return Color(hex: 0xFDE2D4)
-        case .cafe: return Color(hex: 0xF3E3CF)
-        case .bar: return Color(hex: 0xECDCF5)
-        case .vineyard: return Color(hex: 0xE3DCF7)
-        case .bakery: return Color(hex: 0xFBECCB)
-        case .hotel: return Color(hex: 0xD8E8F7)
-        case .shop: return Color(hex: 0xF9DCE6)
-        case .attraction: return Color(hex: 0xFDE0DC)
-        case .museum: return Color(hex: 0xE2E4EA)
-        case .culture: return Color(hex: 0xF6DCEA)
-        case .nature: return Color(hex: 0xD9EFDD)
-        case .other: return Color(hex: 0xECECEC)
+        case .restaurant: return 0xFDE2D4
+        case .cafe: return 0xF3E3CF
+        case .bar: return 0xECDCF5
+        case .vineyard: return 0xE3DCF7
+        case .bakery: return 0xFBECCB
+        case .hotel: return 0xD8E8F7
+        case .shop: return 0xF9DCE6
+        case .attraction: return 0xFDE0DC
+        case .museum: return 0xE2E4EA
+        case .culture: return 0xF6DCEA
+        case .nature: return 0xD9EFDD
+        case .other: return 0xECECEC
         }
+    }
+
+    /// Same hue, saturation held between 0.42 and 0.62, lightness 0.62 (web: deepen in PlacesMap.tsx).
+    static func deepen(_ hex: UInt32) -> UInt32 {
+        var r = Double((hex >> 16) & 0xFF) / 255, g = Double((hex >> 8) & 0xFF) / 255, b = Double(hex & 0xFF) / 255
+        let mx = max(r, g, b), mn = min(r, g, b), d = mx - mn
+        var h = 0.0
+        if d > 0 { h = mx == r ? ((g - b) / d).truncatingRemainder(dividingBy: 6) : mx == g ? (b - r) / d + 2 : (r - g) / d + 4 }
+        h *= 60
+        let s = d > 0 ? min(0.62, max(0.42, d / (1 - abs(mx + mn - 1)))) : 0
+        let l = 0.62
+        let c = (1 - abs(2 * l - 1)) * s, x = c * (1 - abs((h / 60).truncatingRemainder(dividingBy: 2) - 1)), m0 = l - c / 2
+        (r, g, b) = h < 60 ? (c, x, 0) : h < 120 ? (x, c, 0) : h < 180 ? (0, c, x) : h < 240 ? (0, x, c) : h < 300 ? (x, 0, c) : (c, 0, x)
+        let to = { (v: Double) in UInt32((v + m0) * 255 + 0.5) }
+        return to(r) << 16 | to(g) << 8 | to(b)
     }
 
     /// Where a price means something. Only these spend a Google lookup (/api/price).
