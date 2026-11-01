@@ -66,6 +66,9 @@ const AREAS: Metro[] = [
   { name: "Langhe", lat: 44.6, lng: 8.0, km: 22 },
 ];
 
+/** The travel areas by name, for a tag like "Begur, Costa Brava" (a town in one). */
+export const AREA_NAMES = AREAS.map((a) => a.name);
+
 /** The travel area a point lies in, or null. */
 export function areaAt(lat: number, lng: number): string | null {
   return AREAS.find((a) => km(lat, lng, a.lat, a.lng) <= a.km)?.name ?? null;

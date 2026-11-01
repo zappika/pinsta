@@ -254,7 +254,8 @@ extension PlaceSearch {
     /// Untagged, or tagged with a street or a town: the venue is read off the post. Clues in
     /// order of trust: the caption's 📍 line, "at X in Y", a collab headline and its co-authors,
     /// then the posting account. All searched near the street when there is one; streets, towns
-    /// and far-off namesakes dropped. `pinned`: the 📍 line answered — trusted like a tag.
+    /// and far-off namesakes dropped. `pinned`: the 📍 line answered, or the poster's own place
+    /// (`isOwnPlace`), once and nobody else named — trusted like a tag.
     /// Same order as `resolveUntagged` in lib/google-places.ts.
     static func resolveUntagged(
         caption: String?, ownerFullName: String?, ownerUsername: String?, coauthors: [String],
@@ -280,7 +281,7 @@ extension PlaceSearch {
         }
         // Co-authors before the poster: on a collab the venue is rarely the one who posted.
         var fromAccounts: [PlaceCandidate] = []
-        for handle in coauthors where handle != ownerUsername {
+        for handle in mentioned(coauthors, owner: ownerUsername) {
             fromAccounts += await resolveAccount(ownerFullName: nil, ownerUsername: handle, town: town, near: near).prefix(3)
         }
         let fromOwner = Array(await resolveAccount(ownerFullName: ownerFullName, ownerUsername: ownerUsername, town: town, near: near).prefix(3))
@@ -290,21 +291,51 @@ extension PlaceSearch {
             let at = CLLocation(latitude: anchor.latitude, longitude: anchor.longitude)
             fromAccounts = fromAccounts.filter { CLLocation(latitude: $0.latitude, longitude: $0.longitude).distance(from: at) <= 100_000 }
         }
+        // A venue posting about itself: its own place first, and saved by itself when it's the only one and the
+        // post names nobody else (El Roca, Beak, Bon Jo, Bar la Janethe: all dug for or given up, 2026-11-01).
+        let own = fromOwner.filter { isOwnPlace($0, fullName: ownerFullName, username: ownerUsername) }
+        if own.count == 1, fromAccounts.isEmpty, fromCollab.isEmpty { return (own, true, near) }
         fromAccounts += fromOwner
         var seen = Set<String>()
-        let merged = (Array(fromCaption.prefix(3)) + fromCollab + fromAccounts).filter { seen.insert($0.id).inserted }
+        let merged = (own + Array(fromCaption.prefix(3)) + fromCollab + fromAccounts).filter { seen.insert($0.id).inserted }
         // On a collab, the venue carries the tag's or a collab name's words (VRÅ, not the Clarion Hotel it's in).
         // An account the post names (a co-author, an @mention) is the strongest lead: @arraval → Arraval first (2026-10-16).
-        let handles = coauthors.filter { $0 != ownerUsername }
+        let handles = mentioned(coauthors, owner: ownerUsername)
             .flatMap { words(splitHandleCity($0)?.name ?? $0.replacingOccurrences(of: "[._-]+", with: " ", options: .regularExpression)) }
         let hints = (words(hint ?? "") + collabNames(caption).flatMap(words) + handles)
             .filter { !handleCityNames.contains($0) && !categoryWords.contains($0) }
+        let ownIDs = Set(own.map(\.id))
         let ranked = merged.enumerated().sorted { a, b in
-            let ha = !hints.isEmpty && overlaps(words(a.element.name), hints) ? 0 : 1
-            let hb = !hints.isEmpty && overlaps(words(b.element.name), hints) ? 0 : 1
+            let ha = ownIDs.contains(a.element.id) ? -1 : !hints.isEmpty && overlaps(words(a.element.name), hints) ? 0 : 1
+            let hb = ownIDs.contains(b.element.id) ? -1 : !hints.isEmpty && overlaps(words(b.element.name), hints) ? 0 : 1
             return (ha, a.offset) < (hb, b.offset)
         }.map(\.element)
         return (Array(ranked.prefix(4)), false, near)
+    }
+
+    /// The poster's own place: named exactly like the account. "Garage Beer Co" for @garagebeerco, "Bon Jo" for
+    /// @bonjo_paris (the handle less its city), "Beak" for BEAK (@beakbrewery). A display name alone isn't enough:
+    /// a blogger called Estelle (@ellevousguide) is not the Estelle in Paris, so the handle has to hold the name too.
+    /// Same rule as `isOwnPlace` in lib/google-places.ts.
+    static func isOwnPlace(_ c: PlaceCandidate, fullName: String?, username: String?) -> Bool {
+        let name = letters(c.name)
+        guard name.count >= 4, let username else { return false }
+        let core = splitHandleCity(username)?.name ?? username
+        let bare = words(handleWithKind(core) ?? "").filter { !categoryWords.contains($0) }.joined(separator: " ")
+        if [username, core, bare].map(letters).contains(name) { return true }
+        guard let fullName else { return false }
+        return letters(fullName) == name && letters(username).contains(name)
+    }
+
+    // Accounts that write about places, not places: their @mention leads nowhere ("The Timeout" for @timeoutparis
+    // on a Specimen Burger reel, 2026-11-01).
+    private static let media = ["timeout", "michelin", "infatuation", "cntraveler", "condenast", "worlds50best", "monocle"]
+
+    /// The accounts a post names besides the poster, media dropped, and the ones with a kind glued on
+    /// ("specimenburger") first: they are venues more surely than a person's handle. Same rule as `mentioned` on the web.
+    static func mentioned(_ coauthors: [String], owner: String?) -> [String] {
+        let kept = coauthors.filter { u in u != owner && !media.contains { letters(u).contains($0) } }
+        return kept.filter { handleWithKind($0) != nil } + kept.filter { handleWithKind($0) == nil }
     }
 
     /// Somewhere to go: not a station or a car park unless its name was asked for ("vR" offered
@@ -377,11 +408,16 @@ extension PlaceSearch {
         if ws.contains(where: { w in streetEndings.contains { w.count > $0.count + 2 && w.hasSuffix($0) } }) { return first }
         if ws.count > 1, streetWords.contains(last) { return first }
         if ws.count > 1, streetPrefixes.contains(ws[0]) { return first }
+        if ws.count > 2, streetPrefixesJoined.contains(ws[0]),
+           ws[1].range(of: #"^(de|du|des|del|della|dei|degli|delle|di|d['’].*)$"#, options: .regularExpression) != nil { return first }
         return nil
     }
     private static let streetEndings = ["gatan", "vägen", "gränd", "gade", "straße", "strasse", "straat", "gasse", "caddesi", "sokak", "sokağı"]
     private static let streetWords = ["street", "st", "road", "rd", "avenue", "ave", "boulevard", "blvd", "lane", "caddesi", "sokak", "sokağı", "cd", "sk"]
     private static let streetPrefixes = ["carrer", "calle", "avenida", "avinguda", "rua", "passeig", "paseo"]
+    // French and Italian ones only with the "de / du / della" that joins the name: "Rue du Parc-Royal" (Causeries,
+    // 2026-11-01) is a street, "Rue Blanche" may be a bar.
+    private static let streetPrefixesJoined = ["rue", "avenue", "boulevard", "bd", "quai", "place", "allée", "impasse", "chemin", "via", "viale", "piazza", "piazzale", "corso", "largo", "vicolo"]
 
     /// The caption's "📍 Prodigi" line, plus the address on the line below it.
     /// Same rule as `pinnedPlaceQuery` in lib/google-places.ts.
@@ -395,7 +431,10 @@ extension PlaceSearch {
                 .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
                 .trimmingCharacters(in: .whitespaces)
         }
-        guard let i = lines.firstIndex(where: leads) else { return nil }
+        // "📌 Save it for your next walk" asks something of the reader; it names no place (amsterdamworld, 2026-11-01).
+        let asks = try! NSRegularExpression(pattern: #"^(save|follow|tag|share|send|comment|like|turn on|dm|book|link in)\b"#, options: .caseInsensitive)
+        func asksReader(_ l: String) -> Bool { let c = clean(l); return asks.firstMatch(in: c, range: NSRange(c.startIndex..., in: c)) != nil }
+        guard let i = lines.firstIndex(where: { leads($0) && !asksReader($0) }) else { return nil }
         var q = clean(lines[i])
         let below = i + 1 < lines.count ? lines[i + 1] : ""
         let next = clean(below)
@@ -425,6 +464,8 @@ extension PlaceSearch {
         return [left, right].filter { $0.count >= 3 }
     }
 
+    private static let areaNames: Set<String> = Set(Metros.areas.map { fold($0.name) })
+
     private static let regionNames: Set<String> = {
         var names: Set<String> = ["usa", "uk", "uae", "england", "scotland", "italia", "españa", "deutschland", "sverige", "danmark", "türkiye"]
         // Instagram tags US, Canadian and Australian towns "Los Angeles, California" (luxury_listings, 2026-10-17).
@@ -437,12 +478,12 @@ extension PlaceSearch {
     }()
 
     /// A location tag that names a town, not a place: "Ostuni, Puglia, Italy", "Paris, France".
-    /// Three or more parts, two ending in a country, or a known city alone ("Athens": Seychelles, not the
-    /// islands, 2026-10-19). Returns the town; nil for a place tag
+    /// Three or more parts, two ending in a country or a travel area ("Begur, Costa Brava": Bar la Janethe,
+    /// 2026-11-01), or a known city alone ("Athens": Seychelles, not the islands, 2026-10-19). Returns the town; nil for a place tag
     /// ("Septime, Paris" keeps its name). Same rule as `areaOfTag` in lib/google-places.ts.
     static func areaOfTag(_ tag: String?) -> String? {
         let parts = (tag ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-        if parts.count >= 3 || (parts.count == 2 && regionNames.contains(parts[1].lowercased())) { return parts[0] }
+        if parts.count >= 3 || (parts.count == 2 && (regionNames.contains(parts[1].lowercased()) || areaNames.contains(fold(parts[1])))) { return parts[0] }
         if parts.count == 1, knownCities.contains(fold(parts[0])) { return parts[0] }
         return nil
     }
@@ -539,11 +580,13 @@ extension PlaceSearch {
     }
 
     /// Port of the web's `captionPlaceQuery`: "dinner at Cal Pep in Barcelona"
-    /// → "Cal Pep Barcelona". Pattern matching only; suggestions, never auto-saved.
+    /// → "Cal Pep Barcelona"; also after "check out / head to / visit / stop by" ("check out Bisou.", 2026-11-01),
+    /// never across a line break. Pattern matching only; suggestions, never auto-saved.
     static func captionPlaceQuery(_ caption: String?) -> String? {
         guard let caption else { return nil }
-        let cap = #"[\p{Lu}\d][\p{L}\d'’&.-]*"#
-        let pattern = #"(?:^|\s)(?:at|@|en|à|på|bei)\s+("# + cap + #"(?:\s+(?:de|del|la|le|du|of|the|&|"# + cap + #"))*)(?:\s+in\s+("# + cap + #"(?:\s+"# + cap + #")*))?"#
+        // A full stop ends the name ("check out Bisou. Each drink…"); one inside a word stays.
+        let cap = #"[\p{Lu}\d](?:[\p{L}\d'’&-]|\.(?=[\p{L}\d]))*"#
+        let pattern = #"(?:^|\s)(?:at|@|en|à|på|bei|[Cc]heck out|[Hh]ead to|[Vv]isit|[Ss]top by)[ \t]+("# + cap + #"(?:[ \t]+(?:de|del|la|le|du|of|the|&|"# + cap + #"))*)(?:[ \t]+in[ \t]+("# + cap + #"(?:[ \t]+"# + cap + #")*))?"#
         guard let re = try? NSRegularExpression(pattern: pattern),
               let m = re.firstMatch(in: caption, range: NSRange(caption.startIndex..., in: caption)),
               let placeRange = Range(m.range(at: 1), in: caption) else { return nil }

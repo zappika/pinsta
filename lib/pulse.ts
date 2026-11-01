@@ -23,7 +23,9 @@ export type Band = "clean" | "rescued" | "missed";
 /**
  * How a save sheet ended, in three bands. Clean: the app found it alone (saved by itself, the first
  * suggestion, a list post). Rescued: it worked, but the person had to dig (a lower suggestion, a
- * typed search). Missed: gave up. "Already in Vicolo" and later changes aren't tries.
+ * typed search on a link). Missed: gave up. "Already in Vicolo" and later changes aren't tries.
+ * A typed name picked from its results is how a name is saved, not digging: clean (4 of 16 "after
+ * digging" were that, 2026-11-01).
  */
 export function bandOf(s: Save): Band | null {
   switch (s.outcome) {
@@ -33,7 +35,7 @@ export function bandOf(s: Save): Band | null {
     case "picked":
       return (s.detail.rank ?? 0) > 0 ? "rescued" : "clean";
     case "searched":
-      return "rescued";
+      return s.url ? "rescued" : "clean";
     case "gave_up":
       return "missed";
     default:
