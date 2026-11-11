@@ -6,7 +6,7 @@ import { fetchInstagramProfile } from "@/lib/instagram-profile";
 import { readGoogleLink } from "@/lib/google-link";
 import { listIdFrom } from "@/lib/google-list";
 import { parseSourceUrl, type SourceKind } from "@/lib/sources";
-import { areaOfTag, getPlace, handleWithKind, locate, profileMatches, resolveTag, resolveUntagged, searchPlaces, streetOfTag, type PlaceCandidate } from "@/lib/google-places";
+import { areaOfTag, getPlace, handleWithKind, locate, namesTag, profileMatches, resolveTag, resolveUntagged, searchPlaces, streetOfTag, type PlaceCandidate } from "@/lib/google-places";
 import { storeImage } from "@/lib/blob";
 import { isOwner } from "@/lib/owner";
 
@@ -163,6 +163,7 @@ export async function POST(req: Request) {
           town,
           near,
           hint: fellBack ? post.locationName : null,
+          hashtags: post.hashtags,
         });
         pinned = r.pinned;
         return r.candidates;
@@ -203,7 +204,12 @@ export async function POST(req: Request) {
       candidates: source === "link" && candidates.length > 1 && isClear(candidates, post.near) ? candidates.slice(0, 1) : candidates,
       // The caption's 📍 line names the place as surely as a tag does.
       // A profile is the venue: its match is trusted like a tag.
-      source: candidates.length ? (pinned || parsed.kind === "profile" ? "tag" : fellBack ? "account" : source) : null,
+      // A tag's lone result that doesn't carry the tag's name is a guess, offered, not saved ("Bar Sagarra", 2026-11-08).
+      source: candidates.length
+        ? pinned || parsed.kind === "profile" ? "tag"
+        : fellBack || (source === "tag" && candidates.length === 1 && !namesTag(candidates[0], post.locationName!)) ? "account"
+        : source
+        : null,
     };
     return NextResponse.json(out);
   } catch (e) {

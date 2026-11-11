@@ -308,8 +308,9 @@ export async function resolveAccount(input: {
   /** The post is tagged with a street: search around it, drop what's far. */
   near?: { lat: number; lng: number } | null;
 }): Promise<PlaceCandidate[]> {
+  input = { ...input, ownerUsername: bareHandle(input.ownerUsername) };
   const queries = new Set<string>();
-  const full = input.ownerFullName?.trim();
+  const full = plain(input.ownerFullName ?? "").trim();
   if (full && full.length > 2) queries.add(full);
   const handle = input.ownerUsername?.replace(/[._-]+/g, " ").trim();
   if (handle && handle.length > 2) queries.add(handle);
@@ -369,7 +370,36 @@ function letters(s: string) {
 
 /** For comparing names: case, accents and maths letters away. "VRÅ" = "vra" (@restaurangvra), 𝐁𝐀𝐓𝐀 = bata. */
 function fold(s: string) {
-  return s.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
+  return plain(s).normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
+}
+
+// Small capitals have no plain form in Unicode's own mapping: "ᴍᴀɴᴛɪꜱ" (@mantisbcn, 2026-11-08) stayed unreadable.
+const SMALL_CAPS = "ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡʏᴢ";
+const SMALL_CAPS_PLAIN = "abcdefghijklmnopqrstuvwyz";
+/** A display name in small capitals as plain letters, to search with. Same rule in PlaceSearch.swift. */
+export function plain(s: string) {
+  return [...s].map((ch) => { const i = SMALL_CAPS.indexOf(ch); return i >= 0 ? SMALL_CAPS_PLAIN[i] : ch; }).join("");
+}
+
+/**
+ * A handle less the web address it ends in: "mariadelrio.es" → "mariadelrio". The ".es" kept María Del Río's
+ * handle from matching her name and hid that the account is the restaurant (2026-11-08). Same rule in PlaceSearch.swift.
+ */
+export function bareHandle<T extends string | null | undefined>(username: T): T {
+  return (username?.replace(/\.(com|net|org|es|cat|eus|gal|it|fr|de|at|ch|se|dk|no|fi|is|pt|nl|be|gr|eu|co|uk|co\.uk|bar|cafe|wine|restaurant)$/i, "") ?? username) as T;
+}
+
+/**
+ * The tag's own place: what Apple or Google returns for a tag carries the tag's name and not much else. A lone
+ * result is saved without a tap only then: "Bar Sagarra" found only "Apa Del Col Nal Mixto José María De Sagarra
+ * De Bar" and would have saved it (2026-11-08). At most two words more than the tag ("Bar Restaurante La Janethe").
+ * Same rule in PlaceSearch.swift.
+ */
+export function namesTag(c: { name: string }, tag: string): boolean {
+  const t = new Set(words(tag)), n = words(c.name);
+  if (letters(c.name) === letters(tag)) return true;
+  const shared = n.filter((w) => t.has(w) && !CATEGORY_WORDS.includes(w));
+  return shared.length > 0 && n.filter((w) => !t.has(w)).length <= 2;
 }
 
 /**
@@ -410,8 +440,11 @@ export function areaOfTag(tag: string | null | undefined): string | null {
   const parts = (tag ?? "").split(",").map((p) => p.trim()).filter(Boolean);
   if (parts.length >= 3 || (parts.length === 2 && (REGION_NAMES.has(parts[1].toLowerCase()) || AREAS.has(fold(parts[1]))))) return parts[0];
   if (parts.length === 1 && KNOWN_CITIES.has(fold(parts[0]))) return parts[0];
+  // A neighbourhood: "Barri de Sants" found Sants station and another tavern for Bitxo Taverna (2026-11-08).
+  if (parts.length && NEIGHBOURHOOD.test(parts[0])) return parts[0];
   return null;
 }
+const NEIGHBOURHOOD = /^(barri|barrio|bairro|quartier|quartiere|rione|kiez|distrito|districte)\s+\p{L}/iu;
 
 // Cities restaurants put in their handle: "barabbacph", "joe_nyc", "cafe.sthlm", "criollo_oax".
 // The cities a Monocle reader travels to (Sarp, 2026-10-16). Same lists in PlaceSearch.swift.
@@ -455,7 +488,7 @@ const HANDLE_CITY_NAMES = new Set([...Object.values(HANDLE_CITIES_GLUED), ...Obj
 
 /** "restaurangvra" → "restaurang vra", "barbrutal" → "bar brutal": a category word glued on. Same rule in PlaceSearch.swift. */
 export function handleWithKind(username: string | null | undefined): string | null {
-  const h = (username ?? "").toLowerCase().replace(/[._-]+/g, "");
+  const h = (bareHandle(username) ?? "").toLowerCase().replace(/[._-]+/g, "");
   for (const w of [...CATEGORY_WORDS].filter((w) => /^[a-z]+$/.test(w)).sort((a, b) => b.length - a.length)) {
     if (h.length >= w.length + 3 && h.startsWith(w)) return `${w} ${h.slice(w.length)}`;
     if (h.length >= w.length + 3 && h.endsWith(w)) return `${h.slice(0, -w.length)} ${w}`;
@@ -475,7 +508,7 @@ export function cityOfHandle(username: string | null | undefined): string | null
 }
 
 function splitHandleCity(username: string | null | undefined): { name: string; city: string } | null {
-  const parts = (username ?? "").toLowerCase().split(/[._-]+/).filter(Boolean);
+  const parts = (bareHandle(username) ?? "").toLowerCase().split(/[._-]+/).filter(Boolean);
   const last = parts.length > 1 ? HANDLE_CITIES_LAST[parts[parts.length - 1]] : undefined;
   if (last) return { name: parts.slice(0, -1).join(" "), city: last };
   for (let i = parts.length - 1; i >= 0; i--) {
@@ -535,6 +568,21 @@ const STREET_PREFIXES = ["carrer", "calle", "avenida", "avinguda", "rua", "passe
 // French and Italian ones only with the "de / du / della" that joins the name: "Rue du Parc-Royal" (Causeries,
 // 2026-11-01) is a street, "Rue Blanche" may be a bar.
 const STREET_PREFIXES_JOINED = ["rue", "avenue", "boulevard", "bd", "quai", "place", "allée", "impasse", "chemin", "via", "viale", "piazza", "piazzale", "corso", "largo", "vicolo"];
+
+/** "…Saturday 12:00-16:00 Vattugatan 13, Stockholm" → "Vattugatan 13, Stockholm". Same rule in PlaceSearch.swift. */
+export function addressIn(text: string | null): string | null {
+  if (!text) return null;
+  const re = /(\p{L}[\p{L}'’.-]*(?:\s+\p{L}[\p{L}'’.-]*){0,3})\s+(\d{1,4}[a-zA-Z]?)(?:\s*,\s*(\p{L}[\p{L}'’ -]{1,30}\p{L}))?/gu;
+  for (const m of text.matchAll(re)) {
+    // Trailing words of the run first: "Saturday Vattugatan" → "Vattugatan".
+    const words = m[1].split(/\s+/);
+    for (let i = 0; i < words.length; i++) {
+      const street = words.slice(i).join(" ");
+      if (streetOfTag(street)) return [`${street} ${m[2]}`, m[3]?.trim()].filter(Boolean).join(", ");
+    }
+  }
+  return null;
+}
 
 /**
  * The line a caption pins the place on: "📍 Prodigi" and, on the next line, its address.
@@ -662,11 +710,15 @@ export async function resolveUntagged(input: {
   near: { lat: number; lng: number } | null;
   /** A tag that found nothing by itself ("VRÅ"): what carries its words ranks first. */
   hint?: string | null;
+  hashtags?: string[];
 }): Promise<{ candidates: PlaceCandidate[]; pinned: boolean; near: { lat: number; lng: number } | null }> {
   // The post's city keeps every search there: without it "Thomas Straker" found Thomas Strake in Hanau
   // for a New York collab, and Apple's far-off junk kept Google from being asked (2026-10-16).
+  // A hashtag counts too (#madridgastro), and else a street address in the caption ("Calle Doña Urraca 16"):
+  // María Del Río's posts said Madrid only that way (2026-11-08).
   const city = input.near ? null : postCity(input);
-  const near = input.near ?? (city ? await locate(city) : null);
+  const address = input.near || city ? null : addressIn(input.caption);
+  const near = input.near ?? (city ? await locate(city) : address ? await locate(address) : null);
   const search = async (q: string | null) =>
     q ? (await searchPlaces(q, near).catch(() => [] as PlaceCandidate[])).filter((c) => isVenue(c, q) && isNear(c, near)) : [];
   const pin = pinnedPlaceQuery(input.caption);
@@ -720,6 +772,7 @@ export async function resolveUntagged(input: {
  */
 export function isOwnPlace(c: PlaceCandidate, fullName: string | null | undefined, username: string | null | undefined): boolean {
   const name = letters(c.name);
+  username = bareHandle(username);
   if (name.length < 4 || !username) return false;
   const core = splitHandleCity(username)?.name ?? username;
   const bare = words(handleWithKind(core) ?? "").filter((w) => !CATEGORY_WORDS.includes(w)).join(" ");

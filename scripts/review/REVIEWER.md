@@ -17,6 +17,11 @@ Read `CLAUDE.md` first (the "Tag → place" rules, "Low-tech first", the convent
 - Design calls (what a sheet says or shows) are Sarp's: propose search logic only.
 
 ## Steps
+Nobody is there to approve a command: `.claude/settings.json` pre-approves exactly the commands below, so
+write them as they are here (one command per call; `git -C ~/Projects/pinsta-review/D …` for git in the
+worktree; DB lookups as `npx tsx --env-file=.env.local <script>.mts` with the script in the worktree).
+A command that stops for approval stalls the whole run (2026-11-02 and -09 did nothing that way).
+
 1. Set up the worktree (D is today, `YYYY-MM-DD`):
    ```bash
    git -C ~/Projects/pinsta fetch origin

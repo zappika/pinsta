@@ -42,13 +42,15 @@ func find(_ p: Case) async -> (found: [PlaceCandidate], trusted: Bool) {
             found = []
             townTag = tag
         }
+        if found.count == 1, !PlaceSearch.namesTag(found[0], tag) { trusted = false }
     }
     if found.isEmpty {
         var streetPin: CLLocationCoordinate2D?
         if PlaceSearch.streetOfTag(p.locationName) != nil { streetPin = await PlaceSearch.locate(p.locationName!) }
         let r = await PlaceSearch.resolveUntagged(
             caption: p.caption, ownerFullName: p.ownerFullName, ownerUsername: p.ownerUsername, coauthors: p.coauthors,
-            town: townTag ?? PlaceSearch.areaOfTag(p.locationName), near: streetPin, hint: townTag == nil ? tagged : nil
+            town: townTag ?? PlaceSearch.areaOfTag(p.locationName), near: streetPin, hint: townTag == nil ? tagged : nil,
+            hashtags: p.hashtags
         )
         found = r.candidates
         trusted = r.pinned

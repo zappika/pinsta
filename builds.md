@@ -21,6 +21,10 @@ How it stays true:
 - A restaurant's own post saves itself more often: when the place is named exactly like the account (El Roca, Beak, Bon Jo), it's found on its own.
 - Posts tagged with a town in a travel area ("Begur, Costa Brava") or a French/Italian street ("Rue du Parc-Royal") look for the venue instead of offering hotels around it.
 - Captions saying "check out Bisou" find Bisou; a magazine tagged in a post (Time Out) no longer comes before the restaurant.
+- Restaurants whose Instagram name ends in a web address (`mariadelrio.es`) are found like any other; a post that names its street ("Calle Doña Urraca 16") or a city hashtag (#madridgastro) is searched there.
+- Posts tagged with a neighbourhood ("Barri de Sants") look for the venue instead of offering the station.
+- A tag that only turns up a place with a different name no longer saves it by itself: you're asked first.
+- *(internal)* Save-miss fixes (2026-11-11, `PlaceSearch.swift`): `bareHandle`, `plain` (small capitals), `namesTag`, `addressIn` ported from the web, `resolveUntagged` takes hashtags, neighbourhoods in `areaOfTag`. Checked with the MapKit replay.
 - *(internal)* Save-miss fixes (2026-11-01, `PlaceSearch.swift`): `isOwnPlace`, `mentioned` (media dropped, kind-glued handles first), travel areas in `areaOfTag`, "rue du / via della" in `streetOfTag`, `captionPlaceQuery` phrases and line breaks, "📌 Save it…" isn't a place line. Checked with the MapKit harness, not in the Simulator.
 - *(internal)* Compiled for device only; the Simulator was down (CoreSimulator out of date after the Xcode update), not tried on screen yet.
 

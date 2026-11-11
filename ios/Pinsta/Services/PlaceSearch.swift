@@ -124,7 +124,8 @@ extension PlaceSearch {
     /// `near`: the post is tagged with a street — search around it, drop what's far.
     static func resolveAccount(ownerFullName: String?, ownerUsername: String?, town: String? = nil, near: CLLocationCoordinate2D? = nil) async -> [PlaceCandidate] {
         var queries: [String] = []
-        if let full = ownerFullName?.trimmingCharacters(in: .whitespacesAndNewlines), full.count > 2 { queries.append(full) }
+        let ownerUsername = bareHandle(ownerUsername)
+        if let full = ownerFullName.map(plain)?.trimmingCharacters(in: .whitespacesAndNewlines), full.count > 2 { queries.append(full) }
         if let handle = ownerUsername?.replacingOccurrences(of: "[._-]+", with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespaces), handle.count > 2 { queries.append(handle) }
         let split = handleWithCity(ownerUsername)
@@ -234,7 +235,48 @@ extension PlaceSearch {
 
     /// For comparing names: case, accents and maths letters away. "VRÅ" = "vra" (@restaurangvra), 𝐁𝐀𝐓𝐀 = bata.
     private static func fold(_ s: String) -> String {
-        s.precomposedStringWithCompatibilityMapping.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
+        plain(s).precomposedStringWithCompatibilityMapping.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
+    }
+
+    // Small capitals have no plain form in Unicode's own mapping: "ᴍᴀɴᴛɪꜱ" (@mantisbcn, 2026-11-08) stayed unreadable.
+    private static let smallCaps: [Character: Character] = Dictionary(uniqueKeysWithValues: zip("ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡʏᴢ", "abcdefghijklmnopqrstuvwyz"))
+    /// A display name in small capitals as plain letters, to search with. Same rule as `plain` on the web.
+    static func plain(_ s: String) -> String { String(s.map { smallCaps[$0] ?? $0 }) }
+
+    /// A handle less the web address it ends in: "mariadelrio.es" → "mariadelrio". The ".es" kept María Del Río's
+    /// handle from matching her name and hid that the account is the restaurant (2026-11-08). Same rule as `bareHandle` on the web.
+    static func bareHandle(_ username: String?) -> String? {
+        username?.replacingOccurrences(of: #"\.(com|net|org|es|cat|eus|gal|it|fr|de|at|ch|se|dk|no|fi|is|pt|nl|be|gr|eu|co|uk|co\.uk|bar|cafe|wine|restaurant)$"#, with: "", options: [.regularExpression, .caseInsensitive])
+    }
+
+    /// The tag's own place: what Apple returns for a tag carries the tag's name and not much else. A lone result is
+    /// saved without a tap only then: "Bar Sagarra" found only "Apa Del Col Nal Mixto José María De Sagarra De Bar"
+    /// and would have saved it (2026-11-08). At most two words more than the tag ("Bar Restaurante La Janethe").
+    /// Same rule as `namesTag` on the web.
+    static func namesTag(_ c: PlaceCandidate, _ tag: String) -> Bool {
+        if letters(c.name) == letters(tag) { return true }
+        let t = Set(words(tag)), n = words(c.name)
+        return n.contains { t.contains($0) && !categoryWords.contains($0) } && n.filter { !t.contains($0) }.count <= 2
+    }
+
+    /// "…Saturday 12:00-16:00 Vattugatan 13, Stockholm" → "Vattugatan 13, Stockholm"; "Cruza el río y llegas. Calle Doña
+    /// Urraca 16." → "Calle Doña Urraca 16". Same rule as `addressIn` on the web.
+    static func addressIn(_ text: String?) -> String? {
+        guard let text else { return nil }
+        let re = try! NSRegularExpression(pattern: #"(\p{L}[\p{L}'’.-]*(?:\s+\p{L}[\p{L}'’.-]*){0,3})\s+(\d{1,4}[a-zA-Z]?)(?:\s*,\s*(\p{L}[\p{L}'’ -]{1,30}\p{L}))?"#)
+        for m in re.matches(in: text, range: NSRange(text.startIndex..., in: text)) {
+            guard let r1 = Range(m.range(at: 1), in: text), let r2 = Range(m.range(at: 2), in: text) else { continue }
+            let ws = text[r1].split(whereSeparator: \.isWhitespace).map(String.init)
+            // Trailing words of the run first: "Saturday Vattugatan" → "Vattugatan".
+            for i in ws.indices {
+                let street = ws[i...].joined(separator: " ")
+                if streetOfTag(street) != nil {
+                    let town = Range(m.range(at: 3), in: text).map { String(text[$0]).trimmingCharacters(in: .whitespaces) }
+                    return (["\(street) \(text[r2])"] + [town].compactMap { $0 }).joined(separator: ", ")
+                }
+            }
+        }
+        return nil
     }
 
     /// A profile is one venue: candidates named like the account, and of its kind when MapKit's
@@ -259,12 +301,17 @@ extension PlaceSearch {
     /// Same order as `resolveUntagged` in lib/google-places.ts.
     static func resolveUntagged(
         caption: String?, ownerFullName: String?, ownerUsername: String?, coauthors: [String],
-        town: String?, near: CLLocationCoordinate2D?, hint: String? = nil
+        town: String?, near: CLLocationCoordinate2D?, hint: String? = nil, hashtags: [String] = []
     ) async -> (candidates: [PlaceCandidate], pinned: Bool, near: CLLocationCoordinate2D?) {
         // The post's city keeps every search there: without it "Thomas Straker" found Thomas Strake in Hanau
         // for a New York collab, and Apple's far-off junk kept Google from being asked (2026-10-16).
+        // A hashtag counts too (#madridgastro), and else a street address in the caption ("Calle Doña Urraca 16"):
+        // María Del Río's posts said Madrid only that way (2026-11-08).
         var near = near
-        if near == nil, let city = postCity(ownerUsername: ownerUsername, coauthors: coauthors, town: town) { near = await locate(city) }
+        if near == nil {
+            if let city = postCity(ownerUsername: ownerUsername, coauthors: coauthors, town: town, hashtags: hashtags) { near = await locate(city) }
+            else if let address = addressIn(caption) { near = await locate(address) }
+        }
         func find(_ q: String?) async -> [PlaceCandidate] {
             guard let q else { return [] }
             return ((try? await search(q, limit: 6, near: near)) ?? []).filter { isVenue($0, asked: q) && isNear($0, near) }
@@ -319,7 +366,7 @@ extension PlaceSearch {
     /// Same rule as `isOwnPlace` in lib/google-places.ts.
     static func isOwnPlace(_ c: PlaceCandidate, fullName: String?, username: String?) -> Bool {
         let name = letters(c.name)
-        guard name.count >= 4, let username else { return false }
+        guard name.count >= 4, let username = bareHandle(username) else { return false }
         let core = splitHandleCity(username)?.name ?? username
         let bare = words(handleWithKind(core) ?? "").filter { !categoryWords.contains($0) }.joined(separator: " ")
         if [username, core, bare].map(letters).contains(name) { return true }
@@ -485,6 +532,8 @@ extension PlaceSearch {
         let parts = (tag ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         if parts.count >= 3 || (parts.count == 2 && (regionNames.contains(parts[1].lowercased()) || areaNames.contains(fold(parts[1])))) { return parts[0] }
         if parts.count == 1, knownCities.contains(fold(parts[0])) { return parts[0] }
+        // A neighbourhood: "Barri de Sants" found Sants station and another tavern for Bitxo Taverna (2026-11-08).
+        if let first = parts.first, first.range(of: #"^(barri|barrio|bairro|quartier|quartiere|rione|kiez|distrito|districte)\s+\p{L}"#, options: [.regularExpression, .caseInsensitive]) != nil { return first }
         return nil
     }
 
@@ -532,7 +581,7 @@ extension PlaceSearch {
 
     /// "restaurangvra" → "restaurang vra": a category word glued on. Same rule as `handleWithKind` on the web.
     static func handleWithKind(_ username: String?) -> String? {
-        let h = (username ?? "").lowercased().filter { !"._-".contains($0) }
+        let h = (bareHandle(username) ?? "").lowercased().filter { !"._-".contains($0) }
         for w in categoryWords.filter({ $0.allSatisfy { ("a"..."z").contains($0) } }).sorted(by: { $0.count > $1.count }) {
             if h.count >= w.count + 3, h.hasPrefix(w) { return "\(w) \(h.dropFirst(w.count))" }
             if h.count >= w.count + 3, h.hasSuffix(w) { return "\(h.dropLast(w.count)) \(w)" }
@@ -549,7 +598,7 @@ extension PlaceSearch {
     static func cityOfHandle(_ username: String?) -> String? { splitHandleCity(username)?.city }
 
     private static func splitHandleCity(_ username: String?) -> (name: String, city: String)? {
-        let parts = (username ?? "").lowercased().split { "._-".contains($0) }.map(String.init)
+        let parts = (bareHandle(username) ?? "").lowercased().split { "._-".contains($0) }.map(String.init)
         if parts.count > 1, let city = handleCitiesLast[parts[parts.count - 1]] { return (parts.dropLast().joined(separator: " "), city) }
         for i in stride(from: parts.count - 1, through: 0, by: -1) {
             let p = parts[i]

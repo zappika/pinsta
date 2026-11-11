@@ -489,6 +489,8 @@ struct AddPlaceView: View {
                     found = []
                     townTag = tag
                 }
+                // A lone result that doesn't carry the tag's name is a guess: offered, not saved ("Bar Sagarra", 2026-11-08).
+                if found.count == 1, !PlaceSearch.namesTag(found[0], tag) { from = .account }
             }
             // A tag that found nothing ("VRÅ" on Broth Boy x Vrå, Mert 2026-10-14) is read as no tag.
             if post.kind != "google", found.isEmpty {
@@ -498,7 +500,7 @@ struct AddPlaceView: View {
                 let r = await PlaceSearch.resolveUntagged(
                     caption: post.caption, ownerFullName: post.ownerFullName, ownerUsername: post.ownerUsername,
                     coauthors: post.coauthors ?? [], town: townTag ?? PlaceSearch.areaOfTag(post.locationName), near: streetPin,
-                    hint: townTag == nil ? tagged : nil
+                    hint: townTag == nil ? tagged : nil, hashtags: post.hashtags ?? []
                 )
                 found = r.candidates
                 postNear = r.near

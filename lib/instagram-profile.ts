@@ -7,7 +7,7 @@
  * Stockholm"). Server-side only — uses APIFY_TOKEN.
  */
 import { countCall } from "./usage";
-import { streetOfTag } from "./google-places";
+import { addressIn } from "./google-places";
 
 export type InstagramProfile = {
   username: string;
@@ -78,17 +78,3 @@ function commonTag(tags: (string | undefined)[]): string | null {
   return best && best[1] >= 2 ? best[0] : null;
 }
 
-/** "…Saturday 12:00-16:00 Vattugatan 13, Stockholm" → "Vattugatan 13, Stockholm". Same rule in PostReader.swift. */
-export function addressIn(text: string | null): string | null {
-  if (!text) return null;
-  const re = /(\p{L}[\p{L}'’.-]*(?:\s+\p{L}[\p{L}'’.-]*){0,3})\s+(\d{1,4}[a-zA-Z]?)(?:\s*,\s*(\p{L}[\p{L}'’ -]{1,30}\p{L}))?/gu;
-  for (const m of text.matchAll(re)) {
-    // Trailing words of the run first: "Saturday Vattugatan" → "Vattugatan".
-    const words = m[1].split(/\s+/);
-    for (let i = 0; i < words.length; i++) {
-      const street = words.slice(i).join(" ");
-      if (streetOfTag(street)) return [`${street} ${m[2]}`, m[3]?.trim()].filter(Boolean).join(", ");
-    }
-  }
-  return null;
-}
