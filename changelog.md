@@ -8,6 +8,15 @@ backoffice, web-only changes). Headings read "## Build N · D Month".
 
 # What's new in Vicolo
 
+## Build 34 · 15 November
+
+- More posts save by themselves: when a restaurant posts about itself and the place is named like the account, it's found on its own.
+- Posts tagged with a street, a neighbourhood ("Barri de Sants") or a town in an area ("Begur, Costa Brava") look for the venue, not the station or hotels nearby.
+- A caption that gives the place's name and address ("The Blue Moon, 55 Rue de la Roquette, Paris") finds that place; so do captions saying "check out Bisou".
+- Restaurants whose Instagram name ends in a web address (like ".es") are found like any other.
+- A tag that only turns up a place with a different name no longer saves it by itself: you're asked first.
+- On the map, imported places are a stronger colour, names move to the other side instead of disappearing, and places saved by name or from Google Maps show their photo.
+
 ## Build 33 · 31 October
 
 - The map changes as you zoom: far out, places close together become one round picture with how many there are; across a city, dots with names; closer in, photos with names. Places right next to each other stack into one photo with "+1 more"; tap it to zoom in. Places from an imported list are small coloured dots.

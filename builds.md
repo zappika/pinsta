@@ -13,8 +13,10 @@ How it stays true:
 - `git log ios-N..HEAD -- ios lib app/api` is the check: anything there that isn't listed under Next build was forgotten.
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
-## Next build (since `ios-33`)
+## Next build (since `ios-34`)
 
+
+## In TestFlight: 1.0 (34) · 2026-11-15 · `ios-34` · phone ☐
 - Map dots for imported places are a stronger colour, easier to see on the map.
 - A place name that would run into a nearby pin now shows on the other side instead of disappearing.
 - Places saved by name or from a Google Maps link show their photo on the map, like places saved from a post.
@@ -28,14 +30,13 @@ How it stays true:
 - *(internal)* `namedAddressQuery` (2026-11-15): a "Name, address" caption line is trusted like a 📍 line, results must carry the name's words.
 - *(internal)* Save-miss fixes (2026-11-11, `PlaceSearch.swift`): `bareHandle`, `plain` (small capitals), `namesTag`, `addressIn` ported from the web, `resolveUntagged` takes hashtags, neighbourhoods in `areaOfTag`. Checked with the MapKit replay.
 - *(internal)* Save-miss fixes (2026-11-01, `PlaceSearch.swift`): `isOwnPlace`, `mentioned` (media dropped, kind-glued handles first), travel areas in `areaOfTag`, "rue du / via della" in `streetOfTag`, `captionPlaceQuery` phrases and line breaks, "📌 Save it…" isn't a place line. Checked with the MapKit harness, not in the Simulator.
-- *(internal)* Compiled for device only; the Simulator was down (CoreSimulator out of date after the Xcode update), not tried on screen yet.
-
-
-## In TestFlight: 1.0 (33) · 2026-10-31 · `ios-33` · phone ☐
-- The map changes with zoom: far out, places close together show as one round picture of their photos with how many there are; across a city, dots with names; closer in, photos with names. Places right next to each other stack into one photo with "+1 more"; tap it to zoom in. Places from an imported list are small coloured dots, with their type icon up close.
-- *(internal)* Compiled and tried in the Simulator 2026-10-31 (new iPhone 17 Pro on iOS 27.0; 27.1 refuses new devices): Venice opens with type-icon pins and names, two places 50 m apart group as "2". Zooming not checked in the Simulator.
+- *(internal)* Tried in the Simulator 2026-11-15 (iPhone 17 Pro recreated on iOS 27.2): the Blue Moon link saves itself. Replay 43/47. First build from this Mac.
 
 ## Earlier builds
+
+### 1.0 (33) · 2026-10-31 · `ios-33` · phone ☐
+- The map changes with zoom: far out, places close together show as one round picture of their photos with how many there are; across a city, dots with names; closer in, photos with names. Places right next to each other stack into one photo with "+1 more"; tap it to zoom in. Places from an imported list are small coloured dots, with their type icon up close.
+- *(internal)* Compiled and tried in the Simulator 2026-10-31 (new iPhone 17 Pro on iOS 27.0; 27.1 refuses new devices): Venice opens with type-icon pins and names, two places 50 m apart group as "2". Zooming not checked in the Simulator.
 
 ### 1.0 (32) · 2026-10-27 · `ios-32` · phone ☑ (Sarp, 2026-10-27)
 - A restaurant's own carousel with a receipt or bottle labels in the photos no longer turns into a list of random places: only text laid over a picture is read as place names (El Roca, Barcelona).
