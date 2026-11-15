@@ -24,6 +24,8 @@ How it stays true:
 - Restaurants whose Instagram name ends in a web address (`mariadelrio.es`) are found like any other; a post that names its street ("Calle Doña Urraca 16") or a city hashtag (#madridgastro) is searched there.
 - Posts tagged with a neighbourhood ("Barri de Sants") look for the venue instead of offering the station.
 - A tag that only turns up a place with a different name no longer saves it by itself: you're asked first.
+- A caption that gives the place's name and address ("The Blue Moon, 55 Rue de la Roquette, Paris") finds that place.
+- *(internal)* `namedAddressQuery` (2026-11-15): a "Name, address" caption line is trusted like a 📍 line, results must carry the name's words.
 - *(internal)* Save-miss fixes (2026-11-11, `PlaceSearch.swift`): `bareHandle`, `plain` (small capitals), `namesTag`, `addressIn` ported from the web, `resolveUntagged` takes hashtags, neighbourhoods in `areaOfTag`. Checked with the MapKit replay.
 - *(internal)* Save-miss fixes (2026-11-01, `PlaceSearch.swift`): `isOwnPlace`, `mentioned` (media dropped, kind-glued handles first), travel areas in `areaOfTag`, "rue du / via della" in `streetOfTag`, `captionPlaceQuery` phrases and line breaks, "📌 Save it…" isn't a place line. Checked with the MapKit harness, not in the Simulator.
 - *(internal)* Compiled for device only; the Simulator was down (CoreSimulator out of date after the Xcode update), not tried on screen yet.

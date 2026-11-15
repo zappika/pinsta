@@ -318,6 +318,11 @@ extension PlaceSearch {
         }
         let fromPin = await find(pinnedPlaceQuery(caption))
         if !fromPin.isEmpty { return (Array(fromPin.prefix(3)), true, near) }
+        if let named = namedAddressQuery(caption) {
+            let keys = words(named.name).filter { $0.count > 3 }
+            let fromNamed = await find(named.query).filter { overlaps(words($0.name), keys.isEmpty ? words(named.name) : keys) }
+            if !fromNamed.isEmpty { return (Array(fromNamed.prefix(3)), true, near) }
+        }
         // "at Selma, …": a guess at a name, so the result has to carry it (not LittleBig in Bratislava).
         let atQuery = captionPlaceQuery(caption)
         let fromCaption = await find(atQuery).filter { overlaps(nameWords($0.name, $0), nameWords(atQuery ?? "", $0)) }
@@ -465,6 +470,28 @@ extension PlaceSearch {
     // French and Italian ones only with the "de / du / della" that joins the name: "Rue du Parc-Royal" (Causeries,
     // 2026-11-01) is a street, "Rue Blanche" may be a bar.
     private static let streetPrefixesJoined = ["rue", "avenue", "boulevard", "bd", "quai", "place", "allée", "impasse", "chemin", "via", "viale", "piazza", "piazzale", "corso", "largo", "vicolo"]
+
+    /// A caption line that names the place and gives its address: "The Blue Moon, 55 Rue de la Roquette, 75011 Paris"
+    /// (a reel tagged only with the street, 2026-11-11). Said as plainly as a 📍 line, so trusted like one; the result
+    /// has to carry the name's words, or the address itself would answer. Same rule as `namedAddressQuery` on the web.
+    static func namedAddressQuery(_ caption: String?) -> (name: String, query: String)? {
+        for line in (caption ?? "").components(separatedBy: "\n") {
+            let parts = line.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+            guard parts.count >= 2 else { continue }
+            let name = parts[0], address = parts[1]
+            guard name.split(whereSeparator: \.isWhitespace).count <= 5,
+                  name.range(of: #"^[\p{Lu}\d]"#, options: .regularExpression) != nil,
+                  !name.contains("#"), !name.contains("@"), streetOfTag(name) == nil else { continue }
+            // A house number, before the street ("55 Rue de la Roquette") or after it ("Carrer de Girona 145").
+            guard address.rangeOfCharacter(from: .decimalDigits) != nil else { continue }
+            let street = address
+                .replacingOccurrences(of: #"^\d{1,4}[a-zA-Z]?\s+"#, with: "", options: .regularExpression)
+                .replacingOccurrences(of: #"\s+\d{1,4}[a-zA-Z]?$"#, with: "", options: .regularExpression)
+            guard streetOfTag(street) != nil else { continue }
+            return (name, String(parts.joined(separator: ", ").prefix(120)))
+        }
+        return nil
+    }
 
     /// The caption's "📍 Prodigi" line, plus the address on the line below it.
     /// Same rule as `pinnedPlaceQuery` in lib/google-places.ts.

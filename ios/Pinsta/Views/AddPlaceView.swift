@@ -527,7 +527,7 @@ struct AddPlaceView: View {
                 let coauthor = others.lazy.compactMap(PlaceSearch.handleWithCity).first ?? (townTag != nil ? others.first : nil)
                 var near = streetPin ?? postNear
                 if near == nil, let city = PlaceSearch.cityOfHandle(post.ownerUsername) { near = await PlaceSearch.locate(city) }
-                let clues = [townTag == nil ? tagged : nil, PlaceSearch.pinnedPlaceQuery(post.caption), coauthor, PlaceSearch.captionPlaceQuery(post.caption), name].compactMap { $0 }
+                let clues = [townTag == nil ? tagged : nil, PlaceSearch.pinnedPlaceQuery(post.caption) ?? PlaceSearch.namedAddressQuery(post.caption)?.query, coauthor, PlaceSearch.captionPlaceQuery(post.caption), name].compactMap { $0 }
                 if found.isEmpty {
                     // Apple found nothing at all: ask Google straight away.
                     found = narrow(await GoogleFallback.search(clues, near: near).filter { PlaceSearch.namedLike($0, clues) })

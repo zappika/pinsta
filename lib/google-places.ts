@@ -585,6 +585,27 @@ export function addressIn(text: string | null): string | null {
 }
 
 /**
+ * A caption line that names the place and gives its address: "The Blue Moon, 55 Rue de la Roquette, 75011 Paris"
+ * (a reel tagged only with the street, 2026-11-11). Said as plainly as a 📍 line, so trusted like one; the result
+ * has to carry the name's words, or the address itself would answer. → { name, query }. Same rule in PlaceSearch.swift.
+ */
+export function namedAddressQuery(caption: string | null | undefined): { name: string; query: string } | null {
+  for (const line of (caption ?? "").split("\n")) {
+    const parts = line.split(",").map((p) => p.trim()).filter(Boolean);
+    if (parts.length < 2) continue;
+    const [name, address] = parts;
+    const nameWordCount = name.split(/\s+/).length;
+    if (nameWordCount > 5 || !/^[\p{Lu}\d]/u.test(name) || /[#@]/.test(name) || streetOfTag(name)) continue;
+    // A house number, before the street ("55 Rue de la Roquette") or after it ("Carrer de Girona 145").
+    if (!/\d/.test(address)) continue;
+    const street = address.replace(/^\d{1,4}[a-zA-Z]?\s+/, "").replace(/\s+\d{1,4}[a-zA-Z]?$/, "");
+    if (!streetOfTag(street)) continue;
+    return { name, query: parts.join(", ").slice(0, 120) };
+  }
+  return null;
+}
+
+/**
  * The line a caption pins the place on: "📍 Prodigi" and, on the next line, its address.
  * Food accounts write it this way more than any other, and it beats the account that
  * posted (often a blog, not the venue). → "Prodigi Carrer de Girona, 145, Barcelona".
@@ -739,6 +760,12 @@ export async function resolveUntagged(input: {
     ),
   ]);
   if (fromPin.length) return { candidates: fromPin.slice(0, 3), pinned: true, near };
+  const named = namedAddressQuery(input.caption);
+  if (named) {
+    const keys = words(named.name).filter((w) => w.length > 3);
+    const fromNamed = (await search(named.query)).filter((c) => overlaps(words(c.name), keys.length ? keys : words(named.name)));
+    if (fromNamed.length) return { candidates: fromNamed.slice(0, 3), pinned: true, near };
+  }
   // Co-authors before the poster: on a collab the venue is rarely the one who posted.
   // The poster found itself: a mentioned account's places far from it are a namesake. @lilliestuart
   // (a person) found "Stuart Studio" in Lille on Pophams' London post (2026-10-16).
