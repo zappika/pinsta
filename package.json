@@ -15,6 +15,7 @@
     "predev": "node scripts/build-library.mjs",
     "review:sync": "tsx --env-file=.env.local scripts/review/sync.mts",
     "review:replay": "tsx --env-file=.env.local scripts/review/replay.mts",
+    "review:replay-server": "tsx --env-file=.env.local scripts/review/replay-server.mts",
     "review:post": "tsx --env-file=.env.local scripts/review/post.mts"
   },
   "dependencies": {

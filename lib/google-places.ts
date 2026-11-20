@@ -107,7 +107,16 @@ function toCandidate(p: RawPlace): PlaceCandidate {
   };
 }
 
-export async function searchPlaces(query: string, near?: { lat: number; lng: number } | null): Promise<PlaceCandidate[]> {
+/** `address`: a street or town to locate, not a venue (Apple searches the two apart, as the phone does). */
+type Search = (query: string, near?: { lat: number; lng: number } | null, address?: boolean) => Promise<PlaceCandidate[]>;
+let searchSource: Search | null = null;
+/** Every search the resolvers make goes to `fn` instead of Google (the replay tries Apple Maps this way). */
+export function searchWith(fn: Search | null) {
+  searchSource = fn;
+}
+
+export async function searchPlaces(query: string, near?: { lat: number; lng: number } | null, address = false): Promise<PlaceCandidate[]> {
+  if (searchSource) return searchSource(query, near, address);
   const counted = countCall("google.textSearchPro");
   const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
     method: "POST",
@@ -708,7 +717,7 @@ export function isNear(c: { lat: number; lng: number }, near: { lat: number; lng
 export async function locate(query: string): Promise<{ lat: number; lng: number } | null> {
   for (const q of [query, streetOfTag(query)]) {
     if (!q) continue;
-    const [first] = await searchPlaces(q).catch(() => [] as PlaceCandidate[]);
+    const [first] = await searchPlaces(q, null, true).catch(() => [] as PlaceCandidate[]);
     if (first) return { lat: first.lat, lng: first.lng };
   }
   return null;
