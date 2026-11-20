@@ -5,7 +5,7 @@ import Foundation
 /// Action button and Shortcuts. Compiled into the app and the widget extension; it runs in the app,
 /// which it opens, and leaves a request the list picks up (`CheckInRequest`).
 struct CheckInIntent: AppIntent {
-    static let title: LocalizedStringResource = "I'm here"
+    static let title: LocalizedStringResource = "Check in"
     static let description = IntentDescription("Check in at the place you're at.")
     static let openAppWhenRun = true
 
@@ -37,11 +37,11 @@ enum CheckInRequest {
 }
 
 #if !WIDGET
-/// "Hey Siri, I'm here in Vicolo", and the Action button's Shortcut list.
+/// "Hey Siri, check in with Vicolo", and the Action button's Shortcut list.
 struct VicoloShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
-        AppShortcut(intent: CheckInIntent(), phrases: ["I'm here in \(.applicationName)", "Check in with \(.applicationName)"],
-                    shortTitle: "I'm here", systemImageName: "hand.wave")
+        AppShortcut(intent: CheckInIntent(), phrases: ["Check in with \(.applicationName)", "Check in on \(.applicationName)"],
+                    shortTitle: "Check in", systemImageName: "hand.wave")
     }
 }
 

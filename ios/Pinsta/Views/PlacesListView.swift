@@ -150,6 +150,8 @@ private struct PlacesContent: View {
     /// The locate button (Sarp, 2026-10-15, as the web): you at town size.
     @State private var goHere = 0
     @State private var locating = false
+    /// The map's Been there filter; the list views always show everything (cleared on leaving the map).
+    @State private var been: BeenFilter = .all
 
     private var labels: [UUID: String] { Grouping.destinationLabels(places) }
     private var shown: [Place] { places.filter { !hidden.contains($0.id) } }
@@ -177,6 +179,7 @@ private struct PlacesContent: View {
         let labels = labels
         return shown.filter { p in
             (city == nil || labels[p.id] == city) && (category == nil || p.category == category) && (subtype == nil || p.subtypeRaw == subtype)
+                && (view != .map || been.keeps(p))
         }
     }
 
@@ -333,7 +336,10 @@ private struct PlacesContent: View {
         .onChange(of: settings.searchName) { _, name in if name != nil { adding = true } }
         .onChange(of: editing == nil) { _, closed in if !closed { commitPending() } }
         .onChange(of: places.count) { _, _ in askIfDue() }
-        .onChange(of: view) { _, _ in peek = nil }
+        .onChange(of: view) { _, v in
+            peek = nil
+            if v != .map { been = .all }
+        }
         .onReceive(NotificationCenter.default.publisher(for: CheckInRequest.notification)) { _ in checkInIfAsked() }
         // A row on the Been there page: its card, once the sheet has gone (Cards has no floating card: the map).
         .onChange(of: settings.openPlace) { _, p in
@@ -789,7 +795,7 @@ private struct PlacesContent: View {
             addMenu
             VStack(alignment: .trailing, spacing: 12) {
                 // Not over a toast: it covered Undo (2026-10-17).
-                if !shown.isEmpty, !adding, !fan, editing == nil, peek == nil, toast == nil, notice == nil, screen.askingVisit == nil, screen.checkingIn == nil { hereButton }
+                if view == .map, !shown.isEmpty, !adding, !fan, editing == nil, peek == nil, toast == nil, notice == nil, screen.askingVisit == nil, screen.checkingIn == nil { beenButton }
                 if view == .map, !shown.isEmpty, !adding, !fan, editing == nil, peek == nil, toast == nil, notice == nil, screen.askingVisit == nil, screen.checkingIn == nil { locateButton }
                 if (peek == nil || view == .cards) && (adding || editing != nil || !shown.isEmpty) { plusButton }
             }
@@ -824,21 +830,32 @@ private struct PlacesContent: View {
         .padding(.trailing, 26)
     }
 
-    /// I'm here: check in where you are, Swarm-fast (Sarp, 2026-11-20). Above the locate arrow.
-    private var hereButton: some View {
-        Button { screen.checkingIn = .here } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "hand.wave").font(.system(size: 15, weight: .semibold))
-                Text("I'm here").font(.subheadline.weight(.semibold))
+    /// The map's tucked-away filter (Sarp, 2026-11-20): every place, only Want to go, only Been there.
+    /// A small round button above the locate arrow; a chip beside it says which while it's on.
+    private var beenButton: some View {
+        HStack(spacing: 8) {
+            if been != .all {
+                Text(been.label)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(.systemBackground))
+                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .background(Color.primary, in: Capsule())
+                    .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .trailing)))
             }
-            .foregroundStyle(.primary)
-            .padding(.horizontal, 14)
-            .frame(height: 44)
-            .modifier(HereLook())
+            Menu {
+                Picker("Show", selection: $been.animation(.snappy)) {
+                    ForEach(BeenFilter.allCases, id: \.self) { Text($0.label).tag($0) }
+                }
+            } label: {
+                Image(systemName: been == .all ? "checkmark.circle" : "checkmark.circle.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .frame(width: 36, height: 36)
+                    .modifier(LocateLook())
+            }
+            .accessibilityLabel("Show: everything, want to go, or been there")
         }
-        .buttonStyle(PressSpring())
-        .accessibilityLabel("I'm here: check in where you are")
-        .padding(.trailing, 26)
+        .padding(.trailing, 30)
     }
 
     private var addMenu: AddMenu {
@@ -959,14 +976,21 @@ private struct LocateLook: ViewModifier {
     }
 }
 
-/// The I'm here pill: glass on iOS 26+, like the locate button.
-private struct HereLook: ViewModifier {
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if #available(iOS 26, *) {
-            content.glassEffect(.regular.interactive(), in: .capsule)
-        } else {
-            content.background(Color(.systemBackground), in: Capsule()).shadow(color: .black.opacity(0.12), radius: 8, y: 3)
+/// The map's Been there filter: not remembered, every launch shows everything.
+enum BeenFilter: CaseIterable {
+    case all, want, been
+    var label: String {
+        switch self {
+        case .all: "Everything"
+        case .want: "Want to go"
+        case .been: "Been there"
+        }
+    }
+    func keeps(_ p: Place) -> Bool {
+        switch self {
+        case .all: true
+        case .want: p.visitedAt == nil
+        case .been: p.visitedAt != nil
         }
     }
 }

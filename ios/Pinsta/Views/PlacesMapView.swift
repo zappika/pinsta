@@ -34,8 +34,13 @@ struct PlacesMapView: View {
 
     /// Web zoom levels (MapLibre's), worked out from the span and the map's width.
     static let cityZoom = 7.0
-    static let dotsFrom = 12.5
-    static let photosFrom = 13.8
+    /// Names from here (web: MIX_NAMES_FROM). A post's place is its photo at every zoom (Sarp,
+    /// 2026-11-20: the named dots across a city hid the photos; there is no dot band any more).
+    static let namesFrom = 12.5
+    /// Far out, photos this close (× their size) group: they may overlap a little first (web: MIX_OVERLAP).
+    static let overlap: CGFloat = 0.7
+    /// Far out, up to this many overlapping photos stack; more become a mosaic (web: FAN_MAX).
+    static let fanMax = 4
     /// From street level on, never group: two entries at one address would never split.
     static let noClusterZoom = 16.0
     /// This few places on screen: everything at full size and named.
@@ -51,7 +56,7 @@ struct PlacesMapView: View {
         var id: String { name }
     }
 
-    enum Look: String { case far, mid, close }
+    enum Look: String { case far, close }
 
     struct PinGroup: Identifiable {
         let members: [Place]
@@ -72,7 +77,6 @@ struct PlacesMapView: View {
     var body: some View {
         MapReader { proxy in
             Map(position: $camera, interactionModes: [.pan, .zoom, .rotate]) {
-                UserAnnotation()
                 ForEach(cities) { c in
                     Annotation(c.name, coordinate: c.coordinate, anchor: .top) {
                         cityPin(c).onTapGesture { zoom(to: c.members, minKm: Self.minFrameKm) }
@@ -87,12 +91,19 @@ struct PlacesMapView: View {
                     }
                     .annotationTitles(.hidden)
                 }
+                // Our own dot, last, so it draws above every pin: the system's UserAnnotation sat under
+                // a place right where you stood and made you invisible (Sarp, 2026-11-20).
+                if let you = live ?? here {
+                    Annotation("You", coordinate: you.coordinate, anchor: .center) { YouDot() }
+                        .annotationTitles(.hidden)
+                }
             }
             .mapStyle(.standard(pointsOfInterest: .excludingAll))
             // The live location dot takes the tint; the app's accent is ink, Google's dot is blue.
             .tint(Color(red: 0.10, green: 0.45, blue: 0.91))
             .onTapGesture { withAnimation(.snappy) { selected = nil } }
             .onAppear { frame(animated: false) }
+            .task { await followYou() }
             .onChange(of: focus?.map(\.id)) { _, _ in frame(animated: true) }
             .onChange(of: here != nil) { _, _ in frame(animated: true) }
             .onChange(of: goHere) { _, _ in
@@ -129,7 +140,9 @@ struct PlacesMapView: View {
         log2(360 * Double(max(mapWidth, 1)) / (256 * max(region.span.longitudeDelta, 0.000_001)))
     }
 
-    private static func look(at z: Double) -> Look { z < dotsFrom ? .far : z < photosFrom ? .mid : .close }
+    private static func look(at z: Double) -> Look { z < namesFrom ? .far : .close }
+    /// Far out, more than fanMax post places on top of each other: one circle of four of their photos.
+    private static func isMosaic(_ g: PinGroup) -> Bool { g.loud && g.look == .far && g.members.count > fanMax }
     private static func key(at z: Double) -> String { z < cityZoom ? "cities" : look(at: z).rawValue }
 
     private static func contains(_ r: MKCoordinateRegion, _ c: CLLocationCoordinate2D) -> Bool {
@@ -152,7 +165,7 @@ struct PlacesMapView: View {
         let roomy = places.filter { Self.contains(region, $0.coordinate) }.count <= Self.roomy
         let street = roomy || z >= Self.noClusterZoom
         let photoSize: CGFloat = street ? 44 : z < 13.5 ? 30 : 36
-        let loudSize: CGFloat = look == .mid ? 10 : photoSize
+        let loudSize = photoSize
         let quietSize: CGFloat = street ? 32 : 12
 
         var buckets: [(point: CGPoint, members: [Place], loud: Bool)] = []
@@ -160,7 +173,7 @@ struct PlacesMapView: View {
             guard let pt = proxy.convert(p.coordinate, to: .local) else { continue }
             let loud = Self.fromPost(p)
             // Past the mosaic, places whose names would collide become one "Name +N more".
-            let near: CGFloat = !loud ? max(quietSize - 2, 8) : look == .far ? loudSize + 2 : look == .mid ? 22 : loudSize * 1.3
+            let near: CGFloat = !loud ? max(quietSize - 2, 8) : look == .far ? loudSize * Self.overlap : loudSize * 1.3
             if z < Self.noClusterZoom,
                let i = buckets.firstIndex(where: { $0.loud == loud && hypot($0.point.x - pt.x, $0.point.y - pt.y) < near }) {
                 buckets[i].members.append(p)
@@ -172,13 +185,14 @@ struct PlacesMapView: View {
         var taken: [CGRect] = []
         var made: [(group: PinGroup, point: CGPoint)] = buckets.map { b in
             let many = b.members.count > 1
-            let size: CGFloat = b.loud ? (many && look == .far ? max(loudSize, 40) : loudSize) : (many && !street ? 16 : quietSize)
+            let mosaic = b.loud && look == .far && b.members.count > Self.fanMax
+            let size: CGFloat = b.loud ? (mosaic ? max(loudSize, 40) : loudSize) : (many && !street ? 16 : quietSize)
             let coord = many ? (proxy.convert(b.point, from: .local) ?? b.members[0].coordinate) : b.members[0].coordinate
             let g = PinGroup(members: b.members, coordinate: coord, loud: b.loud, look: look, size: size, street: street)
             if b.loud {
                 let reach = CGFloat(Self.behind(g)) * 8
                 // A mosaic's "N places" always shows: it takes its room too.
-                let extra: CGFloat = many && look == .far ? 75 : 0
+                let extra: CGFloat = mosaic ? 75 : 0
                 taken.append(CGRect(x: b.point.x - size / 2, y: b.point.y - size / 2, width: size + reach + extra, height: size))
             }
             return (g, b.point)
@@ -187,7 +201,7 @@ struct PlacesMapView: View {
         for i in order {
             let g = made[i].group, pt = made[i].point
             let many = g.members.count > 1
-            let wants = g.loud ? (look != .far || roomy) && !(many && look == .far) : !many && (roomy || z >= 14.5)
+            let wants = g.loud ? (look != .far || roomy) && !Self.isMosaic(g) : !many && (roomy || z >= 14.5)
             guard wants else { continue }
             let name = g.members[0].name
             let w = CGFloat(name.count) * (g.loud ? 7.2 : 6.4) + 4
@@ -204,7 +218,7 @@ struct PlacesMapView: View {
 
     /// How many photos peek out behind a stack (close in only).
     private static func behind(_ g: PinGroup) -> Int {
-        g.loud && g.look == .close ? min(g.members.count - 1, 2) : 0
+        g.loud && !isMosaic(g) ? min(g.members.count - 1, 2) : 0
     }
 
     /// One bubble per Where label, biggest first (web: drawCities).
@@ -279,6 +293,19 @@ struct PlacesMapView: View {
 
     // MARK: Pins
 
+    /// Where you are while the map is on screen, for the blue dot. Only once location is allowed:
+    /// this never asks (the app asks after the primer, NearMe).
+    @State private var live: CLLocation?
+    private func followYou() async {
+        let status = CLLocationManager().authorizationStatus
+        guard status == .authorizedWhenInUse || status == .authorizedAlways else { return }
+        do {
+            for try await update in CLLocationUpdate.liveUpdates() {
+                if let at = update.location { live = at }
+            }
+        } catch {}
+    }
+
     private func groupView(_ g: PinGroup) -> some View {
         let n = g.members.count, first = g.members[0]
         let behind = Self.behind(g)
@@ -286,11 +313,7 @@ struct PlacesMapView: View {
         return ZStack {
             if !g.loud {
                 quietPin(g)
-            } else if g.look == .mid {
-                Circle().fill(Color.primary)
-                    .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 1.5))
-                    .scaleEffect(n == 1 && selected?.id == first.id ? 1.6 : 1)
-            } else if n > 1 && g.look == .far {
+            } else if Self.isMosaic(g) {
                 mosaic(Array(g.members.prefix(4)), size: g.size)
                     .clipShape(Circle())
                     .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 2))
@@ -358,7 +381,7 @@ struct PlacesMapView: View {
     @ViewBuilder
     private func pinLabel(_ g: PinGroup) -> some View {
         let n = g.members.count
-        if g.loud && n > 1 && g.look == .far {
+        if Self.isMosaic(g) {
             Text("\(n) places").font(.system(size: 13, weight: .semibold)).halo()
         } else if g.named {
             VStack(alignment: g.nameLeft ? .trailing : .leading, spacing: 0) {
@@ -452,5 +475,19 @@ private extension View {
 extension Place {
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
+}
+
+/// You on the map: Google's blue, a white ring, a soft halo (web: `.pinsta-here`). Taps pass through.
+private struct YouDot: View {
+    var body: some View {
+        Circle()
+            .fill(Color(red: 0.10, green: 0.45, blue: 0.91))
+            .frame(width: 16, height: 16)
+            .overlay(Circle().strokeBorder(.white, lineWidth: 3))
+            .background(Circle().fill(Color(red: 0.10, green: 0.45, blue: 0.91).opacity(0.18)).frame(width: 30, height: 30))
+            .shadow(color: .black.opacity(0.3), radius: 1.5, y: 1)
+            .allowsHitTesting(false)
+            .accessibilityLabel("You are here")
     }
 }

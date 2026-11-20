@@ -15,10 +15,10 @@ struct CheckInControl: ControlWidget {
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: "se.sarper.vicolo.checkin") {
             ControlWidgetButton(action: CheckInIntent()) {
-                Label("I'm here", systemImage: "hand.wave")
+                Label("Check in", systemImage: "hand.wave")
             }
         }
-        .displayName("I'm here")
+        .displayName("Check in")
         .description("Check in at the place you're at.")
     }
 }

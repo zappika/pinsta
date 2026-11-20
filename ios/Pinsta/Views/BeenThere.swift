@@ -191,7 +191,7 @@ struct BeenThereSheet: View {
         NavigationStack {
             Group {
                 if been.isEmpty {
-                    Text("Nothing yet. Tap I'm here on the map when you're at a place.")
+                    Text("Nothing yet. Tap + → Check in when you're at a place.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

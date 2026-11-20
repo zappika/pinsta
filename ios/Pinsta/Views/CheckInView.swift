@@ -38,7 +38,7 @@ struct CheckInView: View {
             switch phase {
             case .arrived(let p): ArrivedCard(place: p, onHere: { checkIn(saved: p) }, onLater: onClose)
             case .locating: header("Finding where you are…"); LoadingRows()
-            case .failed(let why): header("I'm here"); Text(why).font(.subheadline).foregroundStyle(.secondary).padding(.horizontal, 20).padding(.bottom, 20)
+            case .failed(let why): header("Check in"); Text(why).font(.subheadline).foregroundStyle(.secondary).padding(.horizontal, 20).padding(.bottom, 20)
             case .list(let rows): list(rows)
             case .done(let p, let v): VisitDone(place: p, visit: v, onDone: onClose)
             }
@@ -100,7 +100,7 @@ struct CheckInView: View {
                 }
             }
             Button { pick(r) } label: {
-                Text(busy ? "Checking in…" : "I'm here")
+                Text(busy ? "Checking in…" : "Check in")
                     .font(.headline)
                     .foregroundStyle(Color(.systemBackground))
                     .frame(maxWidth: .infinity, minHeight: 50)
@@ -267,7 +267,7 @@ private struct ArrivedCard: View {
                         .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
                 Button(action: onHere) {
-                    Text("I'm here")
+                    Text("Check in")
                         .font(.headline)
                         .foregroundStyle(Color(.systemBackground))
                         .frame(maxWidth: .infinity, minHeight: 50)
