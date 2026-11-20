@@ -17,8 +17,8 @@ How it stays true:
 - **Check in** is in the + menu now, not a button on the map; everything that said "I'm here" says Check in (also Siri: "Check in with Vicolo", and the Control Center button).
 - The map shows your saved posts' photos from further out: no more black dots across a city, and photos only merge into one round picture when many sit on top of each other.
 - Your blue dot stays on top: a place right where you stand no longer hides you.
-- A small round button above the location arrow shows only the places you want to go to, or only the ones you've been to. A label says which while it's on; opening the app or switching to the list shows everything again.
-- *(internal)* 2026-11-20: `hereButton` removed, `BeenFilter` + `beenButton` in `PlacesListView`; `PlacesMapView`: no `.mid` look, `overlap` 0.7, `fanMax` 4, own `YouDot` (CLLocationUpdate.liveUpdates, only when allowed) instead of `UserAnnotation`. Checked in the Simulator over build 35: + menu, filter, dot on Al Covo. Zoom steps not walked through on iOS (web was).
+- At the top of the map, All · Want to go · Been there shows only the places you want to go to, or only the ones you've been to. Opening the app or switching to the list shows all again.
+- *(internal)* 2026-11-20: `hereButton` removed, `BeenFilter` + `beenSwitch` (system segmented control, top of the map) in `PlacesListView`; `PlacesMapView`: no `.mid` look, `overlap` 0.7, `fanMax` 4, own `YouDot` (CLLocationUpdate.liveUpdates, only when allowed) instead of `UserAnnotation`. Checked in the Simulator over build 35: + menu, filter, dot on Al Covo. Zoom steps not walked through on iOS (web was).
 
 ## In TestFlight: 1.0 (35) · 2026-11-20 · `ios-35` · phone ☐
 - **I'm here:** a new button on the map. It lists the places right around you with their icons, the likeliest one first; one tap checks you in. Then, if you like: a face, a photo (camera or your photos) and a note for next time.
