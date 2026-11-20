@@ -14,6 +14,8 @@ Things that make what exists better. Hours, not weeks.
 - **Location question over the success card:** opening the app straight into a save (`-addURL`) could raise the location question on top of the card. Seen only with the test shortcut; the build 24 primer waits for the card to go, so check whether this is gone.
 - **Neutral icon for plain restaurants** (still the gilda).
 - **Been there list:** rows open the place; maybe fold the switch and faces into one control (Sarp: "maybe consolidate later").
+- **Check-in done screen is rough** (Sarp, 2026-11-20, build 35): the "how was it" step after a check-in (faces, photo, note, Done) works but needs a design pass.
+- **Been there page about what you just did** (Sarp, 2026-11-20): the timeline is fine for now; later it should put the places you just visited first (today's, this trip's), not read like a log.
 - **In-app "new version ready" banner:** the server holds the latest build number and the banner opens TestFlight (from the 2026-10-14 beta round).
 
 ## Big feature directions
