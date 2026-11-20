@@ -339,7 +339,7 @@ extension PlaceSearch {
         let fromOwner = Array(await resolveAccount(ownerFullName: ownerFullName, ownerUsername: ownerUsername, town: town, near: near).prefix(3))
         // The poster found itself: a mentioned account's places far from it are a namesake. @lilliestuart
         // (a person) found "Stuart Studio" in Lille on Pophams' London post (2026-10-16).
-        if let anchor = fromOwner.first {
+        if let anchor = fromOwner.first(where: { namedLikeAccount($0, fullName: ownerFullName, username: ownerUsername) }) {
             let at = CLLocation(latitude: anchor.latitude, longitude: anchor.longitude)
             fromAccounts = fromAccounts.filter { CLLocation(latitude: $0.latitude, longitude: $0.longitude).distance(from: at) <= 100_000 }
         }
@@ -374,9 +374,22 @@ extension PlaceSearch {
         guard name.count >= 4, let username = bareHandle(username) else { return false }
         let core = splitHandleCity(username)?.name ?? username
         let bare = words(handleWithKind(core) ?? "").filter { !categoryWords.contains($0) }.joined(separator: " ")
-        if [username, core, bare].map(letters).contains(name) { return true }
+        // "Lo Gat" for @gatbxl: an article in front of the name isn't part of the account's (2026-11-17).
+        let unarticled = letters(c.name.replacingOccurrences(of: article, with: "", options: [.regularExpression, .caseInsensitive]))
+        if [username, core, bare].map(letters).contains(where: { $0 == name || (unarticled.count >= 3 && $0 == unarticled) }) { return true }
         guard let fullName else { return false }
         return letters(fullName) == name && letters(username).contains(name)
+    }
+    private static let article = #"^(?:(?:the|le|la|les|lo|il|el|los|las|der|die|das|het|de|den)\s+|l['’]\s*)"#
+
+    /// A place named after the account, own or not: "Pophams Bakery" for @pophams. "95 Auto Service" for SERVICE95,
+    /// a magazine, is not: it anchored the search and threw Stamba Hotel (a co-author in Tbilisi) out as too far (2026-11-17).
+    /// Same rule as `namedLikeAccount` on the web.
+    static func namedLikeAccount(_ c: PlaceCandidate, fullName: String?, username: String?) -> Bool {
+        if isOwnPlace(c, fullName: fullName, username: username) { return true }
+        let u = bareHandle(username)
+        let core = letters(splitHandleCity(u)?.name ?? u ?? "")
+        return core.count >= 4 && letters(c.name).contains(core)
     }
 
     // Accounts that write about places, not places: their @mention leads nowhere ("The Timeout" for @timeoutparis
@@ -500,7 +513,16 @@ extension PlaceSearch {
         let lead = try! NSRegularExpression(pattern: #"^(?:📍|📌|(?:location|address|adress|adresse|dirección)(?:\s+of\s+the\s+\p{L}+)?\s*:)\x{FE0F}?"#, options: .caseInsensitive)
         func leads(_ l: String) -> Bool { lead.firstMatch(in: l, range: NSRange(l.startIndex..., in: l)) != nil }
         func clean(_ l: String) -> String {
-            lead.stringByReplacingMatches(in: l, range: NSRange(l.startIndex..., in: l), withTemplate: "")
+            // "📍@gatbxl Rue Lesbroussart 67": the account stands for the venue's name, its city split off ("gat") (2026-11-17).
+            var s = lead.stringByReplacingMatches(in: l, range: NSRange(l.startIndex..., in: l), withTemplate: "")
+            let at = try! NSRegularExpression(pattern: #"@([\p{L}\d._]+)"#)
+            for m in at.matches(in: s, range: NSRange(s.startIndex..., in: s)).reversed() {
+                guard let whole = Range(m.range, in: s), let h = Range(m.range(at: 1), in: s) else { continue }
+                let handle = String(s[h])
+                let name = splitHandleCity(handle)?.name ?? handle.replacingOccurrences(of: "[._]+", with: " ", options: .regularExpression)
+                s.replaceSubrange(whole, with: " \(name) ")
+            }
+            return s
                 .replacingOccurrences(of: "[@#]", with: " ", options: .regularExpression)
                 .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
                 .trimmingCharacters(in: .whitespaces)
@@ -574,7 +596,7 @@ extension PlaceSearch {
         ("edinburgh", "Edinburgh"), ("paris", "Paris"), ("lyon", "Lyon"), ("marseille", "Marseille"), ("bordeaux", "Bordeaux"), ("amsterdam", "Amsterdam"),
         ("brussels", "Brussels"), ("bruxelles", "Brussels"), ("antwerp", "Antwerp"), ("berlin", "Berlin"), ("hamburg", "Hamburg"), ("munich", "Munich"),
         ("munchen", "Munich"), ("vienna", "Vienna"), ("wien", "Vienna"), ("zurich", "Zürich"), ("zuerich", "Zürich"), ("geneva", "Geneva"),
-        ("prague", "Prague"), ("praha", "Prague"), ("budapest", "Budapest"), ("copenhague", "Copenhagen"), ("warsaw", "Warsaw"), ("krakow", "Kraków"),
+        ("prague", "Prague"), ("praha", "Prague"), ("budapest", "Budapest"), ("copenhague", "Copenhagen"), ("bxl", "Brussels"), ("warsaw", "Warsaw"), ("krakow", "Kraków"),
         ("barcelona", "Barcelona"), ("bcn", "Barcelona"), ("madrid", "Madrid"), ("sevilla", "Seville"), ("seville", "Seville"), ("valencia", "Valencia"),
         ("donostia", "San Sebastián"), ("sansebastian", "San Sebastián"), ("mallorca", "Mallorca"), ("ibiza", "Ibiza"), ("lisbon", "Lisbon"), ("lisboa", "Lisbon"),
         ("porto", "Porto"), ("milano", "Milan"), ("milan", "Milan"), ("roma", "Rome"), ("rome", "Rome"), ("napoli", "Naples"),
@@ -591,7 +613,7 @@ extension PlaceSearch {
     private static let handleCitiesLast: [String: String] = Dictionary(uniqueKeysWithValues: [
         ("lx", "Lisbon"), ("lis", "Lisbon"), ("par", "Paris"), ("ber", "Berlin"), ("ams", "Amsterdam"), ("mil", "Milan"),
         ("mi", "Milan"), ("rom", "Rome"), ("ath", "Athens"), ("ist", "Istanbul"), ("tyo", "Tokyo"), ("zrh", "Zürich"),
-        ("vie", "Vienna"), ("muc", "Munich"), ("prg", "Prague"), ("bxl", "Brussels"), ("edi", "Edinburgh"), ("dub", "Dublin"),
+        ("vie", "Vienna"), ("muc", "Munich"), ("prg", "Prague"), ("edi", "Edinburgh"), ("dub", "Dublin"),
         ("tlv", "Tel Aviv"), ("hk", "Hong Kong"), ("sg", "Singapore"), ("syd", "Sydney"), ("mel", "Melbourne"), ("la", "Los Angeles"), ("ny", "New York"),
         ("nola", "New Orleans"), ("sf", "San Francisco"), ("mtl", "Montréal"), ("atx", "Austin"), ("bsas", "Buenos Aires"), ("cpt", "Cape Town"),
     ])

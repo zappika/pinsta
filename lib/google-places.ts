@@ -468,7 +468,7 @@ const HANDLE_CITIES_GLUED: Record<string, string> = {
   amsterdam: "Amsterdam", brussels: "Brussels", bruxelles: "Brussels", antwerp: "Antwerp",
   berlin: "Berlin", hamburg: "Hamburg", munich: "Munich", munchen: "Munich", vienna: "Vienna", wien: "Vienna",
   zurich: "Zürich", zuerich: "Zürich", geneva: "Geneva", prague: "Prague", praha: "Prague", budapest: "Budapest",
-  copenhague: "Copenhagen", warsaw: "Warsaw", krakow: "Kraków",
+  copenhague: "Copenhagen", bxl: "Brussels", warsaw: "Warsaw", krakow: "Kraków",
   barcelona: "Barcelona", bcn: "Barcelona", madrid: "Madrid", sevilla: "Seville", seville: "Seville", valencia: "Valencia",
   donostia: "San Sebastián", sansebastian: "San Sebastián", mallorca: "Mallorca", ibiza: "Ibiza",
   lisbon: "Lisbon", lisboa: "Lisbon", porto: "Porto",
@@ -486,7 +486,7 @@ const HANDLE_CITIES_GLUED: Record<string, string> = {
 // LAST: short codes, counted only as the handle's last part of their own ("cafe_lx", not "felix").
 const HANDLE_CITIES_LAST: Record<string, string> = {
   lx: "Lisbon", lis: "Lisbon", par: "Paris", ber: "Berlin", ams: "Amsterdam", mil: "Milan", mi: "Milan", rom: "Rome",
-  ath: "Athens", ist: "Istanbul", tyo: "Tokyo", zrh: "Zürich", vie: "Vienna", muc: "Munich", prg: "Prague", bxl: "Brussels",
+  ath: "Athens", ist: "Istanbul", tyo: "Tokyo", zrh: "Zürich", vie: "Vienna", muc: "Munich", prg: "Prague", 
   edi: "Edinburgh", dub: "Dublin", tlv: "Tel Aviv", hk: "Hong Kong", sg: "Singapore", syd: "Sydney", mel: "Melbourne",
   la: "Los Angeles", ny: "New York", nola: "New Orleans", sf: "San Francisco", mtl: "Montréal", atx: "Austin", bsas: "Buenos Aires", cpt: "Cape Town",
 };
@@ -624,7 +624,10 @@ export function pinnedPlaceQuery(caption: string | null | undefined): string | n
   const lines = (caption ?? "").split("\n").map((l) => l.trim());
   // "Address:", and "Address of the bar:" (Side Quest Department, 2026-10-14).
   const lead = /^(?:📍|📌|(?:location|address|adress|adresse|dirección)(?:\s+of\s+the\s+\p{L}+)?\s*:)\uFE0F?/iu;
-  const clean = (l: string) => l.replace(lead, "").replace(/[@#]/g, " ").replace(/\s+/g, " ").trim();
+  // "📍@gatbxl Rue Lesbroussart 67": the account stands for the venue's name, its city split off ("gat") (2026-11-17).
+  const clean = (l: string) =>
+    l.replace(lead, "").replace(/@([\p{L}\d._]+)/gu, (_, h: string) => ` ${splitHandleCity(h)?.name ?? h.replace(/[._]+/g, " ")} `)
+      .replace(/[@#]/g, " ").replace(/\s+/g, " ").trim();
   // "📌 Save it for your next walk" asks something of the reader; it names no place (amsterdamworld, 2026-11-01).
   const i = lines.findIndex((l) => lead.test(l) && !ASKS_READER.test(clean(l)));
   if (i < 0) return null;
@@ -778,7 +781,7 @@ export async function resolveUntagged(input: {
   // Co-authors before the poster: on a collab the venue is rarely the one who posted.
   // The poster found itself: a mentioned account's places far from it are a namesake. @lilliestuart
   // (a person) found "Stuart Studio" in Lille on Pophams' London post (2026-10-16).
-  const anchor = fromAccounts[0][0];
+  const anchor = fromAccounts[0].find((c) => namedLikeAccount(c, input.ownerFullName, input.ownerUsername));
   const others = fromAccounts.slice(1).flat().filter((c) => !anchor || metersBetween({ lat: anchor.lat, lng: anchor.lng }, { latitude: c.lat, longitude: c.lng }) <= 100_000);
   // A venue posting about itself: its own place first, and saved by itself when it's the only one and the
   // post names nobody else (El Roca, Beak, Bon Jo, Bar la Janethe: all dug for or given up, 2026-11-01).
@@ -812,8 +815,22 @@ export function isOwnPlace(c: PlaceCandidate, fullName: string | null | undefine
   if (name.length < 4 || !username) return false;
   const core = splitHandleCity(username)?.name ?? username;
   const bare = words(handleWithKind(core) ?? "").filter((w) => !CATEGORY_WORDS.includes(w)).join(" ");
-  if ([username, core, bare].map(letters).includes(name)) return true;
+  // "Lo Gat" for @gatbxl: an article in front of the name isn't part of the account's (2026-11-17).
+  const unarticled = letters(c.name.replace(ARTICLE, ""));
+  if ([username, core, bare].map(letters).some((h) => h === name || (unarticled.length >= 3 && h === unarticled))) return true;
   return !!fullName && letters(fullName) === name && letters(username).includes(name);
+}
+const ARTICLE = /^(?:(?:the|le|la|les|lo|il|el|los|las|der|die|das|het|de|den)\s+|l['’]\s*)/i;
+
+/**
+ * A place named after the account, own or not: "Pophams Bakery" for @pophams. "95 Auto Service" for SERVICE95,
+ * a magazine, is not: it anchored the search and threw Stamba Hotel (a co-author in Tbilisi) out as too far (2026-11-17).
+ */
+function namedLikeAccount(c: PlaceCandidate, fullName: string | null | undefined, username: string | null | undefined) {
+  if (isOwnPlace(c, fullName, username)) return true;
+  const u = bareHandle(username);
+  const core = letters(splitHandleCity(u)?.name ?? u ?? "");
+  return core.length >= 4 && letters(c.name).includes(core);
 }
 
 // Accounts that write about places, not places: their @mention leads nowhere ("The Timeout" for @timeoutparis

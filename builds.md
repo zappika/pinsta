@@ -15,6 +15,10 @@ How it stays true:
 
 ## Next build (since `ios-34`)
 
+- A place's own post finds it even when the place's name starts with "Lo", "Le", "The" and so on (Lo Gat for @gatbxl).
+- A magazine's post naming a hotel as co-author finds the hotel, not something named like the magazine (Stamba Hotel).
+- A 📍 line that names the place by its Instagram account ("📍@gatbxl Rue Lesbroussart 67") finds it.
+- *(internal)* 2026-11-20, both sides: articles in `isOwnPlace`, the far-namesake filter anchors on `namedLikeAccount`, @handles in the 📍 line read as the handle's name, `bxl` glued like `bcn`. Replay checked.
 
 ## In TestFlight: 1.0 (34) · 2026-11-15 · `ios-34` · phone ☐
 - Map dots for imported places are a stronger colour, easier to see on the map.
