@@ -91,11 +91,13 @@ struct PlacesMapView: View {
                     }
                     .annotationTitles(.hidden)
                 }
-                // Our own dot, last, so it draws above every pin: the system's UserAnnotation sat under
-                // a place right where you stood and made you invisible (Sarp, 2026-11-20).
-                if let you = live ?? here {
-                    Annotation("You", coordinate: you.coordinate, anchor: .center) { YouDot() }
-                        .annotationTitles(.hidden)
+            }
+            // You are not a map annotation: MapKit stacks annotations by latitude, so a place just south
+            // of you covered you whatever the order (the system dot, then ours drawn last: build 36 in
+            // Barcelona). A layer over the whole map, placed from the camera, is above every pin.
+            .overlay(alignment: .topLeading) {
+                if let youPoint {
+                    YouDot().position(youPoint)
                 }
             }
             .mapStyle(.standard(pointsOfInterest: .excludingAll))
@@ -118,13 +120,17 @@ struct PlacesMapView: View {
             }
             .onMapCameraChange(frequency: .onEnd) { ctx in
                 lastRegion = ctx.region
+                placeYou(proxy)
                 regroup(proxy: proxy, region: ctx.region)
             }
             // Live (Sarp, 2026-10-29): mid-pinch, only when a zoom step is crossed, not every frame.
             .onMapCameraChange(frequency: .continuous) { ctx in
+                placeYou(proxy)
                 if Self.key(at: zoom(of: ctx.region)) != lookKey { regroup(proxy: proxy, region: ctx.region) }
             }
             .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { mapWidth = $0 }
+            .onChange(of: (live ?? here)?.coordinate.latitude) { _, _ in placeYou(proxy) }
+            .onChange(of: (live ?? here)?.coordinate.longitude) { _, _ in placeYou(proxy) }
         }
     }
 
@@ -296,6 +302,12 @@ struct PlacesMapView: View {
     /// Where you are while the map is on screen, for the blue dot. Only once location is allowed:
     /// this never asks (the app asks after the primer, NearMe).
     @State private var live: CLLocation?
+    /// Where the blue dot sits on screen (nil: no fix yet, or off the map).
+    @State private var youPoint: CGPoint?
+    private func placeYou(_ proxy: MapProxy) {
+        guard let you = live ?? here else { youPoint = nil; return }
+        youPoint = proxy.convert(you.coordinate, to: .local)
+    }
     private func followYou() async {
         let status = CLLocationManager().authorizationStatus
         guard status == .authorizedWhenInUse || status == .authorizedAlways else { return }
