@@ -17,8 +17,9 @@ struct VisitSwitch: View {
         VStack(alignment: .leading, spacing: 0) {
             // One track, one lit half: it reads as a switch, not two actions (Sarp, 2026-10-19).
             HStack(spacing: 4) {
-                segment(on: !been, "Want to go") { if been { place.visitedAt = nil; save() } }
-                segment(on: been, been ? "🙋🏻‍♀️ Been there" : "Been there") { if !been { place.visitedAt = .now; save(); Uses.count("visited") } }
+                segment(on: !been, "Want to go") { if been { place.unvisit(); save() } }
+                // Been there is a visit today (`Place.checkIn`), as I'm here is.
+                segment(on: been, been ? "🙋🏻‍♀️ Been there" : "Been there") { if !been { place.checkIn(); save(); Uses.count("visited") } }
             }
             .padding(4)
             .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -33,6 +34,7 @@ struct VisitSwitch: View {
                         // The picked face again folds back without a change: Want to go is the way out.
                         choice(on: place.rating == kind, height: 64) { FaceView(kind: kind, size: 30) } action: {
                             place.rating = kind
+                            if var last = place.visits.last { last.rating = kind; place.update(last) }
                             save()
                             onPicked()
                         }

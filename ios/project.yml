@@ -25,6 +25,8 @@ targets:
     dependencies:
       - target: PinstaShare
         embed: true
+      - target: PinstaWidgets
+        embed: true
     entitlements:
       path: Pinsta/Pinsta.entitlements
       properties:
@@ -40,6 +42,8 @@ targets:
         # HTTPS only, no custom crypto: exempt, so TestFlight skips the compliance question.
         ITSAppUsesNonExemptEncryption: false
         NSLocationWhenInUseUsageDescription: Vicolo opens on the town you are in, with your saved places nearby first. Your location stays on your phone.
+        # I'm here: a photo of where you are, kept on the phone with the visit.
+        NSCameraUsageDescription: Take a photo of where you are to keep with your visit. It stays on your phone.
         # Splash (2026-10-05): the launch screen is the splash still, aspect fill
         # (Resources/LaunchScreen.storyboard), so SplashView can take over without a jump. Follows the system appearance, not the in-app one
         # (iOS decides before the app runs).
@@ -90,3 +94,27 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: se.sarper.vicolo.share
         GENERATE_INFOPLIST_FILE: "NO"
         SKIP_INSTALL: "YES"
+
+  # I'm here as a Control Center / Lock Screen / Action button control (2026-11-20). The intent
+  # itself (Pinsta/Views/CheckInIntent.swift) is compiled here too and runs in the app, which it opens.
+  PinstaWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: PinstaWidgets
+      - path: Pinsta/Views/CheckInIntent.swift
+    info:
+      path: PinstaWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: Vicolo
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: se.sarper.vicolo.widgets
+        GENERATE_INFOPLIST_FILE: "NO"
+        SKIP_INSTALL: "YES"
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: WIDGET

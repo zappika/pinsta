@@ -15,6 +15,12 @@ How it stays true:
 
 ## Next build (since `ios-34`)
 
+- **I'm here:** a new button on the map. It lists the places right around you with their icons, the likeliest one first; one tap checks you in. Then, if you like: a face, a photo (camera or your photos) and a note for next time.
+- **You made it:** open Vicolo while you're at a place you saved, and it shows the post you saved it from, with its caption (often what to order). One tap checks you in.
+- Places keep every visit: the card says "Been 3 times · last 12 Nov", shows your note and your photos under the post's. A place checked into without a post gets your photo as its own.
+- I'm here from anywhere: add it to Control Center or the Lock Screen (or the Action button), or say "I'm here in Vicolo" to Siri.
+- *(internal)* 2026-11-20: `Models/Visit.swift` (visits as a list on Place, photos as files in the App Group), `Views/CheckInView.swift`, `Views/CheckInIntent.swift`, new target `PinstaWidgets` (control). Upgrade over build 34 checked in the Simulator (list kept). Not checked: adding a photo, the control, a check-in that saves a new place.
+
 - A place's own post finds it even when the place's name starts with "Lo", "Le", "The" and so on (Lo Gat for @gatbxl).
 - A magazine's post naming a hotel as co-author finds the hotel, not something named like the magazine (Stamba Hotel).
 - A 📍 line that names the place by its Instagram account ("📍@gatbxl Rue Lesbroussart 67") finds it.

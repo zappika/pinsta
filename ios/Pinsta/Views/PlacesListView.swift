@@ -24,6 +24,9 @@ final class Screen {
     var askingLocation = false
     /// "Been to any of these?" is up with these places (`AskVisit`).
     var askingVisit: [Place]?
+    /// I'm here is up: the places around you, or "You made it" at a saved one (`CheckInView`).
+    var checkingIn: CheckIn?
+    enum CheckIn: Equatable { case here, arrived(Place) }
     /// The empty list's tutorial is what's on screen, not the chosen view.
     var tutorial = false
     /// Testing: `-addURL <link>` opens the save sheet with that link, the way a share arrives.
@@ -241,6 +244,16 @@ private struct PlacesContent: View {
             }
         }
         .animation(.snappy(duration: 0.3), value: screen.askingVisit?.map(\.id))
+        .overlay {
+            if let checking = screen.checkingIn {
+                FloatingSheet(onClose: { screen.checkingIn = nil }) {
+                    CheckInView(arrived: { if case .arrived(let p) = checking { return p } else { return nil } }(),
+                                locate: { await nearMe.locatePrecisely() },
+                                onClose: { screen.checkingIn = nil })
+                }
+            }
+        }
+        .animation(.snappy(duration: 0.3), value: screen.checkingIn)
         .overlay(alignment: .bottom) {
             if let peek, view != .cards {
                 PeekCardView(
@@ -295,6 +308,7 @@ private struct PlacesContent: View {
         .task {
             // No web import: the web list is Sarp's, and every install starts empty.
             if launchURL != nil { adding = true }
+            checkInIfAsked()
             ListImport.shared.resume(context: context)
             start()
             askIfDue()
@@ -320,13 +334,14 @@ private struct PlacesContent: View {
         .onChange(of: editing == nil) { _, closed in if !closed { commitPending() } }
         .onChange(of: places.count) { _, _ in askIfDue() }
         .onChange(of: view) { _, _ in peek = nil }
+        .onReceive(NotificationCenter.default.publisher(for: CheckInRequest.notification)) { _ in checkInIfAsked() }
         .onDisappear { commitPending() }
         // Leaving the app stops the Undo timer: off to Instagram to share the post again, the place was
         // still there and the share said "Already in Vicolo" (Sarp, 2026-10-16). Gone means gone.
         .onChange(of: scenePhase) { old, phase in
             if phase == .background { commitPending() }
             // A list import started here or from the share sheet: follow it again.
-            if phase == .active { ListImport.shared.resume(context: context) }
+            if phase == .active { ListImport.shared.resume(context: context); checkInIfAsked() }
             if phase == .active, old == .background { askVisitIfDue() }
         }
     }
@@ -359,13 +374,20 @@ private struct PlacesContent: View {
     /// "Been to any of these?" (`AskVisit`, Sarp 2026-10-26): on open and back from the background, never
     /// over a sheet or the location question. Showing it is the ask: each row is stamped then, answered or not.
     private func askVisitIfDue() {
-        let busy = { adding || editing != nil || screen.askingLocation || screen.askingVisit != nil || settings.showingSheet
+        let busy = { adding || editing != nil || screen.askingLocation || screen.askingVisit != nil || screen.checkingIn != nil || settings.showingSheet
             || settings.showingBeenThere || settings.showingImport || settings.showingTutorial
             || settings.webPage != nil || shown.isEmpty }
         guard started, !busy() else { return }
         Task {
             try? await Task.sleep(for: .seconds(0.8))
-            guard !busy(), scenePhase == .active, !AskVisit.askedRecently() else { return }
+            guard !busy(), scenePhase == .active else { return }
+            // Standing in a saved place beats every other question.
+            if let p = await arrivedAt(), !busy() {
+                Arrived.mark(p)
+                screen.checkingIn = .arrived(p)
+                return
+            }
+            guard !AskVisit.askedRecently() else { return }
             let due = AskVisit.due(places)
             guard !due.isEmpty else { return }
             for p in due { p.askedAt = .now; p.askCount += 1 }
@@ -384,6 +406,30 @@ private struct PlacesContent: View {
             .filter { $0.1 <= NearMe.km * 1000 }
             .min { $0.1 < $1.1 }?.0
         if city == nil, let nearest, let town = labels[nearest.id] { city = town }
+    }
+
+    /// A Want to go place you are standing in (within `Arrived.meters`), not shown today yet. Only with
+    /// location already allowed; a rough fix first, the precise one only when a saved place is near.
+    private func arrivedAt() async -> Place? {
+        guard nearMe.onOpen(placeCount: places.count) == .locate else { return nil }
+        let waiting = shown.filter { $0.visitedAt == nil && !Arrived.shownToday($0) }
+        guard !waiting.isEmpty, let rough = await nearMe.locate() else { return nil }
+        let close = { (fix: CLLocation, m: Double) in
+            waiting.map { ($0, fix.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude))) }
+                .filter { $0.1 <= m }.min { $0.1 < $1.1 }?.0
+        }
+        guard close(rough, 1500) != nil, let fine = await nearMe.locatePrecisely() else { return nil }
+        return close(fine, Arrived.meters + min(fine.horizontalAccuracy, 50))
+    }
+
+    /// The Lock Screen / Control Center button and the Shortcuts action open the app on I'm here.
+    private func checkInIfAsked() {
+        guard CheckInRequest.take() else { return }
+        adding = false
+        editing = nil
+        peek = nil
+        screen.askingVisit = nil
+        screen.checkingIn = .here
     }
 
     /// `LocationPrimer` once the list has reached `NearMe.askAfter` places and location was
@@ -731,7 +777,8 @@ private struct PlacesContent: View {
             addMenu
             VStack(alignment: .trailing, spacing: 12) {
                 // Not over a toast: it covered Undo (2026-10-17).
-                if view == .map, !shown.isEmpty, !adding, !fan, editing == nil, peek == nil, toast == nil, notice == nil, screen.askingVisit == nil { locateButton }
+                if !shown.isEmpty, !adding, !fan, editing == nil, peek == nil, toast == nil, notice == nil, screen.askingVisit == nil, screen.checkingIn == nil { hereButton }
+                if view == .map, !shown.isEmpty, !adding, !fan, editing == nil, peek == nil, toast == nil, notice == nil, screen.askingVisit == nil, screen.checkingIn == nil { locateButton }
                 if (peek == nil || view == .cards) && (adding || editing != nil || !shown.isEmpty) { plusButton }
             }
         }
@@ -762,6 +809,23 @@ private struct PlacesContent: View {
         }
         .buttonStyle(PressSpring())
         .accessibilityLabel("Show where I am")
+        .padding(.trailing, 26)
+    }
+
+    /// I'm here: check in where you are, Swarm-fast (Sarp, 2026-11-20). Above the locate arrow.
+    private var hereButton: some View {
+        Button { screen.checkingIn = .here } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "mappin.and.ellipse").font(.system(size: 15, weight: .semibold))
+                Text("I'm here").font(.subheadline.weight(.semibold))
+            }
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 14)
+            .frame(height: 44)
+            .modifier(HereLook())
+        }
+        .buttonStyle(PressSpring())
+        .accessibilityLabel("I'm here: check in where you are")
         .padding(.trailing, 26)
     }
 
@@ -878,6 +942,18 @@ private struct LocateLook: ViewModifier {
             content.glassEffect(.regular.interactive(), in: .circle)
         } else {
             content.background(Color(.systemBackground), in: Circle()).shadow(color: .black.opacity(0.12), radius: 8, y: 3)
+        }
+    }
+}
+
+/// The I'm here pill: glass on iOS 26+, like the locate button.
+private struct HereLook: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content.glassEffect(.regular.interactive(), in: .capsule)
+        } else {
+            content.background(Color(.systemBackground), in: Capsule()).shadow(color: .black.opacity(0.12), radius: 8, y: 3)
         }
     }
 }

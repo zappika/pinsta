@@ -48,8 +48,11 @@ final class Place {
     /// Been there: when it was marked (kept, not shown). nil = Want to go, every place's start.
     /// Back to Want to go clears it and keeps `rating` (web: `visited_at`, 2026-10-06).
     var visitedAt: Date?
-    /// How it was after Been there: 1 😞 2 🙂 3 😃; nil = not said.
+    /// How it was after Been there: 1 😞 2 🙂 3 😃; nil = not said. The latest face given.
     var rating: Int?
+    /// Every time you were there (I'm here, `Visit`), oldest first. Empty for places marked
+    /// Been there before visits existed: `visitCount` counts those as one.
+    var visits: [Visit] = []
 
     /// Saved within ~150 m of where you stood ("Where I am", or any save that close): asked
     /// "Been there?" on a later day, not a week on (`AskVisit`, web: `saved_nearby`, 2026-10-26).

@@ -26,6 +26,8 @@
 	<array>
 		<string>comgooglemaps</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Take a photo of where you are to keep with your visit. It stays on your phone.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Vicolo opens on the town you are in, with your saved places nearby first. Your location stays on your phone.</string>
 	<key>UILaunchStoryboardName</key>

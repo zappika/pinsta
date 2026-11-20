@@ -97,7 +97,10 @@ struct PlaceCardView: View {
                     .padding(.bottom, 14)
             }
 
-            if expanded && !folded {
+            if expanded, place.visitCount > 0 { visitsRow }
+
+            // Many visits: the row above says it; the switch would undo them all with one tap.
+            if expanded && !folded && place.visitCount <= 1 {
                 VisitSwitch(place: place, onPicked: { visitOpen = false })
             }
 
@@ -128,6 +131,32 @@ struct PlaceCardView: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    /// "Been 3 times · last 12 Nov", your notes' latest, and your photos (I'm here): the post's photo stays the
+    /// card's, yours sit under it (Sarp's "hybrid", 2026-11-20).
+    private var visitsRow: some View {
+        let n = place.visitCount
+        let last = place.lastVisit.map { " · last \($0.formatted(.dateTime.day().month(.abbreviated)))" } ?? ""
+        let note = place.visits.last(where: { $0.note != nil })?.note
+        let photos = place.visitPhotos
+        return VStack(alignment: .leading, spacing: 8) {
+            Text((n == 1 ? "Been once" : "Been \(n) times") + last)
+                .font(.subheadline.weight(.medium))
+            if let note {
+                Text("“\(note)”").font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
+            }
+            if !photos.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(photos, id: \.self) { VisitPhotoView(name: $0, size: 72) }
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 14)
     }
 
     /// "Saved from @x on Instagram · 14 Sep", then the venue's own site as a link (web: PlaceCard).
