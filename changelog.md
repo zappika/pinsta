@@ -8,6 +8,15 @@ backoffice, web-only changes). Headings read "## Build N · D Month".
 
 # What's new in Vicolo
 
+## Build 35 · 20 November
+
+- **I'm here:** a new button on the map (and in the + menu). It lists the places right around you, the likeliest one first; one tap checks you in. Then, if you like, a face, a photo and a note for next time.
+- **You made it:** open Vicolo while you're at a place you saved, and it shows the post you saved it from, with its caption. One tap checks you in.
+- Every visit counts: a place's card says "Been 3 times · last 12 Nov", with your note and your photos.
+- **Been there** (menu) is now a timeline of where you've been, day by day with the town. Tap a row to open the place; swipe a check-in to delete it.
+- Add I'm here to Control Center, the Lock Screen or the Action button, or say "I'm here in Vicolo" to Siri.
+- A post that names the place by its Instagram account, or a place whose name starts with "The" or "Le", is found more often.
+
 ## Build 34 · 15 November
 
 - More posts save by themselves: when a restaurant posts about itself and the place is named like the account, it's found on its own.

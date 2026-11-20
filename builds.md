@@ -13,8 +13,9 @@ How it stays true:
 - `git log ios-N..HEAD -- ios lib app/api` is the check: anything there that isn't listed under Next build was forgotten.
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
-## Next build (since `ios-34`)
+## Next build (since `ios-35`)
 
+## In TestFlight: 1.0 (35) · 2026-11-20 · `ios-35` · phone ☐
 - **I'm here:** a new button on the map. It lists the places right around you with their icons, the likeliest one first; one tap checks you in. Then, if you like: a face, a photo (camera or your photos) and a note for next time.
 - **You made it:** open Vicolo while you're at a place you saved, and it shows the post you saved it from, with its caption (often what to order). One tap checks you in.
 - Places keep every visit: the card says "Been 3 times · last 12 Nov", shows your note and your photos under the post's. A place checked into without a post gets your photo as its own.
@@ -30,7 +31,9 @@ How it stays true:
 - A 📍 line that names the place by its Instagram account ("📍@gatbxl Rue Lesbroussart 67") finds it.
 - *(internal)* 2026-11-20, both sides: articles in `isOwnPlace`, the far-namesake filter anchors on `namedLikeAccount`, @handles in the 📍 line read as the handle's name, `bxl` glued like `bcn`. Replay checked.
 
-## In TestFlight: 1.0 (34) · 2026-11-15 · `ios-34` · phone ☐
+## Earlier builds
+
+### 1.0 (34) · 2026-11-15 · `ios-34` · phone ☐
 - Map dots for imported places are a stronger colour, easier to see on the map.
 - A place name that would run into a nearby pin now shows on the other side instead of disappearing.
 - Places saved by name or from a Google Maps link show their photo on the map, like places saved from a post.
@@ -45,8 +48,6 @@ How it stays true:
 - *(internal)* Save-miss fixes (2026-11-11, `PlaceSearch.swift`): `bareHandle`, `plain` (small capitals), `namesTag`, `addressIn` ported from the web, `resolveUntagged` takes hashtags, neighbourhoods in `areaOfTag`. Checked with the MapKit replay.
 - *(internal)* Save-miss fixes (2026-11-01, `PlaceSearch.swift`): `isOwnPlace`, `mentioned` (media dropped, kind-glued handles first), travel areas in `areaOfTag`, "rue du / via della" in `streetOfTag`, `captionPlaceQuery` phrases and line breaks, "📌 Save it…" isn't a place line. Checked with the MapKit harness, not in the Simulator.
 - *(internal)* Tried in the Simulator 2026-11-15 (iPhone 17 Pro recreated on iOS 27.2): the Blue Moon link saves itself. Replay 43/47. First build from this Mac.
-
-## Earlier builds
 
 ### 1.0 (33) · 2026-10-31 · `ios-33` · phone ☐
 - The map changes with zoom: far out, places close together show as one round picture of their photos with how many there are; across a city, dots with names; closer in, photos with names. Places right next to each other stack into one photo with "+1 more"; tap it to zoom in. Places from an imported list are small coloured dots, with their type icon up close.
