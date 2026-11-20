@@ -197,7 +197,6 @@ export default function PinstaApp() {
   /** The map's tucked-away filter (Sarp, 2026-11-20): every place, only Want to go, only Been there.
    * Not remembered: every visit opens on everything. */
   const [been, setBeen] = useState<"all" | "want" | "been">("all");
-  const [beenOpen, setBeenOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -550,51 +549,28 @@ export default function PinstaApp() {
     </button>
   );
 
-  /** The tucked-away Been there filter: a small round button above the locate arrow, map only. */
-  const beenLabel = { all: "Everything", want: "Want to go", been: "Been there" } as const;
-  const beenButton = locateButton && (
-    <div className={`pointer-events-auto absolute flex items-center gap-2 ${
-      wide ? "right-5 bottom-[calc(env(safe-area-inset-bottom)+5rem)]" : "right-2.5 bottom-[calc(100%+4.25rem)]"
-    }`}>
-      {been !== "all" && (
-        <button type="button" onClick={() => setBeenOpen(true)}
-          className="rounded-full bg-stone-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg shadow-stone-900/10">
-          {beenLabel[been]}
+  /** The map's Want to go / Been there filter (Sarp, 2026-11-20): a segmented switch at the top of the
+   * map, like the place card's (a round icon with a menu read as a button). ↔ iOS `beenSwitch`. */
+  const beenLabel = { all: "All", want: "Want to go", been: "Been there" } as const;
+  const beenSwitch = hasPlaces && (wide || view === "map") && (
+    <div
+      role="radiogroup"
+      aria-label="Show all, want to go, or been there"
+      className="absolute top-2 z-10 flex gap-1 rounded-2xl bg-stone-100/90 p-1 shadow-lg shadow-stone-900/10 backdrop-blur -translate-x-1/2"
+      style={{ left: wide ? `calc(${PANEL_RIGHT}px + (100% - ${PANEL_RIGHT}px) / 2)` : "50%", top: wide ? 12 : 8 }}
+    >
+      {(["all", "want", "been"] as const).map((k) => (
+        <button
+          key={k}
+          type="button"
+          role="radio"
+          aria-checked={been === k}
+          onClick={() => { setBeen(k); setPeek(null); }}
+          className={`min-h-9 whitespace-nowrap rounded-xl px-3.5 text-sm transition-colors ${been === k ? "bg-white font-medium text-stone-900 shadow-sm" : "text-stone-500 active:bg-stone-200"}`}
+        >
+          {beenLabel[k]}
         </button>
-      )}
-      <button
-        type="button"
-        aria-label="Show: everything, want to go, or been there"
-        aria-expanded={beenOpen}
-        onClick={() => setBeenOpen((o) => !o)}
-        className={`flex h-9 w-9 items-center justify-center rounded-full shadow-lg shadow-stone-900/10 active:scale-95 transition-transform ${
-          been === "all" ? "bg-white text-stone-700" : "bg-stone-900 text-white"
-        }`}
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <circle cx="12" cy="12" r="9" />
-          <path d="m8.5 12.5 2.5 2.5 4.5-5" />
-        </svg>
-      </button>
-      {beenOpen && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setBeenOpen(false)} aria-hidden />
-          <ul role="menu" className="absolute bottom-[calc(100%+0.5rem)] right-0 z-20 w-44 overflow-hidden rounded-2xl bg-white py-1 shadow-xl shadow-stone-900/15">
-            {(["all", "want", "been"] as const).map((k) => (
-              <li key={k}>
-                <button type="button" role="menuitemradio" aria-checked={been === k}
-                  onClick={() => { setBeen(k); setBeenOpen(false); setPeek(null); }}
-                  className="flex min-h-11 w-full items-center justify-between px-4 text-left text-sm active:bg-stone-100">
-                  {beenLabel[k]}
-                  {been === k && (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+      ))}
     </div>
   );
 
@@ -692,7 +668,7 @@ export default function PinstaApp() {
       <main data-wide className="fixed inset-0 overflow-hidden">
         {map}
         {locateButton}
-        {beenButton}
+        {beenSwitch}
         <aside
           className="absolute left-3 top-3 bottom-3 flex flex-col overflow-hidden rounded-[28px] bg-stone-100 shadow-[0_8px_40px_rgb(0_0_0/0.16)]"
           style={{ width: PANEL_WIDTH }}
@@ -731,6 +707,7 @@ export default function PinstaApp() {
         }
       >
         {map}
+        {view === "map" && beenSwitch}
         {listed}
       </section>
 
@@ -745,7 +722,6 @@ export default function PinstaApp() {
             </div>
           )}
           {locateButton}
-          {beenButton}
           {plus}
         </div>
       </div>
