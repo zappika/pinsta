@@ -306,7 +306,8 @@ body {
   width: 16px; height: 16px; border-radius: 9999px;
   background: #1a73e8; border: 3px solid #fff;
   box-shadow: 0 0 0 7px rgba(26, 115, 232, 0.18), 0 1px 3px rgba(0, 0, 0, 0.3);
-  z-index: 0; pointer-events: none;
+  /* Above every pin (they go up to 3): you never disappear under a place (Sarp, 2026-11-20). Taps pass through. */
+  z-index: 10; pointer-events: none;
 }
 
 /* Zoomed out: one bubble per city, its name and count underneath. */

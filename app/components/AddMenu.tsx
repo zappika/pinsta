@@ -93,7 +93,8 @@ export default function AddMenu({ open, onClose, onPick }: Props) {
               type="button"
               tabIndex={open ? 0 : -1}
               onClick={() => onPick(it.mode)}
-              className="pointer-events-auto flex w-56 items-center justify-between gap-3 rounded-full bg-white py-2 pl-4 pr-2 text-left shadow-lg shadow-stone-900/15 active:scale-[0.97]"
+              // Closed, the pills are invisible but still there: they must not take taps (they ate the map filter button, 2026-11-20).
+              className={`${open ? "pointer-events-auto" : "pointer-events-none"} flex w-56 items-center justify-between gap-3 rounded-full bg-white py-2 pl-4 pr-2 text-left shadow-lg shadow-stone-900/15 active:scale-[0.97]`}
               style={{
                 opacity: open ? 1 : 0,
                 transform: open ? "translateY(0) scale(1)" : `translateY(${(order + 1) * 24}px) scale(0.6)`,

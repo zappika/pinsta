@@ -190,7 +190,14 @@ export default function PinstaApp() {
   function setView(v: View) {
     setViewState(v);
     setPeek(null);
+    // The Been there filter is the map's own: the phone's list always shows the whole selection.
+    // Wide keeps it: the map is always there beside the panel.
+    if (v !== "map" && !wide) setBeen("all");
   }
+  /** The map's tucked-away filter (Sarp, 2026-11-20): every place, only Want to go, only Been there.
+   * Not remembered: every visit opens on everything. */
+  const [been, setBeen] = useState<"all" | "want" | "been">("all");
+  const [beenOpen, setBeenOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -339,18 +346,24 @@ export default function PinstaApp() {
   // country, Norway, one bakery, and read it as random). Only when the places are worlds apart
   // (wider than SPREAD_KM, Japan and Spain) one country: the one with most places, as Japan and
   // Spain in one frame showed neither (2026-10-06). The others are a zoom out away.
+  /** What the map shows: `visible` through the Been there filter (wide: the panel's list too). */
+  const onMap = useMemo(
+    () => (been === "all" ? visible : visible.filter((p) => (p.visitedAt != null) === (been === "been"))),
+    [visible, been],
+  );
+
   const countries = useMemo(() => {
     const by = new Map<string, Place[]>();
-    for (const p of visible) {
+    for (const p of onMap) {
       const c = p.country ?? "Elsewhere";
       by.set(c, [...(by.get(c) ?? []), p]);
     }
     return [...by].map(([name, ps]) => ({ name, places: ps })).sort((a, b) => b.places.length - a.places.length);
-  }, [visible]);
+  }, [onMap]);
   const framed = useMemo(() => {
-    if (city !== null || countries.length < 2 || spreadKm(visible) <= SPREAD_KM) return null;
+    if (city !== null || countries.length < 2 || spreadKm(onMap) <= SPREAD_KM) return null;
     return countries[0];
-  }, [countries, city, visible]);
+  }, [countries, city, onMap]);
 
   function onSaved(p: Place) {
     setPlaces((prev) => [p, ...(prev ?? [])]);
@@ -427,7 +440,7 @@ export default function PinstaApp() {
 
   const map = hasPlaces && (wide || view === "map") && (
     <PlacesMap
-      places={visible}
+      places={onMap}
       focus={framed?.places}
       here={here}
       goHere={goHere}
@@ -467,22 +480,22 @@ export default function PinstaApp() {
         </div>
       )}
 
-      {hasPlaces && visible.length === 0 && body !== "map" && (
+      {hasPlaces && onMap.length === 0 && body !== "map" && (
         <div className="mx-auto mt-10 max-w-[280px] text-center">
           <BrandIllustration coffee={category?.startsWith("Cafe") ?? false} />
           <h2 className="mt-4 text-base font-medium">No places here yet</h2>
           <p className="mt-2 text-sm text-stone-500">Try another area or clear your filters.</p>
-          <button type="button" onClick={() => { setCity(null); setCategory(null); }} className="mt-3 min-h-11 rounded-full px-4 text-sm font-medium underline underline-offset-4">Show all places</button>
+          <button type="button" onClick={() => { setCity(null); setCategory(null); setBeen("all"); }} className="mt-3 min-h-11 rounded-full px-4 text-sm font-medium underline underline-offset-4">Show all places</button>
         </div>
       )}
 
       {body === "tiles" && (
-        <PlaceTiles places={visible} selected={peekId} onSelect={(p) => setPeekId((c) => (c === p.id ? null : p.id))} />
+        <PlaceTiles places={onMap} selected={peekId} onSelect={(p) => setPeekId((c) => (c === p.id ? null : p.id))} />
       )}
 
       {body === "list" && (
         <PlaceList
-          places={visible}
+          places={onMap}
           selected={peekId}
           onSelect={(p) => setPeekId((c) => (c === p.id ? null : p.id))}
           here={here}
@@ -494,7 +507,7 @@ export default function PinstaApp() {
       {/* Only in Cards: a hidden list still downloads every photo. */}
       {body === "cards" && (
         <ul className="space-y-3">
-          {visible.map((p) => (
+          {onMap.map((p) => (
             <SwipeCard
               key={p.id}
               open={openSwipe === p.id}
@@ -535,6 +548,54 @@ export default function PinstaApp() {
         <path d="M20.5 3.5 3.5 10.6l7.1 2.8 2.8 7.1z" />
       </svg>
     </button>
+  );
+
+  /** The tucked-away Been there filter: a small round button above the locate arrow, map only. */
+  const beenLabel = { all: "Everything", want: "Want to go", been: "Been there" } as const;
+  const beenButton = locateButton && (
+    <div className={`pointer-events-auto absolute flex items-center gap-2 ${
+      wide ? "right-5 bottom-[calc(env(safe-area-inset-bottom)+5rem)]" : "right-2.5 bottom-[calc(100%+4.25rem)]"
+    }`}>
+      {been !== "all" && (
+        <button type="button" onClick={() => setBeenOpen(true)}
+          className="rounded-full bg-stone-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg shadow-stone-900/10">
+          {beenLabel[been]}
+        </button>
+      )}
+      <button
+        type="button"
+        aria-label="Show: everything, want to go, or been there"
+        aria-expanded={beenOpen}
+        onClick={() => setBeenOpen((o) => !o)}
+        className={`flex h-9 w-9 items-center justify-center rounded-full shadow-lg shadow-stone-900/10 active:scale-95 transition-transform ${
+          been === "all" ? "bg-white text-stone-700" : "bg-stone-900 text-white"
+        }`}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <circle cx="12" cy="12" r="9" />
+          <path d="m8.5 12.5 2.5 2.5 4.5-5" />
+        </svg>
+      </button>
+      {beenOpen && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setBeenOpen(false)} aria-hidden />
+          <ul role="menu" className="absolute bottom-[calc(100%+0.5rem)] right-0 z-20 w-44 overflow-hidden rounded-2xl bg-white py-1 shadow-xl shadow-stone-900/15">
+            {(["all", "want", "been"] as const).map((k) => (
+              <li key={k}>
+                <button type="button" role="menuitemradio" aria-checked={been === k}
+                  onClick={() => { setBeen(k); setBeenOpen(false); setPeek(null); }}
+                  className="flex min-h-11 w-full items-center justify-between px-4 text-left text-sm active:bg-stone-100">
+                  {beenLabel[k]}
+                  {been === k && (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
   );
 
   const plus = (
@@ -631,6 +692,7 @@ export default function PinstaApp() {
       <main data-wide className="fixed inset-0 overflow-hidden">
         {map}
         {locateButton}
+        {beenButton}
         <aside
           className="absolute left-3 top-3 bottom-3 flex flex-col overflow-hidden rounded-[28px] bg-stone-100 shadow-[0_8px_40px_rgb(0_0_0/0.16)]"
           style={{ width: PANEL_WIDTH }}
@@ -683,6 +745,7 @@ export default function PinstaApp() {
             </div>
           )}
           {locateButton}
+          {beenButton}
           {plus}
         </div>
       </div>

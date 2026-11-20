@@ -26,11 +26,14 @@ const QUIET_PX: Record<Tier, number> = { city: 12, hood: 12, street: 32 };
 /** "tiers" as above, or "text": zoomed out, a post's place is its name on a small dark dot, the
  * photo from neighbourhood level (explored 2026-10-16, both lost to "mix"; no switch any more). */
 type PinStyle = "tiers" | "text" | "mix";
-/** "mix" (Sarp, 2026-10-29, from Venice screenshots and Instagram's map): zoom decides. Far out, a
- * mosaic per group; across a city, named dots; closer in, photos with names, and places that would
- * overlap stack into one photo with "+N more" under the name (no side-by-side fan). */
-const MIX_DOTS_FROM = 12.5;
-const MIX_PHOTOS_FROM = 13.8;
+/** "mix" (Sarp, 2026-10-29, from Venice screenshots and Instagram's map): zoom decides. A post's place
+ * is its photo at every zoom (Sarp, 2026-11-20: the named dots across a city hid the photos). Far out,
+ * photos group only when they really overlap: a few stack into one photo with the others peeking out,
+ * more than FAN_MAX become a mosaic. From MIX_NAMES_FROM, names, and places whose names would collide
+ * stack into one photo with "+N more" under the name (no side-by-side fan). */
+const MIX_NAMES_FROM = 12.5;
+/** Far out, photos this close (× their size) group: they may overlap a little first. */
+const MIX_OVERLAP = 0.7;
 /** This few places on screen: no reason to shrink anything, every pin at full size (Sarp: "not much
  * point of showing things very small where there are only 2–3–4 pins"). */
 const ROOMY = 8;
@@ -194,7 +197,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
   hereRef.current = here;
   const hereMarker = useRef<maplibregl.Marker | null>(null);
 
-  /** The blue dot: drawn under the pins, moved when the fix changes. */
+  /** The blue dot: drawn over the pins (`.pinsta-here`), moved when the fix changes. */
   function showHere() {
     const lib = libRef.current, m = map.current, at = hereRef.current;
     if (!lib || !m || !ready.current) return;
@@ -274,7 +277,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
   function lookAt(m: maplibregl.Map): string {
     const z = m.getZoom();
     if (z < CITY_ZOOM) return "cities";
-    if (styleRef.current === "mix") return `mix-${z < MIX_DOTS_FROM ? "far" : z < MIX_PHOTOS_FROM ? "mid" : "close"}`;
+    if (styleRef.current === "mix") return `mix-${z < MIX_NAMES_FROM ? "far" : "close"}`;
     if (styleRef.current === "text" && z < 15) return "text";
     const view = m.getBounds();
     const onScreen = placesRef.current.filter((p) => view.contains([p.lng, p.lat])).length;
@@ -308,9 +311,9 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
     const onScreen = placesRef.current.filter((p) => view.contains([p.lng, p.lat])).length;
     const tier: Tier = onScreen <= ROOMY ? "street" : tierAt(z);
     const mix = styleRef.current === "mix";
-    const phase = z < MIX_DOTS_FROM ? "far" : z < MIX_PHOTOS_FROM ? "mid" : "close";
-    const text = mix ? phase === "mid" : styleRef.current === "text" && z < 15;
-    const stack = mix && phase === "close";
+    const phase = z < MIX_NAMES_FROM ? "far" : "close";
+    const text = !mix && styleRef.current === "text" && z < 15;
+    const stack = mix;
     const loudPx = text ? 10 : LOUD_PX[tier];
     const quietPx = QUIET_PX[tier];
     type Group = { x: number; y: number; members: Place[]; loud: boolean; fanBy?: number; fanned?: boolean };
@@ -321,7 +324,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
       // Dots barely overlap at 12 px: they group only when nearly on top of each other.
       // "mix" past the mosaic: places close enough that their names would collide become one
       // "Name +N more" (a second dot without its name read as a mystery; touching photos too).
-      const near = loud ? (mix && phase !== "far" ? (text ? 22 : loudPx * 1.3) : loudPx + 2) : Math.max(quietPx - 2, 8);
+      const near = loud ? (mix ? loudPx * (phase === "far" ? MIX_OVERLAP : 1.3) : loudPx + 2) : Math.max(quietPx - 2, 8);
       const g = z < NO_CLUSTER_ZOOM ? groups.find((g) => g.loud === loud && Math.hypot(g.x - pt.x, g.y - pt.y) < near) : undefined;
       if (g) g.members.push(p);
       else groups.push({ x: pt.x, y: pt.y, members: [p], loud });
@@ -405,9 +408,9 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
         markers.current.set(p.id, { marker, pin });
         continue;
       }
-      // "mix", close in: one photo, the others peeking out behind it, "+N more" under its name.
-      // Across the city the same, as one dot.
-      if (mix && phase !== "far" && g.loud) {
+      // "mix": one photo, the others peeking out behind it, "+N more" under its name. Far out, only up
+      // to FAN_MAX (more is a mosaic) and the name only where it fits.
+      if (mix && g.loud && (phase !== "far" || g.members.length <= FAN_MAX)) {
         const [first, ...rest] = g.members;
         const el = document.createElement("div");
         el.style.cssText = `width:${size}px;height:${size}px;cursor:pointer;z-index:3`;
