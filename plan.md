@@ -21,17 +21,10 @@ The friends beta is running (since 2026-10-14). Feedback from it comes first; se
 5. **Send to a friend** (2026-10-26, web prototype, decisions.md): + → Send to a friend (paste a list), or the send button once a town is picked; your page at `/w/<id>`; Sent in the buddy menu. Live: the Kreuzberg walk is www.vicolo.space/w/umwi4e3c4r. Ask once how the friend used it, then decide what the iOS version keeps.
 
 ## Waiting on Sarp
-- **APNs key for the "list is ready" push:** developer.apple.com → Keys → + → tick Apple Push Notifications service → download the .p8 (once only) and note its Key ID. In Vercel (pinsta, Production): `APNS_KEY` = the .p8 file's contents (sensitive), `APNS_KEY_ID` = the Key ID, then redeploy. Until then imports work, just without the notification.
-- Pulse: add backoffice.vicolo.space to the Home Screen (asks the owner key once), then mark your own phones and the simulator as Mine (BFA7CCD6, 19 saves, looks like yours) and name the testers.
-- Before the App Store: everything is in `docs/app-store.md` (researched 2026-10-16). Start with the DSA trader declaration (weeks to verify). App Privacy needs more than Product Interaction (§4 there).
-- Before every upload, check `parity.md` for web-only rows (the locate button missed 26 that way).
-- Nudge testers to update and turn on Automatic Updates; ask the iPhone 13 (iOS 26) tester to try the latest build.
-- The tester's tutorial photo (file + permission).
-- Testers list → light CRM in backoffice: Pulse names phones now (2026-10-18); more than that later, not started.
-- Rate limiting and usage review: much later (Sarp, 2026-10-08). Don't bring up.
+- **App Store, if and when Sarp wants it (undecided, 2026-11-20):** everything is in `docs/app-store.md` (researched 2026-10-16). Start with the DSA trader declaration (weeks to verify). App Privacy needs more than Product Interaction (§4 there).
 
 ## To design (Sarp)
-- **Google list import on the server**: built 2026-10-19 (server live, iOS waits for the Xcode build and the APNs key above).
+- **Google list import on the server**: built 2026-10-19 (server live, iOS since build 31; no "list is ready" push, the APNs key was dropped 2026-11-20).
 - **Tutorial says what Vicolo is** (Sarp's list, 2026-10-16): next after the easy ones.
 - **Map pins, loud and quiet** (web): Mix picked 2026-10-29 (decisions.md), switch removed. iOS port written on the Mac without Xcode, not compiled: build it on the Xcode Mac, check Venice in the Simulator, upload as build 33.
 - **The "This post has N places" picker and the Google list import review, in one pass** (Sarp, 2026-10-15): the slide/caption list picker should look like the list import review.

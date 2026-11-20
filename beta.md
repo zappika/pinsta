@@ -47,7 +47,7 @@ Builds 21–25 (2026-10-14 → 10-15) are the answer to this round: place findin
 - ~~iOS 26 untested~~ Testers on 26 seem fine; left (Sarp, 2026-10-15).
 - ~~Dark mode of the new screens~~ Checked by Sarp, 2026-10-15.
 - ~~**"The app shows a random place when I open it"**~~ (tester in Copenhagen with places in Lisbon, Paris and Oslo; she asked for the whole map, like a Google Maps saved map). The map framed the country *nearest* to her: Norway, one bakery in Oslo. Fixed for build 26: Everywhere frames every place unless they're worlds apart.
-- **Tutorial photo:** a tester offered a real one for page 1. Waiting for the file (original, with permission); it's a swap of `OnboardingRestaurant/restaurant.jpg`.
+- ~~**Tutorial photo:** a tester offered a real one for page 1.~~ Dropped (Sarp, 2026-11-20); the stand-in stays. If one ever comes, it's a swap of `OnboardingRestaurant/restaurant.jpg`.
 - **For testers to verify (Sarp):** Apple Maps results on their own posts, the least-tested area.
 - ~~A slide name Apple Maps doesn't have is dropped (Tranen)~~ Google fallback for build 26. Still open: web has no list posts (needs server-side text reading).
 - **Noted, left (Sarp):** pre-fill the search with the account's name when nothing is found.
