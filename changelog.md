@@ -8,6 +8,13 @@ backoffice, web-only changes). Headings read "## Build N · D Month".
 
 # What's new in Vicolo
 
+## Build 36 · 20 November
+
+- **Check in** moved into the + menu (no more button on the map), and that's its name everywhere now, also for Siri ("Check in with Vicolo") and the Control Center button.
+- The map shows your posts' photos from further out: no more black dots across a city, and photos only merge into one round picture when many sit on top of each other.
+- Your blue dot stays on top: a place right where you're standing no longer hides you.
+- At the top of the map: **All · Want to go · Been there**, to see only the places you still want to try, or only the ones you've been to.
+
 ## Build 35 · 20 November
 
 - **I'm here:** a new button on the map (and in the + menu). It lists the places right around you, the likeliest one first; one tap checks you in. Then, if you like, a face, a photo and a note for next time.

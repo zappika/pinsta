@@ -13,14 +13,18 @@ How it stays true:
 - `git log ios-N..HEAD -- ios lib app/api` is the check: anything there that isn't listed under Next build was forgotten.
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
-## Next build (since `ios-35`)
+## Next build (since `ios-36`)
+
+## In TestFlight: 1.0 (36) · 2026-11-20 · `ios-36` · phone ☐
 - **Check in** is in the + menu now, not a button on the map; everything that said "I'm here" says Check in (also Siri: "Check in with Vicolo", and the Control Center button).
 - The map shows your saved posts' photos from further out: no more black dots across a city, and photos only merge into one round picture when many sit on top of each other.
 - Your blue dot stays on top: a place right where you stand no longer hides you.
 - At the top of the map, All · Want to go · Been there shows only the places you want to go to, or only the ones you've been to. Opening the app or switching to the list shows all again.
 - *(internal)* 2026-11-20: `hereButton` removed, `BeenFilter` + `beenSwitch` (system segmented control, top of the map) in `PlacesListView`; `PlacesMapView`: no `.mid` look, `overlap` 0.7, `fanMax` 4, own `YouDot` (CLLocationUpdate.liveUpdates, only when allowed) instead of `UserAnnotation`. Checked in the Simulator over build 35: + menu, filter, dot on Al Covo. Zoom steps not walked through on iOS (web was).
 
-## In TestFlight: 1.0 (35) · 2026-11-20 · `ios-35` · phone ☐
+## Earlier builds
+
+### 1.0 (35) · 2026-11-20 · `ios-35` · phone ☐
 - **I'm here:** a new button on the map. It lists the places right around you with their icons, the likeliest one first; one tap checks you in. Then, if you like: a face, a photo (camera or your photos) and a note for next time.
 - **You made it:** open Vicolo while you're at a place you saved, and it shows the post you saved it from, with its caption (often what to order). One tap checks you in.
 - Places keep every visit: the card says "Been 3 times · last 12 Nov", shows your note and your photos under the post's. A place checked into without a post gets your photo as its own.
@@ -35,8 +39,6 @@ How it stays true:
 - A magazine's post naming a hotel as co-author finds the hotel, not something named like the magazine (Stamba Hotel).
 - A 📍 line that names the place by its Instagram account ("📍@gatbxl Rue Lesbroussart 67") finds it.
 - *(internal)* 2026-11-20, both sides: articles in `isOwnPlace`, the far-namesake filter anchors on `namedLikeAccount`, @handles in the 📍 line read as the handle's name, `bxl` glued like `bcn`. Replay checked.
-
-## Earlier builds
 
 ### 1.0 (34) · 2026-11-15 · `ios-34` · phone ☐
 - Map dots for imported places are a stronger colour, easier to see on the map.
