@@ -5,6 +5,20 @@ new session notes go in plan.md "Last session", the previous one moves here.
 
 ## Session log (newest first)
 
+### 2026-10-27 to 2026-11-15: wide layout, Mix pins on iOS, search review, builds 32–34
+- **Build 32** (10-27, fine on the phone): Where I am and "Been there?" later on iOS.
+- **Web wide layout** (10-27/28): Flighty-style for iPad and Mac, a Phone / Wide switch, Phone by default with a mouse.
+- **Map pins: Mix** (10-29, web): zoom decides mosaics → named dots → photos, live mid-pinch; the style switch is gone. The Where/What header experiment dropped. Ported to iOS, **build 33** (10-31).
+- **Map dots** (11-01): deeper colour on iOS, names flip left, iOS loud rule matches the web.
+- **Search review** (11-01): every save is a regression case (`review_cases`, in the database), replayed on MapKit by a weekly task on Sarp's Mac (`scripts/review/REVIEWER.md`), reported on backoffice `/review`.
+- **Save misses** (11-01, 11-11, 11-15): own place first, town/street/neighbourhood tags, caption phrases, media mentions, web-address handles, no wrong auto-save from a tag, name-and-address captions. **Build 34** (11-15), the first archived from this Mac.
+
+### 2026-10-26: Send to a friend (web)
+- **Why:** Sarp gave a friend a Kreuzberg afternoon (Voo Store → Hasir → Bonanza → König Galerie) as a ChatGPT map and wanted to send it with Vicolo, saved or not; also "my Helsinki restaurant tips". Thinking it through: decisions.md 2026-10-26.
+- **Built and live:** + → Send to a friend (paste a list, "In" city, Not this one?, notes, In order / Any order, Shortest walk, From), the send button once a town is picked, the public page `/w/<id>` (map, photos, notes, Walk it in Google Maps, link preview image), "Keep any of these?" after sending, Sent in the buddy menu. Pins on that page: white, hairline, soft shadow, names under them (Sarp preferred ChatGPT's look; numbers over photos for a walk).
+- **Real sends:** Kreuzberg afternoon www.vicolo.space/w/umwi4e3c4r (sent to the friend) (the My Tokyo test send was deleted 2026-11-20).
+- **Open:** how the friend reacts (did she walk it, did she ask how to save); her "Save these to Vicolo" only explains the app; no iOS yet; Helsinki tips not tried (one Helsinki place on the web list). Next steps in backlog.md → Sending.
+
 ### 2026-10-18/19: Pulse, docs
 - **Backoffice Pulse** (`/pulse`, now the backoffice home): four questions answered in phones, not percentages: saves that worked (found alone / after digging / gave up), which kinds of post miss, phones that saved on 2+ days and who went quiet, phones that came back to find a place. One row per phone; tap to name it or mark it Mine (left out of the numbers). Saves keeps the misses with a Copy links button; Pulse, Saves and Usage share a tab bar; the backoffice installs on the Home Screen (dark app icon, opens on Pulse).
 - **iOS, for build 31:** counts a place opened, Directions, the post button and Been there (no place names), the data "come back to find something" needs. Built for the simulator, not run.
