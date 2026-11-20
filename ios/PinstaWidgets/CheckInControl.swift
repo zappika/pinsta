@@ -15,7 +15,7 @@ struct CheckInControl: ControlWidget {
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: "se.sarper.vicolo.checkin") {
             ControlWidgetButton(action: CheckInIntent()) {
-                Label("I'm here", systemImage: "mappin.and.ellipse")
+                Label("I'm here", systemImage: "hand.wave")
             }
         }
         .displayName("I'm here")

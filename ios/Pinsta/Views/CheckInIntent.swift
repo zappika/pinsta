@@ -41,7 +41,7 @@ enum CheckInRequest {
 struct VicoloShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(intent: CheckInIntent(), phrases: ["I'm here in \(.applicationName)", "Check in with \(.applicationName)"],
-                    shortTitle: "I'm here", systemImageName: "mappin.and.ellipse")
+                    shortTitle: "I'm here", systemImageName: "hand.wave")
     }
 }
 

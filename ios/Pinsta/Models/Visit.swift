@@ -43,6 +43,15 @@ extension Place {
         visitedAt = nil
     }
 
+    /// One check-in undone (a wrong row, a double tap), its photos with it. The last one gone, the place
+    /// is Want to go again; otherwise Been there dates from the first visit left.
+    func removeVisit(_ id: UUID) {
+        guard let i = visits.firstIndex(where: { $0.id == id }) else { return }
+        for name in visits[i].photos { VisitPhotos.remove(name) }
+        visits.remove(at: i)
+        visitedAt = visits.first?.at
+    }
+
     func update(_ visit: Visit) {
         guard let i = visits.firstIndex(where: { $0.id == visit.id }) else { return }
         visits[i] = visit

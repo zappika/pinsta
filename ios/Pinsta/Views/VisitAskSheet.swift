@@ -63,7 +63,12 @@ struct VisitAskSheet: View {
                 if !yes.contains(place.id) {
                     Button {
                         yes.insert(place.id)
-                        if place.visitedAt == nil { place.visitedAt = .now; Uses.count("visited") }
+                        // Saved where you stood: you were there that day, a visit on the save day. Otherwise the day is
+                        // unknown: Been there without a visit, shown undated on the Been there page.
+                        if place.visitedAt == nil {
+                            if place.savedNearby { place.checkIn(at: place.createdAt) } else { place.visitedAt = .now }
+                            Uses.count("visited")
+                        }
                         try? context.save()
                     } label: {
                         Text("Yes")
@@ -81,7 +86,7 @@ struct VisitAskSheet: View {
                     Spacer()
                     Button("Not yet") {
                         yes.remove(place.id)
-                        place.visitedAt = nil
+                        place.unvisit()
                         if faced.contains(place.id) { place.rating = nil; faced.remove(place.id) }
                         try? context.save()
                     }
@@ -93,6 +98,7 @@ struct VisitAskSheet: View {
                         let on = place.rating == kind
                         Button {
                             place.rating = kind
+                            if var last = place.visits.last { last.rating = kind; place.update(last) }
                             faced.insert(place.id)
                             try? context.save()
                         } label: {

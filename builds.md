@@ -18,6 +18,10 @@ How it stays true:
 - **I'm here:** a new button on the map. It lists the places right around you with their icons, the likeliest one first; one tap checks you in. Then, if you like: a face, a photo (camera or your photos) and a note for next time.
 - **You made it:** open Vicolo while you're at a place you saved, and it shows the post you saved it from, with its caption (often what to order). One tap checks you in.
 - Places keep every visit: the card says "Been 3 times · last 12 Nov", shows your note and your photos under the post's. A place checked into without a post gets your photo as its own.
+- On the Been there page, swipe a check-in left to delete it (a wrong tap, a double check-in), and tap any row to open the place on the map.
+- **Been there** (menu) is now a timeline of your check-ins, day by day with the town ("Saturday 15 Nov · Bologna"), each with its time, face, note and photos; Places lists them by how often you went ("3×").
+- The + menu's "Where I am" is now "I'm here" too: one list of the places around you, and a tap checks you in.
+- "Been to any of these?" → Yes for a place you saved standing there counts as a visit on that day; removing a place removes your photos of it.
 - I'm here from anywhere: add it to Control Center or the Lock Screen (or the Action button), or say "I'm here in Vicolo" to Siri.
 - *(internal)* 2026-11-20: `Models/Visit.swift` (visits as a list on Place, photos as files in the App Group), `Views/CheckInView.swift`, `Views/CheckInIntent.swift`, new target `PinstaWidgets` (control). Upgrade over build 34 checked in the Simulator (list kept). Not checked: adding a photo, the control, a check-in that saves a new place.
 

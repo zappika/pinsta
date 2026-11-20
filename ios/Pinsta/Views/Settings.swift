@@ -31,6 +31,8 @@ final class Settings {
     var showingTutorial = false
     /// Buddy menu → Been there.
     var showingBeenThere = false
+    /// A place tapped on the Been there page: the sheet closes and the list opens its card.
+    var openPlace: Place?
     var showingImport = false
     /// A list link from the save sheet, for ImportView to read.
     var importLink: String?

@@ -131,52 +131,90 @@ struct FaceView: View {
     }
 }
 
-/// Buddy menu → Been there (web: BeenThereSheet): the places marked Been there,
-/// latest marked first, each with its face. No dates and no sorting controls
-/// (Sarp, 2026-10-06: today's dates are the day of marking, not of the visit).
+/// Buddy menu → Been there: your check-ins as a timeline, or the places with how often (Sarp,
+/// 2026-11-20, with I'm here). Grouped by day with the day's town, so "where did you go in Italy?"
+/// is a scroll. Places marked Been there before check-ins existed have only the day they were
+/// marked, not the day of the visit: they sit at the end, undated (as the old list had no dates).
 struct BeenThereSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
     @Query(filter: #Predicate<Place> { $0.visitedAt != nil }, sort: \Place.visitedAt, order: .reverse)
     private var been: [Place]
+    @State private var mode: Mode = .timeline
+    private enum Mode: String, CaseIterable { case timeline = "Timeline", places = "Places" }
+
+    /// One check-in, with the place it was at.
+    private struct Entry: Identifiable {
+        let place: Place
+        let visit: Visit
+        var id: UUID { visit.id }
+    }
+
+    private struct Day: Identifiable {
+        let date: Date
+        let entries: [Entry]
+        var id: Date { date }
+        /// The town most of the day's check-ins were in.
+        var town: String? {
+            let towns = entries.compactMap(\.place.city)
+            return Dictionary(grouping: towns, by: { $0 }).max { $0.value.count < $1.value.count }?.key
+        }
+    }
+
+    private var entries: [Entry] {
+        been.flatMap { p in p.visits.map { Entry(place: p, visit: $0) } }
+            .sorted { $0.visit.at > $1.visit.at }
+    }
+
+    private var days: [Day] {
+        let cal = Calendar.current
+        return Dictionary(grouping: entries) { cal.startOfDay(for: $0.visit.at) }
+            .map { Day(date: $0.key, entries: $0.value.sorted { $0.visit.at > $1.visit.at }) }
+            .sorted { $0.date > $1.date }
+    }
+
+    /// Been there with no visit (marked before check-ins, or a Yes to "Been to any of these?" for a place
+    /// not saved on the spot): the day isn't known.
+    private var undated: [Place] { been.filter { $0.visits.isEmpty } }
+
+    private var summary: String {
+        let checkIns = entries.count
+        let towns = Set(been.compactMap(\.city)).count
+        return [
+            checkIns > 0 ? "\(checkIns) check-in\(checkIns == 1 ? "" : "s")" : nil,
+            "\(been.count) place\(been.count == 1 ? "" : "s")",
+            towns > 1 ? "\(towns) towns" : nil,
+        ].compactMap { $0 }.joined(separator: " · ")
+    }
 
     var body: some View {
         NavigationStack {
             Group {
                 if been.isEmpty {
-                    Text("Nothing yet. Open a place and tap Been there.")
+                    Text("Nothing yet. Tap I'm here on the map when you're at a place.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                         .padding(24)
                 } else {
-                    List(been) { p in
-                        HStack(spacing: 12) {
-                            p.icon
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 24, height: 24)
-                                .frame(width: 40, height: 40)
-                                .background(p.category.tint, in: Circle())
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(p.name).font(.subheadline.weight(.semibold)).lineLimit(1)
-                                Text([p.category.rawValue, p.city].compactMap { $0 }.joined(separator: " · "))
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
+                    List {
+                        Section {
+                            Picker("Show", selection: $mode) {
+                                ForEach(Mode.allCases, id: \.self) { Text($0.rawValue) }
                             }
-                            Spacer(minLength: 8)
-                            if let r = p.rating, (1...3).contains(r) {
-                                FaceView(kind: r, size: 24)
-                                    .foregroundStyle(.primary.opacity(0.8))
-                                    .accessibilityLabel(FaceView.labels[r - 1])
-                            }
+                            .pickerStyle(.segmented)
+                            .listRowSeparator(.hidden)
+                            Text(summary)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .listRowSeparator(.hidden)
                         }
-                        .accessibilityElement(children: .combine)
+                        if mode == .timeline { timeline } else { placesList }
                     }
                     .listStyle(.plain)
                 }
             }
-            .navigationTitle(been.isEmpty ? "Been there" : "Been there · \(been.count)")
+            .navigationTitle("Been there")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
@@ -184,5 +222,146 @@ struct BeenThereSheet: View {
         }
         .presentationDetents([.medium, .large])
         .preferredColorScheme(Settings.shared.appearance.scheme)
+    }
+
+    // MARK: Timeline
+
+    @ViewBuilder
+    private var timeline: some View {
+        ForEach(days) { day in
+            Section {
+                ForEach(day.entries) { e in
+                    open(e.place) { checkInRow(e) }
+                        // A wrong check-in goes; the place stays (Want to go again if it was the only one).
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button("Delete", role: .destructive) {
+                                withAnimation { e.place.removeVisit(e.visit.id) }
+                                try? context.save()
+                            }
+                        }
+                }
+            } header: {
+                dayHeader(day.date, town: day.town)
+            }
+        }
+        if !undated.isEmpty {
+            Section {
+                ForEach(undated) { p in
+                    open(p) { placeRow(p) }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button("Not been", role: .destructive) {
+                                withAnimation { p.unvisit() }
+                                try? context.save()
+                            }
+                        }
+                }
+            } header: {
+                Text("No date").font(.subheadline.weight(.semibold)).foregroundStyle(.secondary).textCase(nil)
+            }
+        }
+    }
+
+    /// "Today · Paris", "Saturday 15 Nov · Bologna", "3 Mar 2025 · Lisbon".
+    private func dayHeader(_ date: Date, town: String?) -> some View {
+        let cal = Calendar.current
+        let label: String
+        if cal.isDateInToday(date) { label = "Today" }
+        else if cal.isDateInYesterday(date) { label = "Yesterday" }
+        else if cal.isDate(date, equalTo: .now, toGranularity: .year) { label = date.formatted(.dateTime.weekday(.wide).day().month(.abbreviated)) }
+        else { label = date.formatted(.dateTime.day().month(.abbreviated).year()) }
+        return Text([label, town].compactMap { $0 }.joined(separator: " · "))
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.primary)
+            .textCase(nil)
+    }
+
+    private func checkInRow(_ e: Entry) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            thumb(e.place)
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(e.place.name).font(.subheadline.weight(.semibold)).lineLimit(1)
+                    Spacer(minLength: 4)
+                    Text(e.visit.at.formatted(date: .omitted, time: .shortened))
+                        .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                }
+                HStack(spacing: 6) {
+                    if let r = e.visit.rating, (1...3).contains(r) {
+                        FaceView(kind: r, size: 16).foregroundStyle(.primary.opacity(0.8))
+                            .accessibilityLabel(FaceView.labels[r - 1])
+                    }
+                    Text(e.place.category.rawValue).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+                }
+                if let note = e.visit.note {
+                    Text("“\(note)”").font(.subheadline).foregroundStyle(.secondary).lineLimit(3)
+                }
+                if !e.visit.photos.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(e.visit.photos, id: \.self) { VisitPhotoView(name: $0, size: 64) }
+                        }
+                    }
+                    .padding(.top, 4)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
+    }
+
+    // MARK: Places
+
+    @ViewBuilder
+    private var placesList: some View {
+        // Most visited first, then the latest.
+        let sorted = been.sorted { ($0.visitCount, $0.lastVisit ?? .distantPast) > ($1.visitCount, $1.lastVisit ?? .distantPast) }
+        ForEach(sorted) { p in open(p) { placeRow(p) } }
+    }
+
+    private func placeRow(_ p: Place) -> some View {
+        HStack(spacing: 12) {
+            thumb(p)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(p.name).font(.subheadline.weight(.semibold)).lineLimit(1)
+                Text([p.category.rawValue, p.city].compactMap { $0 }.joined(separator: " · "))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 8)
+            if p.visitCount > 1 {
+                Text("\(p.visitCount)×").font(.subheadline.weight(.medium)).foregroundStyle(.secondary).monospacedDigit()
+            }
+            if let r = p.rating, (1...3).contains(r) {
+                FaceView(kind: r, size: 24)
+                    .foregroundStyle(.primary.opacity(0.8))
+                    .accessibilityLabel(FaceView.labels[r - 1])
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    /// A row that opens its place's card on the map behind (the sheet closes first).
+    private func open<Row: View>(_ p: Place, @ViewBuilder row: () -> Row) -> some View {
+        Button {
+            Settings.shared.openPlace = p
+            dismiss()
+        } label: { row().contentShape(Rectangle()) }
+        .buttonStyle(.plain)
+    }
+
+    /// The place's photo, or its type icon on its tint.
+    @ViewBuilder
+    private func thumb(_ p: Place) -> some View {
+        if p.imageData != nil {
+            PlacePhoto(place: p, points: 40).frame(width: 40, height: 40).clipShape(Circle())
+        } else {
+            p.icon
+                .resizable()
+                .scaledToFit()
+                .frame(width: 24, height: 24)
+                .frame(width: 40, height: 40)
+                .background(p.category.tint, in: Circle())
+        }
     }
 }

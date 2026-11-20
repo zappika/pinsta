@@ -335,6 +335,16 @@ private struct PlacesContent: View {
         .onChange(of: places.count) { _, _ in askIfDue() }
         .onChange(of: view) { _, _ in peek = nil }
         .onReceive(NotificationCenter.default.publisher(for: CheckInRequest.notification)) { _ in checkInIfAsked() }
+        // A row on the Been there page: its card, once the sheet has gone (Cards has no floating card: the map).
+        .onChange(of: settings.openPlace) { _, p in
+            guard let p else { return }
+            settings.openPlace = nil
+            if view == .cards { view = .map }
+            Task {
+                try? await Task.sleep(for: .seconds(0.35))
+                withAnimation(.snappy) { peek = p }
+            }
+        }
         .onDisappear { commitPending() }
         // Leaving the app stops the Undo timer: off to Instagram to share the post again, the place was
         // still there and the share said "Already in Vicolo" (Sarp, 2026-10-16). Gone means gone.
@@ -551,6 +561,8 @@ private struct PlacesContent: View {
     }
 
     private func commit(_ place: Place) {
+        // Your photos of it go with it: they are files, not part of the row.
+        for name in place.visits.flatMap(\.photos) { VisitPhotos.remove(name) }
         context.delete(place)
         try? context.save()
         hidden.remove(place.id)
@@ -816,7 +828,7 @@ private struct PlacesContent: View {
     private var hereButton: some View {
         Button { screen.checkingIn = .here } label: {
             HStack(spacing: 6) {
-                Image(systemName: "mappin.and.ellipse").font(.system(size: 15, weight: .semibold))
+                Image(systemName: "hand.wave").font(.system(size: 15, weight: .semibold))
                 Text("I'm here").font(.subheadline.weight(.semibold))
             }
             .foregroundStyle(.primary)
@@ -835,6 +847,7 @@ private struct PlacesContent: View {
 
     private func pick(_ mode: AddPlaceView.AddMode) {
         fan = false
+        if mode == .here { screen.checkingIn = .here; return }
         addMode = mode
         adding = true
     }
