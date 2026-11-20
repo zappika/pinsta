@@ -12,21 +12,17 @@ One screen: what's happening now. Elsewhere:
 
 ## Now
 The friends beta is running (since 2026-10-14). Feedback from it comes first; see `beta.md`.
-1. **The 2026-10-14 feedback round:** answered by builds 21–25 (25 checked on the phone 2026-10-15); what's still open is in `beta.md`.
-2. **Design pass, list pickers:** see "To design".
-3. **Pulse** (2026-10-18): backoffice → Pulse says whether people can save, come back and find things; Saves lists the misses (Copy links → work through them in a session) instead of waiting for messages.
-
-4. **"Been there?" later + "Around you"** (2026-10-26, decisions.md): web live (`?ask=demo` to look at the sheet), iOS built and tried in the Simulator 2026-10-26; goes out with the next build.
-
-5. **Send to a friend** (2026-10-26, web prototype, decisions.md): + → Send to a friend (paste a list), or the send button once a town is picked; your page at `/w/<id>`; Sent in the buddy menu. Live: the Kreuzberg walk is www.vicolo.space/w/umwi4e3c4r. Ask once how the friend used it, then decide what the iOS version keeps.
+1. **I'm here** (build 35, 2026-11-20): check-ins, You made it, the Been there timeline, the Control Center control. Try it on the phone at a real place; not checked anywhere yet: adding a photo, the control, a check-in that saves a new place.
+2. **Server-side search** (step one 2026-11-20): so search fixes reach phones on deploy, not with a build. Next: move the Swift-only rules (small-town tag, the handle's name alone, Google when Apple finds nothing) into the shared code until the server replay matches the phone's (44 vs 46 of 51), then let iOS ask the server.
+3. **Save misses, weekly:** the Monday review (`scripts/review/REVIEWER.md`, backoffice `/review`) replays every save and proposes one fix; Pulse and Saves show who saves, comes back, and gives up.
+4. **Send to a friend** (2026-10-26, web prototype, decisions.md): live, the Kreuzberg walk is www.vicolo.space/w/umwi4e3c4r. Ask once how the friend used it, then decide what the iOS version keeps.
+5. **Design pass, list pickers:** see "To design".
 
 ## Waiting on Sarp
 - **App Store, if and when Sarp wants it (undecided, 2026-11-20):** everything is in `docs/app-store.md` (researched 2026-10-16). Start with the DSA trader declaration (weeks to verify). App Privacy needs more than Product Interaction (§4 there).
 
 ## To design (Sarp)
-- **Google list import on the server**: built 2026-10-19 (server live, iOS since build 31; no "list is ready" push, the APNs key was dropped 2026-11-20).
 - **Tutorial says what Vicolo is** (Sarp's list, 2026-10-16): next after the easy ones.
-- **Map pins, loud and quiet** (web): Mix picked 2026-10-29 (decisions.md), switch removed. iOS port written on the Mac without Xcode, not compiled: build it on the Xcode Mac, check Venice in the Simulator, upload as build 33.
 - **The "This post has N places" picker and the Google list import review, in one pass** (Sarp, 2026-10-15): the slide/caption list picker should look like the list import review.
 - List import success state (many places at once, not the one-place card).
 - What to offer for list places that couldn't be found (web has the same gap).
