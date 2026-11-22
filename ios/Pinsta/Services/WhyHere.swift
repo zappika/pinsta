@@ -5,6 +5,7 @@ import Foundation
 ///   Saved from @burro_cafe on Instagram · 14 Sep
 ///   Saved from a Google Maps link · 2 Oct 2025
 ///   From Emilie’s “Paris” list · 12 Sep
+///   Saved when you were here · 22 Nov   (Check in, or a name typed on the spot)
 enum WhyHere {
     static func line(for place: Place, now: Date = .now) -> String {
         "\(origin(place)) · \(when(place.createdAt, now: now))"
@@ -23,7 +24,7 @@ enum WhyHere {
             return by.map { "Saved from \($0) on TikTok" } ?? "Saved from a TikTok"
         case .google:
             // A list import carries its list; a maps/search link without one was saved by typing its name.
-            if p.instagramURL.contains("/maps/search/?api=1") { return p.fromListTitle != nil ? "From a Google Maps list" : "Saved by name" }
+            if p.instagramURL.contains("/maps/search/?api=1") { return p.fromListTitle != nil ? "From a Google Maps list" : p.savedNearby ? "Saved when you were here" : "Saved by name" }
             return "Saved from a Google Maps link"
         default:
             return by.map { "Saved from \($0) on Instagram" } ?? "Saved from an Instagram post"

@@ -24,6 +24,8 @@ How it stays true:
 - Tapping Been there on a place no longer says you were there today: it's Been there with no date. Only Check in records when you were there.
 - *(internal)* 2026-11-22: `VisitSwitch` sets only `visitedAt` (no `checkIn()`); `lastVisit` reads dated visits only; `Visit.undated` (optional, so stored visits decode) marks an earlier undated Been there that `checkIn()` turns into a visit; the timeline lists those under "No date". Checked in the Simulator on a throwaway place (card says "Been there", no day) and with a macOS script over `Models` (Check in after: 2 visits, last = today, the first undated; a visit stored without the key decodes). Build 36's wrongly dated visits are left as they are.
 
+- A place you saved by checking in says "Saved when you were here" on its card, not "Saved by name".
+
 ## In TestFlight: 1.0 (36) · 2026-11-20 · `ios-36` · phone ☐
 - **Check in** is in the + menu now, not a button on the map; everything that said "I'm here" says Check in (also Siri: "Check in with Vicolo", and the Control Center button).
 - The map shows your saved posts' photos from further out: no more black dots across a city, and photos only merge into one round picture when many sit on top of each other.
