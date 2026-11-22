@@ -8,6 +8,14 @@ backoffice, web-only changes). Headings read "## Build N · D Month".
 
 # What's new in Vicolo
 
+## Build 37 · 22 November
+
+- A place's card now tells you where it came from: who posted it and what they said. Tap that to open the post. (The round Instagram button is gone; it looked like the place's own account.)
+- Tapping **Been there** no longer says you were there today. Only **Check in** records when you went.
+- A place you saved by checking in says "Saved when you were here".
+- With a filter on the map, places close together stay little coloured dots instead of numbered circles.
+- Your blue dot really stays on top of the pins now.
+
 ## Build 36 · 20 November
 
 - **Check in** moved into the + menu (no more button on the map), and that's its name everywhere now, also for Siri ("Check in with Vicolo") and the Control Center button.

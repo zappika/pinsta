@@ -13,30 +13,28 @@ How it stays true:
 - `git log ios-N..HEAD -- ios lib app/api` is the check: anything there that isn't listed under Next build was forgotten.
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
-## Next build (since `ios-36`)
+## Next build (since `ios-37`)
+
+## In TestFlight: 1.0 (37) · 2026-11-22 · `ios-37` · phone ☐
 - Your blue dot really stays on top now: in build 36 a place just below you on the map could still cover it.
 - *(internal)* 2026-11-20: MapKit stacks annotations by latitude, so drawing `YouDot` last as an `Annotation` didn't help (Barcelona, Hotel Seventy's dot). It is now an overlay over the `Map`, placed with `MapProxy.convert` on every camera change and fix. Checked in the Simulator just north of Al Covo, and while panning.
 - *(internal)* 2026-11-22: `VisitPhotos` and the visit methods that delete or add photo files moved from `Models/Visit.swift` to `Services/VisitPhotos.swift`, so `Models` is Foundation-only again and the search replay (`npm run review:replay`) compiles on macOS. No behaviour change.
-
 - With a filter on the map (a type, Want to go), places close together stay coloured dots instead of turning into numbered circles.
 - *(internal)* 2026-11-22: `quietPin` lost its count branch; a quiet group is the deep-tint dot (16 pt) in the roomy/street look too. Same on web (`PlacesMap.tsx`). Built; not seen with real data (the Simulator has one place).
-
 - Tapping Been there on a place no longer says you were there today: it's Been there with no date. Only Check in records when you were there.
 - *(internal)* 2026-11-22: `VisitSwitch` sets only `visitedAt` (no `checkIn()`); `lastVisit` reads dated visits only; `Visit.undated` (optional, so stored visits decode) marks an earlier undated Been there that `checkIn()` turns into a visit; the timeline lists those under "No date". Checked in the Simulator on a throwaway place (card says "Been there", no day) and with a macOS script over `Models` (Check in after: 2 visits, last = today, the first undated; a visit stored without the key decodes). Build 36's wrongly dated visits are left as they are.
-
 - A place you saved by checking in says "Saved when you were here" on its card, not "Saved by name".
-
 - A place's card tells where it came from in one block: who posted it and what they said, in quotes. Tap it to open the post. The round Instagram button is gone from the card; a place with more posts shows "+1 more post".
 - *(internal)* 2026-11-22: `PlaceCardView` `source` (WhyHere sentence + `WhyHere.captionSnippet`, ported word for word from `lib/why-here.ts`, address lines skipped), round post button only off the floating card, `visitsRow` only when folded or with visits, the venue's Instagram hidden when it is the poster's. Designed on backoffice `/card`. Checked in the Simulator on The Blue Moon; the snippet rules checked side by side with the web on six captions.
 
-## In TestFlight: 1.0 (36) · 2026-11-20 · `ios-36` · phone ☐
+## Earlier builds
+
+### 1.0 (36) · 2026-11-20 · `ios-36` · phone ☐
 - **Check in** is in the + menu now, not a button on the map; everything that said "I'm here" says Check in (also Siri: "Check in with Vicolo", and the Control Center button).
 - The map shows your saved posts' photos from further out: no more black dots across a city, and photos only merge into one round picture when many sit on top of each other.
 - Your blue dot stays on top: a place right where you stand no longer hides you.
 - At the top of the map, All · Want to go · Been there shows only the places you want to go to, or only the ones you've been to. Opening the app or switching to the list shows all again.
 - *(internal)* 2026-11-20: `hereButton` removed, `BeenFilter` + `beenSwitch` (system segmented control, top of the map) in `PlacesListView`; `PlacesMapView`: no `.mid` look, `overlap` 0.7, `fanMax` 4, own `YouDot` (CLLocationUpdate.liveUpdates, only when allowed) instead of `UserAnnotation`. Checked in the Simulator over build 35: + menu, filter, dot on Al Covo. Zoom steps not walked through on iOS (web was).
-
-## Earlier builds
 
 ### 1.0 (35) · 2026-11-20 · `ios-35` · phone ☐
 - **I'm here:** a new button on the map. It lists the places right around you with their icons, the likeliest one first; one tap checks you in. Then, if you like: a face, a photo (camera or your photos) and a note for next time.
