@@ -54,7 +54,7 @@ Builds 21–25 (2026-10-14 → 10-15) are the answer to this round: place findin
 - **Not solvable from the post:** a venue named nowhere (only an event collective's @handle), places only *spoken* in a reel, places on no map at all.
 
 ## Test links that still work
-- Tagged post that auto-saves: Ästad Vingård `DdJIacKIplU`
+- Ästad Vingård `DdJIacKIplU`: lost its tag by 2026-11-22, now one tap (Save pill), no longer auto-saves
 - Carousel list post: Vink's Oslo `C_OOWiDS7Gh` (5 of 6 found; Tranen isn't on Apple Maps)
 - Caption list post: Amsterdam reel `DAblyc9ICgR` (five places)
 - Reel: La Lucha Libre `Dc-iywHIy7b`

@@ -174,7 +174,7 @@ While the env var is unset the lock is off. It is a **sensitive** Vercel variabl
 - **Age-restricted posts** (a bar's beer: Liebling DeloP3KicgM, 2026-10-17): Apify answers `restricted_page` with only the preview; `lib/instagram-post.ts` reads the account, name, caption and a 640 px picture from it. No tag, no slides.
 - **Saved posts can vanish.** Instagram posts get deleted (Bar Brutal's did); the
   reader then says "Post does not exist" and the app falls back to typing. Test
-  auto-save with a tagged post that still exists — Ästad Vingård (`DdJIacKIplU`).
+  auto-save with a Maps link. Ästad Vingård (`DdJIacKIplU`) lost its tag by 2026-11-22: it now offers Ästad with a Save pill (still the tutorial post).
 - **One simulator: iPhone 17 Pro** (Sarp, 2026-10-17). No second one, not even for fresh installs.
   A test that needs an empty list or deletes rows: say so first, and put the list back afterwards.
 - **This shell is zsh:** unquoted `$VAR` doesn't word-split, and `echo` rewrites `\n` inside JSON. Write API tests as small `node` scripts, not curl pipelines.
@@ -241,7 +241,7 @@ xcodebuild -exportArchive -archivePath build/Vicolo.xcarchive -exportOptionsPlis
 - More real links (2026-10-14): reel Dc-iywHIy7b ("Address of the bar: La Lucha Libre", tagged Paris → saves itself), reel DdzAEv1NUKp (only @lamenagerieparis, an event collective, not a venue → the zoo is offered; unsolvable from the post), carousel C_OOWiDS7Gh (six Oslo places only as text on slides 2–3, nothing in caption or tag: the multi-place case).
 - Real test links (Mert, 2026-10-14): profiles @restaurangvra, @batasthlm, @richterholtermann; posts DYm01TZjIR1 (Broth Boy x Vrå collab, tagged VRÅ, Göteborg), DdWICD-Nr5n / DdRYgcdNveq / DcjKhyCja-S (Richter, untagged), Dd1fYO4gh7h (Bata, untagged), DdrDoWKC-gS (Bata, street tag).
 - Launch with `-slowNotices` to keep toasts up 30 s while checking them, and `-addURL <link>` to open the save sheet with a link the way a share does (Safari's Share menu ignores injected taps on the iOS 27 simulator).
-- Test auto-save with a tagged post that still exists (Ästad Vingård `DdJIacKIplU`) or a Maps link; Bar Brutal's post was deleted.
+- Test auto-save with a Maps link; Ästad Vingård `DdJIacKIplU` lost its tag (2026-11-22, one tap now), Bar Brutal's post was deleted.
 
 ## Conventions
 - Web first, then port to iOS in one pass. Keep shared rules identical. Design iteration happens on the web only (Sarp, 2026-10-01); iOS gets the settled version.

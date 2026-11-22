@@ -1,11 +1,19 @@
-Vicolo saves places from public posts and map links to a personal map on the iPhone. People can browse by city or kind, mark places as visited, and open directions. No account or sign-in is needed.
+Vicolo saves places to a personal map on the iPhone. A person shares or pastes a link to a place they came across (a Google Maps place, or a public post that names a venue), Vicolo finds the place, and it appears on their map. They browse by city or kind, check in when they are there (with their own photos and a note), and open directions. No account or sign-in is needed, and the list stays on the device.
 
-You can test the save flow without installing a social app. Tap +, choose Instagram post, then paste https://www.instagram.com/p/DdJIacKIplU/ to save Ästad Vingård. The same entry accepts this public location-tagged TikTok: https://www.tiktok.com/@linkstraveler/video/7678584307878874376 . For a post with several places, paste https://www.instagram.com/p/C_OOWiDS7Gh/ and choose from the five Oslo venues.
+HOW TO TEST (no social app needed)
+1. A map link: tap +, choose Google Maps, paste https://www.google.com/maps/place/Cal+Pep/@41.3810,2.1810,17z/data=!3d41.3810!4d2.1810 . Cal Pep in Barcelona is found and saved.
+2. A public post: tap +, choose Instagram post, paste https://www.instagram.com/p/DdJIacKIplU/ . The caption mentions the venue; tap Save next to Ästad Vingård.
+3. A post naming several places: paste https://www.instagram.com/p/C_OOWiDS7Gh/ in the same field. The places are read from the post's pictures on the device; keep the ones you want and tap Save.
+4. A shared list: tap +, choose Google Maps, paste https://maps.app.goo.gl/2LvBeE5dXwo2iQcz6 to import it.
+5. At a place: the "I'm here" button above the map lists places around you and checks in to one.
+Safari → Share → Vicolo opens the same save flow for any supported link.
 
-For map links, tap +, choose Google Maps, then paste this place link: https://www.google.com/maps/place/Cal+Pep/@41.3810,2.1810,17z/data=!3d41.3810!4d2.1810 . To test shared-list import, use https://maps.app.goo.gl/2LvBeE5dXwo2iQcz6 in the same flow. Safari → Share → Vicolo also opens the save flow for a supported link.
+LOCATION
+Used to open the map on the town the person is in and for "I'm here". It is asked only after two places are saved, after an explanation screen. The device location never leaves the phone.
 
-Location permission helps open the map around the town the person is in. The app asks after two places have been saved, following an explanation screen. The device location is not sent to the server.
+THIRD-PARTY CONTENT
+Vicolo reads only the single public post the person chose to share, the same information a link preview shows: the caption, the account name and the post's picture. From these it works out which place the post is about. The picture is kept as the person's reminder of where they saw the place, always next to a button that opens the original post in its own app. For a post that names several places, each place keeps the picture its name appeared on. There is no feed, no browsing of anyone's posts, and no way to download, export or reshare media. Places saved from map links, typed names or check-ins carry no third-party content at all.
 
-Vicolo reads only the public post the person chooses to share. It shows the post image and caption as a reminder with a link to the original post. There is no feed or media download feature. The app also offers native map browsing, a share extension, place grouping, and on-device reading of multi-place posts.
+The app also offers native MapKit browsing, a share extension, grouping by city and kind, check-ins with the person's own photos, and on-device text reading (Vision) for multi-place posts.
 
-Review contact: hello@vicolo.space. Enter the review contact phone in App Store Connect's separate contact field. The sample links were checked on 16 October 2026; recheck them on submission day.
+Review contact: hello@vicolo.space. The review contact phone is in App Store Connect's separate contact field. Sample links checked on 22 November 2026; recheck them on submission day.
