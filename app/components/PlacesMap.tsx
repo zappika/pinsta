@@ -471,7 +471,7 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
       for (const p of g.members) counts.set(p.category ?? "Other", (counts.get(p.category ?? "Other") ?? 0) + 1);
       const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
       const photos = g.loud && !text ? g.members.map(fromPost).filter((u): u is string => !!u).slice(0, 4) : [];
-      const csize = photos.length ? Math.max(size, 40) : g.loud ? 24 : tier === "street" ? quietPx : 16;
+      const csize = photos.length ? Math.max(size, 40) : g.loud ? 24 : 16;
       el.className = `pinsta-pin pinsta-cluster${photos.length ? " pinsta-mosaic" : g.loud ? " pinsta-pin-text" : " pinsta-cluster-quiet"}`;
       if (photos.length) {
         el.dataset.n = String(Math.min(photos.length, 4));
@@ -485,10 +485,12 @@ export default function PlacesMap({ places, selected, onSelect, onFail, focus, h
       }
       el.style.cssText = `width:${csize}px;height:${csize}px;z-index:${g.loud ? 3 : 1}`;
       if (!g.loud) {
-        el.style.backgroundColor = tier === "street" ? tintFor(top) : deepen(tintFor(top));
+        // A quiet group is the dot at every tier, never a count: a filter that left few places on
+        // screen made it a numbered circle (Sarp liked the dots, 2026-11-22).
+        el.style.backgroundColor = deepen(tintFor(top));
         el.style.setProperty("--glow", deepen(tintFor(top)));
       }
-      if ((g.loud && !photos.length) || (!g.loud && tier === "street")) {
+      if (g.loud && !photos.length) {
         el.textContent = String(g.members.length);
       }
       taken.push({ x0: g.x - csize / 2, y0: g.y - csize / 2, x1: g.x + csize / 2, y1: g.y + csize / 2 });

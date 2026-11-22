@@ -192,7 +192,7 @@ struct PlacesMapView: View {
         var made: [(group: PinGroup, point: CGPoint)] = buckets.map { b in
             let many = b.members.count > 1
             let mosaic = b.loud && look == .far && b.members.count > Self.fanMax
-            let size: CGFloat = b.loud ? (mosaic ? max(loudSize, 40) : loudSize) : (many && !street ? 16 : quietSize)
+            let size: CGFloat = b.loud ? (mosaic ? max(loudSize, 40) : loudSize) : (many ? 16 : quietSize)
             let coord = many ? (proxy.convert(b.point, from: .local) ?? b.members[0].coordinate) : b.members[0].coordinate
             let g = PinGroup(members: b.members, coordinate: coord, loud: b.loud, look: look, size: size, street: street)
             if b.loud {
@@ -372,14 +372,9 @@ struct PlacesMapView: View {
                 .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 1.5))
                 .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
                 .scaleEffect(active ? 1.25 : 1)
-        } else if g.street {
-            Text("\(g.members.count)")
-                .font(.system(size: 11, weight: .bold).monospacedDigit())
-                .foregroundStyle(Color(white: 0.1))
-                .frame(width: g.size, height: g.size)
-                .background(top.tint, in: Circle())
-                .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 1.5))
         } else {
+            // A group is a dot too, never a count, even with few places on screen (a filter made the
+            // map roomy and turned groups into numbered circles; Sarp liked the dots, 2026-11-22).
             // The glow is the deep tint too: a pastel glow washed the dot out (Sarp, 2026-11-01).
             Circle().fill(top.deepTint)
                 .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 1.5))
