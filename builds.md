@@ -16,6 +16,7 @@ How it stays true:
 ## Next build (since `ios-36`)
 - Your blue dot really stays on top now: in build 36 a place just below you on the map could still cover it.
 - *(internal)* 2026-11-20: MapKit stacks annotations by latitude, so drawing `YouDot` last as an `Annotation` didn't help (Barcelona, Hotel Seventy's dot). It is now an overlay over the `Map`, placed with `MapProxy.convert` on every camera change and fix. Checked in the Simulator just north of Al Covo, and while panning.
+- *(internal)* 2026-11-22: `VisitPhotos` and the visit methods that delete or add photo files moved from `Models/Visit.swift` to `Services/VisitPhotos.swift`, so `Models` is Foundation-only again and the search replay (`npm run review:replay`) compiles on macOS. No behaviour change.
 
 ## In TestFlight: 1.0 (36) · 2026-11-20 · `ios-36` · phone ☐
 - **Check in** is in the + menu now, not a button on the map; everything that said "I'm here" says Check in (also Siri: "Check in with Vicolo", and the Control Center button).
