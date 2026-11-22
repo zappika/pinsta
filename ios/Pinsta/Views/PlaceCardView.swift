@@ -24,7 +24,7 @@ struct PlaceCardView: View {
     private var postURLs: [String] { place.allPostURLs.filter { SourceURL.parse($0)?.kind != .google } }
 
     private var meta: String {
-        [hideCategory ? nil : place.category.rawValue, place.priceLabel, hideCity ? nil : place.city, postURLs.count > 1 ? "\(postURLs.count) posts" : nil]
+        [hideCategory ? nil : place.category.rawValue, place.priceLabel, hideCity ? nil : place.city, !expanded && postURLs.count > 1 ? "\(postURLs.count) posts" : nil]
             .compactMap { $0 }
             .joined(separator: " · ")
     }
@@ -60,9 +60,11 @@ struct PlaceCardView: View {
                     .accessibilityLabel("Been there: \(FaceView.labels[r - 1]). Change")
                 }
                 roundAction(.directions, label: "Directions") { Settings.shared.directions(to: place) }
-                if postURLs.count == 1, let url = postURLs.first {
+                // The floating card has no round post button: beside Directions it read as the venue's
+                // own Instagram (Sarp, 2026-11-22); its source block opens the post instead.
+                if !expanded, postURLs.count == 1, let url = postURLs.first {
                     roundAction(.post, label: "Post") { open(url) }
-                } else if postURLs.count > 1 {
+                } else if !expanded, postURLs.count > 1 {
                     Menu {
                         ForEach(Array(postURLs.enumerated()), id: \.offset) { i, url in
                             Button("Post \(i + 1) · \(SourceURL.parse(url)?.kind == .tiktok ? "TikTok" : "Instagram")") { open(url) }
@@ -87,17 +89,11 @@ struct PlaceCardView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
 
-            if expanded {
-                whyLine
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 16)
-                    .padding(.top, -6)
-                    .padding(.bottom, 14)
-            }
-
-            if expanded, place.visitCount > 0 { visitsRow }
+            // Why it's on your list, as a short story: you and the place, then where it came from
+            // (Sarp, 2026-11-22; web: PlaceCard's You and Source, designed on backoffice /card).
+            // While the switch is open with no visits it says Been there itself.
+            if expanded, place.visitCount > 0, folded || !place.visits.isEmpty { visitsRow }
+            if expanded { source }
 
             // Many visits: the row above says it; the switch would undo them all with one tap.
             if expanded && !folded && place.visitCount <= 1 {
@@ -133,7 +129,7 @@ struct PlaceCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
-    /// "Been there" (no day known), "Been 3 times · last 12 Nov", your notes' latest, and your photos (I'm here): the post's photo stays the
+    /// You and the place: "Been there" (no day known), "Been 3 times · last 12 Nov", your notes' latest, and your photos (I'm here): the post's photo stays the
     /// card's, yours sit under it (Sarp's "hybrid", 2026-11-20).
     private var visitsRow: some View {
         let n = place.visitCount
@@ -156,19 +152,60 @@ struct PlaceCardView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
-        .padding(.bottom, 14)
+        .padding(.top, -6)
+        .padding(.bottom, 12)
     }
 
-    /// "Saved from @x on Instagram · 14 Sep", then the venue's own site as a link (web: PlaceCard).
-    @ViewBuilder
-    private var whyLine: some View {
+    /// Where it came from: "Saved from @x on Instagram · 14 Sep", then what the post said in quotes. For a
+    /// post the whole block opens it (a chevron says so); lists, typed names and Maps links are the sentence
+    /// alone. Under it: "+1 more post" and the venue's own site, left out when it is the poster's own Instagram.
+    private var source: some View {
         let why = WhyHere.line(for: place)
-        if let site = place.website, let url = URL(string: site), let label = WhyHere.websiteLabel(site) {
-            Text("\(why) · [\(label)](\(url.absoluteString))")
-                .tint(.primary)
-        } else {
-            Text(why)
+        let quote = postURLs.isEmpty ? nil : WhyHere.captionSnippet(place.caption)
+        let label = WhyHere.websiteLabel(place.website)
+        let own = place.ownerUsername.map { "@" + $0.trimmingCharacters(in: CharacterSet(charactersIn: "@")).lowercased() }
+        let site = label.flatMap { $0.lowercased() == own ? nil : $0 }
+        let text = VStack(alignment: .leading, spacing: 2) {
+            Text(why).foregroundStyle(.secondary)
+            if let quote { Text("“\(quote)”").foregroundStyle(.primary).lineLimit(2) }
         }
+        .font(.subheadline)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        return VStack(alignment: .leading, spacing: 6) {
+            if let url = postURLs.first {
+                Button { open(url) } label: {
+                    HStack(spacing: 12) {
+                        text
+                        Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(why). Open the post")
+            } else {
+                text
+            }
+            if postURLs.count > 1 || site != nil {
+                HStack(spacing: 12) {
+                    if postURLs.count > 1 {
+                        Menu {
+                            ForEach(Array(postURLs.enumerated()), id: \.offset) { i, url in
+                                Button("Post \(i + 1) · \(SourceURL.parse(url)?.kind == .tiktok ? "TikTok" : "Instagram")") { open(url) }
+                            }
+                        } label: {
+                            Text("+\(postURLs.count - 1) more post\(postURLs.count > 2 ? "s" : "")").fontWeight(.medium).foregroundStyle(.primary)
+                        }
+                    }
+                    if let site, let link = place.website, let url = URL(string: link) {
+                        Link(site, destination: url).foregroundStyle(.secondary).underline(color: Color(.tertiaryLabel))
+                    }
+                }
+                .font(.subheadline)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, -4)
+        .padding(.bottom, 14)
     }
 
     private func roundIcon(_ glyph: Glyph) -> some View {

@@ -44,7 +44,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-26 (build 31 in TestFlight
 
 ## The same on both
 
-- Place card: floating, one size, "why it's here" line, the venue's website ("@handle" for an Instagram one). iOS takes the website from MapKit, web from Google; Imported places say whose list they came from on both ("From Emilie’s “Paris” list"; iOS from build 31).
+- Place card: floating, one size, "why it's here" block (the sentence, the caption's first lines in quotes, tap to open the post; no round post button on it; "+1 more post"; 2026-11-22, designed on backoffice `/card`), the venue's website ("@handle" for an Instagram one). iOS takes the website from MapKit, web from Google; Imported places say whose list they came from on both ("From Emilie’s “Paris” list"; iOS from build 31).
 - Want to go / Been there: the place card's segmented switch, 😞 🙂 😃 after Been there, then folded into the face (tap to change or undo); buddy menu → Been there list, latest first. Date kept, not shown; on iOS Been there from the card has no date, only Check in records one (2026-11-22). The map has a tucked-away filter (2026-11-20, see the table). Web stores it in Neon (`visited_at`, `rating`), iOS on the phone (`visitedAt`, `rating`).
 - Map, Everywhere: every place framed; only places worlds apart (over 4,000 km) get one country, the one with most places. No country chips. iOS names countries in English from the ISO code (`CountryName` folds older local names like "日本").
 

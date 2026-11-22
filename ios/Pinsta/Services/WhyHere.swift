@@ -31,6 +31,43 @@ enum WhyHere {
         }
     }
 
+    /// What the post said, as the card quotes it under where it came from (web: `captionSnippet`, same
+    /// rules): the first sentence or line that says something, and the next ones while they fit, with
+    /// hashtags, @mentions, links and emoji taken out; about 90 characters, cut at a word. nil when
+    /// nothing readable is left.
+    static func captionSnippet(_ caption: String?, max limit: Int = 90) -> String? {
+        guard let caption, !caption.isEmpty else { return nil }
+        func sub(_ s: String, _ pattern: String, _ with: String = "") -> String {
+            s.replacingOccurrences(of: pattern, with: with, options: .regularExpression)
+        }
+        func clean(_ t: String) -> String {
+            var s = sub(t, #"https?://\S+"#)
+            s = sub(s, #"[#@][\p{L}\p{N}_.]+"#)
+            s = sub(s, #"[\p{Extended_Pictographic}\x{1F1E6}-\x{1F1FF}\x{FE0F}\x{200D}\x{20E3}]"#)
+            s = sub(s, #"\s+"#, " ")
+            s = sub(s, #"^[\s\-–—•·|:,.]+|[\s\-–—•·|:,]+$"#)
+            return s.trimmingCharacters(in: .whitespaces)
+        }
+        // An emoji often ends a sentence on Instagram ("Slow mornings ☕️ Our rooms…"): it splits too.
+        let marked = sub(caption, #"\n+|(?<=[.!?])\s+|\s*\p{Extended_Pictographic}[\p{Extended_Pictographic}\x{FE0F}\x{200D}\s]*"#, "\u{1}")
+        let pieces = marked.components(separatedBy: "\u{1}").map(clean)
+        // An address line ("The Blue Moon, 55 Rue de la Roquette, 75011 Paris": a comma and a postcode) isn't what the post said.
+        func said(_ t: String) -> Bool {
+            (t.split(separator: " ").count >= 3 || t.count >= 8) && !(t.contains(",") && t.range(of: #"\b\d{4,5}\b"#, options: .regularExpression) != nil)
+        }
+        guard let first = pieces.firstIndex(where: said) else { return nil }
+        var text = pieces[first]
+        for t in pieces[(first + 1)...] where said(t) {
+            let joined = text.last.map { ".!?…".contains($0) } == true ? "\(text) \(t)" : "\(text). \(t)"
+            if joined.count > limit { break }
+            text = joined
+        }
+        if text.count <= limit { return text }
+        let cut = String(text.prefix(limit - 1))
+        let space = cut.lastIndex(of: " ").map { cut.distance(from: cut.startIndex, to: $0) } ?? 0
+        return sub(String(cut.prefix(Swift.max(space, limit / 2))), #"[\s,;:–—-]+$"#) + "…"
+    }
+
     /// "3 Oct", with the year once it isn't this year's.
     private static func when(_ d: Date, now: Date) -> String {
         let cal = Calendar.current

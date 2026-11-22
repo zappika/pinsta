@@ -64,11 +64,13 @@ export function captionSnippet(caption: string | null | undefined, max = 90): st
       .trim();
   // An emoji often ends a sentence on Instagram ("Slow mornings ☕️ Our rooms…"): it splits too.
   const pieces = caption.split(/\n+|(?<=[.!?])\s+|\s*\p{Extended_Pictographic}[\p{Extended_Pictographic}\u{FE0F}\u{200D}\s]*/u).map(clean);
-  const first = pieces.findIndex((t) => t.split(" ").length >= 3 || t.length >= 8);
+  // An address line ("The Blue Moon, 55 Rue de la Roquette, 75011 Paris": a comma and a postcode) isn't what the post said.
+  const said = (t: string) => (t.split(" ").length >= 3 || t.length >= 8) && !(t.includes(",") && /\b\d{4,5}\b/.test(t));
+  const first = pieces.findIndex(said);
   if (first < 0) return null;
   // A short first sentence takes the next ones while they fit ("sixers the first of many. Pastrami, pickles…").
   let text = pieces[first];
-  for (const t of pieces.slice(first + 1).filter(Boolean)) {
+  for (const t of pieces.slice(first + 1).filter(said)) {
     const joined = /[.!?…]$/.test(text) ? `${text} ${t}` : `${text}. ${t}`;
     if (joined.length > max) break;
     text = joined;

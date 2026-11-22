@@ -26,6 +26,9 @@ How it stays true:
 
 - A place you saved by checking in says "Saved when you were here" on its card, not "Saved by name".
 
+- A place's card tells where it came from in one block: who posted it and what they said, in quotes. Tap it to open the post. The round Instagram button is gone from the card; a place with more posts shows "+1 more post".
+- *(internal)* 2026-11-22: `PlaceCardView` `source` (WhyHere sentence + `WhyHere.captionSnippet`, ported word for word from `lib/why-here.ts`, address lines skipped), round post button only off the floating card, `visitsRow` only when folded or with visits, the venue's Instagram hidden when it is the poster's. Designed on backoffice `/card`. Checked in the Simulator on The Blue Moon; the snippet rules checked side by side with the web on six captions.
+
 ## In TestFlight: 1.0 (36) · 2026-11-20 · `ios-36` · phone ☐
 - **Check in** is in the + menu now, not a button on the map; everything that said "I'm here" says Check in (also Siri: "Check in with Vicolo", and the Control Center button).
 - The map shows your saved posts' photos from further out: no more black dots across a city, and photos only merge into one round picture when many sit on top of each other.
