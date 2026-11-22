@@ -364,7 +364,7 @@ private struct VisitDone: View {
         let n = place.visitCount
         // "Saved to Vicolo" only for a place this check-in added; a saved one was already there.
         guard n > 1 else { return place.createdAt.timeIntervalSinceNow > -30 ? "First visit. Saved to Vicolo." : "First visit." }
-        let before = place.visits.dropLast().last?.at
+        let before = place.visits.dropLast().last(where: \.dated)?.at
         let ordinal = NumberFormatter.localizedString(from: NSNumber(value: n), number: .ordinal)
         return before.map { "\(ordinal) visit · last time \($0.formatted(.dateTime.day().month(.abbreviated)))" } ?? "\(ordinal) visit"
     }

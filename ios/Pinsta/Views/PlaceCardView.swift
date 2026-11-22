@@ -133,7 +133,7 @@ struct PlaceCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
-    /// "Been 3 times · last 12 Nov", your notes' latest, and your photos (I'm here): the post's photo stays the
+    /// "Been there" (no day known), "Been 3 times · last 12 Nov", your notes' latest, and your photos (I'm here): the post's photo stays the
     /// card's, yours sit under it (Sarp's "hybrid", 2026-11-20).
     private var visitsRow: some View {
         let n = place.visitCount
@@ -141,7 +141,7 @@ struct PlaceCardView: View {
         let note = place.visits.last(where: { $0.note != nil })?.note
         let photos = place.visitPhotos
         return VStack(alignment: .leading, spacing: 8) {
-            Text((n == 1 ? "Been once" : "Been \(n) times") + last)
+            Text(place.lastVisit == nil && n == 1 ? "Been there" : (n == 1 ? "Been once" : "Been \(n) times") + last)
                 .font(.subheadline.weight(.medium))
             if let note {
                 Text("“\(note)”").font(.subheadline).foregroundStyle(.secondary).lineLimit(2)

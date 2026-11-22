@@ -3,8 +3,9 @@ import SwiftData
 
 /// Want to go ↔ Been there, then how it was (port of the web's `Visit` in
 /// PlaceCard.tsx, 2026-10-06). Two buttons acting as one switch; every place
-/// starts as Want to go. Been there stamps `visitedAt` (kept, not shown; a second
-/// Been there keeps the first date) and asks for a face. Back to Want to go
+/// starts as Want to go. Been there stamps `visitedAt` as a flag only, no visit and no day
+/// (Sarp, 2026-11-22: tapping it doesn't mean you were there today; only Check in says when),
+/// and asks for a face. Back to Want to go
 /// clears the date and keeps the face, so a slip loses nothing.
 struct VisitSwitch: View {
     let place: Place
@@ -18,8 +19,8 @@ struct VisitSwitch: View {
             // One track, one lit half: it reads as a switch, not two actions (Sarp, 2026-10-19).
             HStack(spacing: 4) {
                 segment(on: !been, "Want to go") { if been { place.unvisit(); save() } }
-                // Been there is a visit today (`Place.checkIn`), as I'm here is.
-                segment(on: been, been ? "🙋🏻‍♀️ Been there" : "Been there") { if !been { place.checkIn(); save(); Uses.count("visited") } }
+                // Been there, no day: only Check in records when (VisitAskSheet's Yes does the same).
+                segment(on: been, been ? "🙋🏻‍♀️ Been there" : "Been there") { if !been { place.visitedAt = .now; save(); Uses.count("visited") } }
             }
             .padding(4)
             .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -162,7 +163,7 @@ struct BeenThereSheet: View {
     }
 
     private var entries: [Entry] {
-        been.flatMap { p in p.visits.map { Entry(place: p, visit: $0) } }
+        been.flatMap { p in p.visits.filter(\.dated).map { Entry(place: p, visit: $0) } }
             .sorted { $0.visit.at > $1.visit.at }
     }
 
@@ -175,7 +176,7 @@ struct BeenThereSheet: View {
 
     /// Been there with no visit (marked before check-ins, or a Yes to "Been to any of these?" for a place
     /// not saved on the spot): the day isn't known.
-    private var undated: [Place] { been.filter { $0.visits.isEmpty } }
+    private var undated: [Place] { been.filter { $0.visits.isEmpty || $0.visits.contains { !$0.dated } } }
 
     private var summary: String {
         let checkIns = entries.count
@@ -250,7 +251,10 @@ struct BeenThereSheet: View {
                     open(p) { placeRow(p) }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button("Not been", role: .destructive) {
-                                withAnimation { p.unvisit() }
+                                // With dated check-ins too, only the undated one goes.
+                                withAnimation {
+                                    if let u = p.visits.first(where: { !$0.dated }), p.visits.count > 1 { p.removeVisit(u.id) } else { p.unvisit() }
+                                }
                                 try? context.save()
                             }
                         }
