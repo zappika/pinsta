@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { directions } from "@/lib/directions";
 import { sourceKind } from "@/lib/sources";
 import { priceLabel } from "@/lib/categories";
-import { websiteLabel, whyHere } from "@/lib/why-here";
+import { captionSnippet, websiteLabel, whyHere } from "@/lib/why-here";
 import type { Place } from "./types";
 
 type Props = {
@@ -22,11 +22,16 @@ type Props = {
   onDelete?: () => void;
   /** The floating card: Want to go ↔ Been there, then how it was. */
   onVisit?: (change: VisitChange) => void;
+  /** Check-ins, newest last. The web has none yet: only the /card sandbox passes them (iOS keeps them). */
+  visits?: CardVisit[];
 };
+
+/** One time you were there; `at` null = Been there without a day (only Check in says when). */
+export type CardVisit = { at: string | null; rating?: number | null; note?: string | null; photos?: string[] };
 
 export type VisitChange = { visited?: boolean; rating?: number | null };
 
-export default function PlaceCard({ place, hideCategory, hideCity, compact, expanded, onEdit, onDelete, onVisit }: Props) {
+export default function PlaceCard({ place, hideCategory, hideCity, compact, expanded, onEdit, onDelete, onVisit, visits = [] }: Props) {
   const [showPosts, setShowPosts] = useState(false);
   const [showMore, setShowMore] = useState(false);
   // Been there with a face: the switch folds into that face among the round
@@ -36,7 +41,8 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact, expa
   const allUrls = [place.instagramUrl, ...(place.posts ?? []).map((p) => p.instagramUrl)];
   // Google Maps links are the place, not a post: Directions covers them.
   const postUrls = allUrls.filter((u) => sourceKind(u) !== "google");
-  const meta = [hideCategory ? null : place.category, priceLabel(place.priceLevel), hideCity ? null : place.city, postUrls.length > 1 ? `${postUrls.length} posts` : null]
+  // The expanded card says how many posts in its source block.
+  const meta = [hideCategory ? null : place.category, priceLabel(place.priceLevel), hideCity ? null : place.city, !expanded && postUrls.length > 1 ? `${postUrls.length} posts` : null]
     .filter(Boolean)
     .join(" · ");
 
@@ -68,8 +74,10 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact, expa
         <RoundAction label="Directions" onClick={() => directions(place)}>
           <path d="M21 3 3 10.5l7.5 3L13.5 21 21 3Z" />
         </RoundAction>
-        {/* One post opens straight away; several list their links first. */}
-        {postUrls.length > 0 && <RoundAction label={postUrls.length > 1 ? "Posts" : "Post"} active={showPosts} onClick={() => (postUrls.length > 1 ? setShowPosts((s) => !s) : openPost(postUrls[0]))}>
+        {/* One post opens straight away; several list their links first. The expanded card has no
+            round post button: beside Directions it read as the venue's own Instagram (Sarp, 2026-11-22);
+            its source block opens the post instead. */}
+        {!expanded && postUrls.length > 0 && <RoundAction label={postUrls.length > 1 ? "Posts" : "Post"} active={showPosts} onClick={() => (postUrls.length > 1 ? setShowPosts((s) => !s) : openPost(postUrls[0]))}>
           <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
           <circle cx="12" cy="12" r="4" />
           <circle cx="17.2" cy="6.8" r="0.9" fill="currentColor" stroke="none" />
@@ -81,20 +89,10 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact, expa
         </RoundAction>}
       </div>
 
-      {expanded && (
-        <p className="-mt-1.5 px-4 pb-3.5 text-sm text-stone-500">
-          {whyHere(place)}
-          {/* The venue's own site from Google: its Instagram as @handle (saves from 2026-10-06 on). */}
-          {websiteLabel(place.website) && place.website && (
-            <>
-              {" · "}
-              <a href={place.website} target="_blank" rel="noreferrer" className="font-medium text-stone-700 underline decoration-stone-300 underline-offset-2">
-                {websiteLabel(place.website)}
-              </a>
-            </>
-          )}
-        </p>
-      )}
+      {/* Why it's on your list, as a short story: you and the place, then where it came from
+          (Sarp, 2026-11-22: context Google Maps can't give; one block each, only when it has something). */}
+      {expanded && <You place={place} visits={visits} folded={folded} />}
+      {expanded && <Source place={place} postUrls={postUrls} showPosts={showPosts} onMorePosts={() => setShowPosts((s) => !s)} />}
 
       {expanded && onVisit && !folded && (
         <Visit
@@ -132,6 +130,92 @@ export default function PlaceCard({ place, hideCategory, hideCity, compact, expa
       )}
     </>
   );
+}
+
+/**
+ * You and the place: "Been there" (no day known), or "Been 3 times · last 12 Nov", the latest note
+ * and your photos. Nothing for Want to go: the switch below says it. While the switch is open
+ * (Been there, no face yet) it says it too, unless there are visits to tell.
+ */
+function You({ place, visits, folded }: { place: Place; visits: CardVisit[]; folded: boolean }) {
+  if (place.visitedAt == null || (!folded && visits.length === 0)) return null;
+  const dated = visits.filter((v) => v.at).map((v) => new Date(v.at!));
+  const last = dated.length ? dated[dated.length - 1] : null;
+  const n = Math.max(visits.length, 1);
+  const line = !last && n === 1 ? "Been there" : `${n === 1 ? "Been once" : `Been ${n} times`}${last ? ` · last ${dayMonth(last)}` : ""}`;
+  const note = [...visits].reverse().find((v) => v.note)?.note;
+  const photos = [...visits].reverse().flatMap((v) => [...(v.photos ?? [])].reverse());
+  return (
+    <div className="-mt-1 px-4 pb-3">
+      <p className="text-sm font-medium text-stone-800">{line}</p>
+      {note && <p className="mt-0.5 line-clamp-2 text-sm text-stone-500">“{note}”</p>}
+      {photos.length > 0 && (
+        <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4">
+          {photos.map((u, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img key={u + i} src={u} alt="" className="h-[72px] w-[72px] shrink-0 rounded-xl bg-stone-100 object-cover" />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Where it came from: the "why it's here" sentence, then what the post said. For a post the whole
+ * block opens it (a chevron says so); lists, typed names and Maps links are the sentence alone.
+ * The venue's own site stays a small link under it.
+ */
+function Source({ place, postUrls, showPosts, onMorePosts }: { place: Place; postUrls: string[]; showPosts: boolean; onMorePosts: () => void }) {
+  const why = whyHere(place);
+  const quote = postUrls.length ? captionSnippet(place.caption) : null;
+  // The venue's own Instagram is left out when the post is its own: the sentence already names it.
+  const label = websiteLabel(place.website);
+  const site = label && label.toLowerCase() !== `@${(place.ownerUsername ?? "").replace(/^@/, "").toLowerCase()}` ? label : null;
+  const inner = (
+    <>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm text-stone-500">{why}</span>
+        {quote && <span className="mt-0.5 line-clamp-2 block text-sm text-stone-800">“{quote}”</span>}
+      </span>
+      {postUrls.length > 0 && (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-stone-400" aria-hidden>
+          <path d="m9 6 6 6-6 6" />
+        </svg>
+      )}
+    </>
+  );
+  return (
+    <div className="px-4 pb-3.5">
+      {postUrls.length > 0 ? (
+        <button type="button" onClick={() => openPost(postUrls[0])} aria-label={`${why}. Open the post`}
+          className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-xl px-2 py-1.5 text-left active:bg-stone-100">
+          {inner}
+        </button>
+      ) : (
+        <div className="flex items-center gap-3 py-1.5">{inner}</div>
+      )}
+      {(postUrls.length > 1 || (site && place.website)) && (
+        <p className="mt-1 flex flex-wrap gap-x-3 text-sm">
+          {postUrls.length > 1 && (
+            <button type="button" onClick={onMorePosts} className="font-medium text-stone-700">
+              {showPosts ? "Fewer posts" : `+${postUrls.length - 1} more post${postUrls.length > 2 ? "s" : ""}`}
+            </button>
+          )}
+          {site && place.website && (
+            <a href={place.website} target="_blank" rel="noreferrer" className="text-stone-500 underline decoration-stone-300 underline-offset-2">
+              {site}
+            </a>
+          )}
+        </p>
+      )}
+    </div>
+  );
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function dayMonth(d: Date) {
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}${d.getFullYear() === new Date().getFullYear() ? "" : ` ${d.getFullYear()}`}`;
 }
 
 /**

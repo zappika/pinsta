@@ -45,7 +45,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-26 (build 31 in TestFlight
 ## The same on both
 
 - Place card: floating, one size, "why it's here" line, the venue's website ("@handle" for an Instagram one). iOS takes the website from MapKit, web from Google; Imported places say whose list they came from on both ("From Emilie’s “Paris” list"; iOS from build 31).
-- Want to go / Been there: the place card's segmented switch, 😞 🙂 😃 after Been there, then folded into the face (tap to change or undo); buddy menu → Been there list, latest first. Date kept, not shown. The map has a tucked-away filter (2026-11-20, see the table). Web stores it in Neon (`visited_at`, `rating`), iOS on the phone (`visitedAt`, `rating`).
+- Want to go / Been there: the place card's segmented switch, 😞 🙂 😃 after Been there, then folded into the face (tap to change or undo); buddy menu → Been there list, latest first. Date kept, not shown; on iOS Been there from the card has no date, only Check in records one (2026-11-22). The map has a tucked-away filter (2026-11-20, see the table). Web stores it in Neon (`visited_at`, `rating`), iOS on the phone (`visitedAt`, `rating`).
 - Map, Everywhere: every place framed; only places worlds apart (over 4,000 km) get one country, the one with most places. No country chips. iOS names countries in English from the ISO code (`CountryName` folds older local names like "日本").
 
 - The + menu: fans out Instagram post / Google Maps (a place, or a list → import); Paste on both screens; a share-sheet tip on the first 3 pasted saves. iOS keeps an "Import" row in the buddy menu while an import runs or waits for its review (build 31; "Google list" since 26).

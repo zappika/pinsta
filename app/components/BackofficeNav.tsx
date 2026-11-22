@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
  * numbers, kept on the phone's Home Screen; 2026-10-19: every page in it, nothing reached only
  * through another page). Pulse is home: is Vicolo working for people. Saves: every save sheet,
  * misses first. Review: the weekly reviewer's findings and proposed fix (2026-11-01). Usage: what the paid services cost. Parity: web vs iOS. Library: the art.
- * Sandbox: the save flow's design sandbox (/success).
+ * Save: the save flow's design sandbox (/success). Card: the place card in every case (2026-11-22).
  */
 const TABS = [
   { href: "/pulse", label: "Pulse" },
@@ -16,7 +16,8 @@ const TABS = [
   { href: "/usage", label: "Usage" },
   { href: "/parity", label: "Parity" },
   { href: "/library", label: "Library" },
-  { href: "/success", label: "Sandbox" },
+  { href: "/success", label: "Save" },
+  { href: "/card", label: "Card" },
 ];
 
 export default function BackofficeNav() {
