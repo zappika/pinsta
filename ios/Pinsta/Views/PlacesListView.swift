@@ -24,6 +24,8 @@ final class Screen {
     var askingLocation = false
     /// "Been to any of these?" is up with these places (`AskVisit`).
     var askingVisit: [Place]?
+    /// The notification primer is up, naming this city (`NotifyPrimer`).
+    var askingNotify: Welcome?
     /// I'm here is up: the places around you, or "You made it" at a saved one (`CheckInView`).
     var checkingIn: CheckIn?
     enum CheckIn: Equatable { case here, arrived(Place) }
@@ -300,6 +302,15 @@ private struct PlacesContent: View {
             TutorialCover()
                 .preferredColorScheme(settings.appearance.scheme)
         }
+        .fullScreenCover(item: Bindable(screen).askingNotify, onDismiss: { Task { await Nudges.refresh(places: shown, labels: labels) } }) { w in
+            NotifyPrimer(welcome: w) {
+                Task {
+                    await Nudges.ask()
+                    screen.askingNotify = nil
+                }
+            }
+            .preferredColorScheme(settings.appearance.scheme)
+        }
         .fullScreenCover(isPresented: Bindable(screen).askingLocation, onDismiss: { Task { await goHere() } }) {
             LocationPrimer(places: Array(shown.prefix(2))) { screen.askingLocation = false }
                 .preferredColorScheme(settings.appearance.scheme)
@@ -323,6 +334,7 @@ private struct PlacesContent: View {
             // No web import: the web list is Sarp's, and every install starts empty.
             if launchURL != nil { adding = true }
             checkInIfAsked()
+            showCity(settings.openCity)
             ListImport.shared.resume(context: context)
             start()
             askIfDue()
@@ -342,7 +354,16 @@ private struct PlacesContent: View {
         .onChange(of: category) { _, _ in peek = nil }
         // A place waiting behind the Undo toast is gone as far as a new save is
         // concerned: otherwise a new post could join it and be deleted with it.
-        .onChange(of: adding) { _, open in if open { commitPending() } else { settings.searchName = nil; askIfDue() } }
+        .onChange(of: adding) { _, open in
+            if open { commitPending() } else {
+                settings.searchName = nil
+                askIfDue()
+                askNotifyIfDue()
+                Task { await Nudges.refresh(places: shown, labels: labels) }
+            }
+        }
+        // A tapped welcome notification: the map of that city.
+        .onChange(of: settings.openCity) { _, c in showCity(c) }
         // The import review's Search: its sheet has gone, the save sheet opens with the name.
         .onChange(of: settings.searchName) { _, name in if name != nil { adding = true } }
         .onChange(of: editing == nil) { _, closed in if !closed { commitPending() } }
@@ -365,7 +386,10 @@ private struct PlacesContent: View {
         // Leaving the app stops the Undo timer: off to Instagram to share the post again, the place was
         // still there and the share said "Already in Vicolo" (Sarp, 2026-10-16). Gone means gone.
         .onChange(of: scenePhase) { old, phase in
-            if phase == .background { commitPending() }
+            if phase == .background {
+                commitPending()
+                Task { await Nudges.refresh(places: shown, labels: labels) }
+            }
             // A list import started here or from the share sheet: follow it again.
             if phase == .active { ListImport.shared.resume(context: context); checkInIfAsked() }
             if phase == .active, old == .background { askVisitIfDue() }
@@ -394,13 +418,42 @@ private struct PlacesContent: View {
             case .wait, .refused: break
             }
             askVisitIfDue()
+            await Nudges.refresh(places: shown, labels: labels)
+            askNotifyIfDue()
+        }
+    }
+
+    /// A welcome notification tapped (`Welcome`): the map of its Where row, over whatever was picked.
+    private func showCity(_ c: String?) {
+        guard let c else { return }
+        settings.openCity = nil
+        guard labels.values.contains(c) else { return }
+        peek = nil
+        category = nil
+        city = c
+        view = .map
+    }
+
+    /// The notification primer (`NotifyPrimer`): the first time a city other than home has
+    /// `Welcome.minPlaces`, location already allowed, notifications never asked. After a save, or on
+    /// open; never over a sheet or another question.
+    private func askNotifyIfDue() {
+        let busy = { adding || editing != nil || screen.askingLocation || screen.askingVisit != nil || screen.checkingIn != nil
+            || screen.askingNotify != nil || settings.showingSheet || settings.showingBeenThere || settings.showingImport
+            || settings.showingTutorial || settings.webPage != nil }
+        guard started, !busy() else { return }
+        Task {
+            try? await Task.sleep(for: .seconds(1.2))
+            guard !busy(), scenePhase == .active, let w = await Nudges.cityToAsk(places: shown, labels: labels) else { return }
+            Nudges.markAsked()
+            screen.askingNotify = w
         }
     }
 
     /// "Been to any of these?" (`AskVisit`, Sarp 2026-10-26): on open and back from the background, never
     /// over a sheet or the location question. Showing it is the ask: each row is stamped then, answered or not.
     private func askVisitIfDue() {
-        let busy = { adding || editing != nil || screen.askingLocation || screen.askingVisit != nil || screen.checkingIn != nil || settings.showingSheet
+        let busy = { adding || editing != nil || screen.askingLocation || screen.askingVisit != nil || screen.checkingIn != nil || screen.askingNotify != nil || settings.showingSheet
             || settings.showingBeenThere || settings.showingImport || settings.showingTutorial
             || settings.webPage != nil || shown.isEmpty }
         guard started, !busy() else { return }
@@ -431,7 +484,10 @@ private struct PlacesContent: View {
             .map { ($0, fix.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude))) }
             .filter { $0.1 <= NearMe.km * 1000 }
             .min { $0.1 < $1.1 }?.0
-        if city == nil, let nearest, let town = labels[nearest.id] { city = town }
+        if let nearest, let town = labels[nearest.id] {
+            HomeTown.saw(town)
+            if city == nil { city = town }
+        }
     }
 
     /// A Want to go place you are standing in (within `Arrived.meters`), not shown today yet. Only with

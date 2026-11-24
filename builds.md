@@ -14,6 +14,8 @@ How it stays true:
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
 ## Next build (since `ios-37`)
+- **Welcome to a city:** once a city other than your home has 3 or more of your places, Vicolo asks if it may say hello when you arrive. Then, arriving there, a notification says "🇮🇹 Benvenuti a Milano! 20 places you saved are here." (in the country's own language, with its flag); tapping it opens that city's map. Settings → Notifications turns it off. Two notifications a week at most.
+- *(internal)* 2026-11-24: `Views/Nudges.swift` (`Nudges`, `HomeTown`, `Welcome`, `Flags`, `NotifyPrimer`). Local notifications with `UNLocationNotificationTrigger` ("While Using" is enough), rewritten on open, after a save and on background. Seen in the Simulator: the primer after the third Milan save, "Milan" → "Milano", the permission question, the welcome written (3.8 km area), its banner via `-welcomeNow`. **Not seen:** the location trigger firing (this Simulator's locationd "couldn't get fences" for notifications) and a tap opening the Milan map (Lock Screen taps didn't open the app). Both need the phone. A notification arriving with the app open now also stays in Notification Center.
 - Picking a town in the Where menu flies the map there even with the Want to go / Been there filter on (before, a town with nothing under the filter left the map where it was).
 - Two coloured dots right next to each other on the map no longer pulse: they become one dot.
 - No more red dot on the menu button for a new build; What's new still says which build is new.

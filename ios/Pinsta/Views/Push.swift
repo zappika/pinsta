@@ -65,14 +65,20 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         print("push: no token", error.localizedDescription)
     }
 
-    /// "Your list is ready" tapped: the review opens.
+    /// "Your list is ready" tapped: the review opens. A welcome to a city: its map.
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        guard response.notification.request.content.userInfo["importJob"] != nil else { return }
-        await MainActor.run { Settings.shared.showingImport = true }
+        let info = response.notification.request.content.userInfo
+        if info["importJob"] != nil { await MainActor.run { Settings.shared.showingImport = true } }
+        if let city = info["welcomeCity"] as? String {
+            await MainActor.run {
+                Uses.count("notify.open.welcome")
+                Settings.shared.openCity = city
+            }
+        }
     }
 
-    /// Open already: the pill has turned to "ready"; the banner still shows, briefly.
+    /// Open already: the banner still shows, briefly, and stays in Notification Center.
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
-        [.banner, .sound]
+        [.banner, .list, .sound]
     }
 }

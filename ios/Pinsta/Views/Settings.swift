@@ -33,6 +33,8 @@ final class Settings {
     var showingBeenThere = false
     /// A place tapped on the Been there page: the sheet closes and the list opens its card.
     var openPlace: Place?
+    /// A tapped welcome notification (`Welcome`): the map of that Where row.
+    var openCity: String?
     var showingImport = false
     /// A list link from the save sheet, for ImportView to read.
     var importLink: String?

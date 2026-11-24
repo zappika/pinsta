@@ -76,6 +76,8 @@ struct SettingsSheet: View {
     /// Save reports and usage counts (`SaveReport.sharing`), on unless turned off. The App Group
     /// store, so the share extension reads the same switch.
     @AppStorage(SaveReport.sharingKey, store: UserDefaults(suiteName: Persistence.appGroup)) private var sharing = true
+    /// Welcome to a city (`Nudges`); written again on the next open when turned back on.
+    @AppStorage(Nudges.welcomeKey) private var welcome = true
 
     /// "1.0 (8)", from the bundle, so it can't go stale.
     private static let version: String = {
@@ -108,6 +110,14 @@ struct SettingsSheet: View {
                     Text("Directions")
                 } footer: {
                     Text("Which app opens when you tap Directions on a place.")
+                }
+                Section {
+                    Toggle("Welcome to a city", isOn: $welcome)
+                        .onChange(of: welcome) { _, on in if !on { Task { await Nudges.removeAll(prefix: "welcome.") } } }
+                } header: {
+                    Text("Notifications")
+                } footer: {
+                    Text("When you arrive in a city where you saved \(Welcome.minPlaces) places or more. Two notifications a week at most.")
                 }
                 // Guideline 5.1.1 (ii): anonymous usage data still needs a way to say no.
                 Section {

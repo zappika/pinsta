@@ -17,6 +17,7 @@ The friends beta is running (since 2026-10-14). Feedback from it comes first; se
 3. **Save misses, weekly:** the Monday review (`scripts/review/REVIEWER.md`, backoffice `/review`) replays every save and proposes one fix; Pulse and Saves show who saves, comes back, and gives up.
 4. **Send to a friend** (2026-10-26, web prototype, decisions.md): live, the Kreuzberg walk is www.vicolo.space/w/umwi4e3c4r. Ask once how the friend used it, then decide what the iOS version keeps.
 5. **Design pass, list pickers:** see "To design".
+6. **Notifications** (decisions.md, 2026-11-24): Welcome to a city is built (next build). Check on the phone: arriving in a city with 3+ places (the Simulator can't fire it) and tapping it. Next: weekend ideas at home, then walking past a saved place.
 
 ## Waiting on Sarp
 - **App Store, if and when Sarp wants it (undecided, 2026-11-20):** everything is in `docs/app-store.md` (researched 2026-10-16). Start with the DSA trader declaration (weeks to verify). App Privacy needs more than Product Interaction (§4 there).
