@@ -8,6 +8,14 @@ backoffice, web-only changes). Headings read "## Build N · D Month".
 
 # What's new in Vicolo
 
+## Build 40 · 24 November
+
+- **Want to go / Been there moved.** The switch at the top of the map is gone: long-press the map icon at the bottom to pick All, Want to go or Been there. While one is on, the icon has a small badge.
+- **Checks on places you've been.** Zoomed right in, they have a small green check on their pin.
+- **Moving the map follows you.** Scroll from the town you picked to another one and Where switches to it, so its places show.
+- Small dots on the map are much easier to tap, and place names are darker.
+- The top pill is only as wide as its words.
+
 ## Build 39 · 24 November
 
 - **Check in opens faster.** Vicolo looks up the places around you ahead of time (when you open it, come back to it, or tap +), so the list is usually there straight away.
