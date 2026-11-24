@@ -8,6 +8,11 @@ backoffice, web-only changes). Headings read "## Build N · D Month".
 
 # What's new in Vicolo
 
+## Build 39 · 24 November
+
+- **Check in opens faster.** Vicolo looks up the places around you ahead of time (when you open it, come back to it, or tap +), so the list is usually there straight away.
+- **A cleaner map.** The map fills the whole screen. Where and What sit together in one pill at the top, with the menu button beside it; at the bottom, the locate button is on the left, Map / List / Tiles in the middle and + on the right.
+
 ## Build 38 · 24 November
 
 - **A hello when you arrive somewhere.** Once a city (not your home) has 3 or more of your places, Vicolo asks if it may tell you when you get there. Then, arriving, you get "🇮🇹 Benvenuti a Milano! 20 places you saved are here." Tap it for that city's map. Two notifications a week at most; Settings → Notifications turns it off.

@@ -13,13 +13,17 @@ How it stays true:
 - `git log ios-N..HEAD -- ios lib app/api` is the check: anything there that isn't listed under Next build was forgotten.
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
-## Next build (since `ios-38`)
+## Next build (since `ios-39`)
+
+## In TestFlight: 1.0 (39) · 2026-11-24 · `ios-39` · phone ☐
 - **A cleaner map screen:** the map now fills the whole screen, top to bottom. Where and What sit together in one glass pill at the top, with the menu button on its own beside it. At the bottom, the locate button moved to the left end, the Map / List / Tiles switch stays in the middle and + on the right.
 - *(internal)* 2026-11-24: `PlacesListView.page` (map `ignoresSafeArea()`, header + Been filter floating over it), `FilterPillLook`, `BuddyLook` (48 pt glass), locate as its own bottom-leading overlay (48 pt). Seen in the Simulator: Map and List. **Not seen:** accessibility text sizes (old two-line header inside no pill), a long city name in the pill, framing of pins under the pill.
 - **Check in opens faster:** the places around you are looked up ahead of time (when you open Vicolo, come back to it, or tap +), so Check in usually shows the list straight away instead of "Finding where you are…".
 - *(internal)* 2026-11-24: `Views/Around.swift`. One Apple search covers 200 m around a fix and stays good while you're within 50 m of it (so everything within the list's 150 m was fetched), at most an hour; empty answers aren't kept. Every fix `NearMe` gets prefetches; + and foreground ask for one (`NearMe.recent`, the phone's last fix ≤2 min old and ≤100 m accurate, else a precise fix). Check in opens on the cached list at the recent fix, then swaps it only if the precise fix is 25 m+ away. Seen in the Simulator (Gràcia): the list was up as the + menu faded. **Not seen:** walking with the phone (the swap, the 50 m rule).
 
-## In TestFlight: 1.0 (38) · 2026-11-24 · `ios-38` · phone ☐
+## Earlier builds
+
+### 1.0 (38) · 2026-11-24 · `ios-38` · phone ☐
 - **Welcome to a city:** once a city other than your home has 3 or more of your places, Vicolo asks if it may say hello when you arrive. Then, arriving there, a notification says "🇮🇹 Benvenuti a Milano! 20 places you saved are here." (in the country's own language, with its flag); tapping it opens that city's map. Settings → Notifications turns it off. Two notifications a week at most.
 - *(internal)* 2026-11-24: `Views/Nudges.swift` (`Nudges`, `HomeTown`, `Welcome`, `Flags`, `NotifyPrimer`). Local notifications with `UNLocationNotificationTrigger` ("While Using" is enough), rewritten on open, after a save and on background. Seen in the Simulator: the primer after the third Milan save, "Milan" → "Milano", the permission question, the welcome written (3.8 km area), its banner via `-welcomeNow`. **Not seen:** the location trigger firing (this Simulator's locationd "couldn't get fences" for notifications) and a tap opening the Milan map (Lock Screen taps didn't open the app). Both need the phone. A notification arriving with the app open now also stays in Notification Center.
 - Picking a town in the Where menu flies the map there even with the Want to go / Been there filter on (before, a town with nothing under the filter left the map where it was).
@@ -32,8 +36,6 @@ How it stays true:
 - In Tiles, a place without a photo shows a small map of its street with its type icon on it and its name at the top, instead of a plain coloured tile.
 - *(internal)* 2026-11-24: `Views/MapTile.swift`, an `MKMapSnapshotter` (~700 m across, muted, no POIs, light/dark) cached in memory and Caches/MapTiles; name at the top because the Apple Maps mark at the bottom must stay visible. Seen in the Simulator on The Blue Moon (forced for a photo place, then reverted).
 - *(internal)* 2026-11-24: the city framing bug wasn't reproduced (the Simulator has one place); the fix is the likeliest cause, `focus` = the selection before the been filter. Pulsing: quiet dots now group at `quietSize + 2` (touching), and `FadeIn` fades a pin id in once per launch (MapKit re-mounting overlapping annotations re-ran it). `PeekCardView` `onStep`/`arrive`, `PlacesMapView.show` on `selected` change. `SwipeCard.swift` deleted. Built; card swipe and the Timeline sheet not seen in the Simulator (one place, menu taps didn't register).
-
-## Earlier builds
 
 ### 1.0 (37) · 2026-11-22 · `ios-37` · phone ☐
 - Your blue dot really stays on top now: in build 36 a place just below you on the map could still cover it.
