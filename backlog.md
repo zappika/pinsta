@@ -21,6 +21,13 @@ Things that make what exists better. Hours, not weeks.
 ## Big feature directions
 Each one is weeks and needs a design pass before code.
 
+- **More notifications** (Sarp, 2026-11-24; phases in docs/decisions.md, groundwork in `Views/Nudges.swift`). Welcome to a city shipped first; the rest, in order:
+  - **Weekend ideas at home:** Saturday 10:00, three random places in your home town (`HomeTown.home`) you have never checked in at or marked Been there, with one photo. Skipped under 5 such places or if the app was opened in the last two days. No location needed.
+  - **Walking past a saved place:** about 150 m from a Want to go place, "You are right by Prodigi"; the tap opens "You made it". Once per place, once a day. Shares the 20 areas iOS watches with the city welcomes (about 10 each).
+  - **Trip coming up** (5+ saves in one week for a city you have never opened the app in) and **a year ago you saved X**: no location; they fill quiet weeks.
+  - **Only with "Always" location**, decided after the above have run on the phone: "Were you at Prodigi last night?" with 😞 🙂 😃 on the notification, and an exact "Leaving Milano? You checked in at 4 of 20".
+  - Later: sunny day + a saved terrace (WeatherKit is free at this size, but no terrace data yet).
+
 - **Home by type, cities when planning a trip** (Sarp, 2026-10-19, after that day's beta round). The home screen filters only by type (What); the cities a person has saved get their own way in, for trip-planning mood, with a nicer interaction than today's Where menu (not designed yet). Related: **trips** (a set of places for one trip, often across towns, like Google's "November trip") and **shared lists** (people send places to a friend; Berlin was a shared list).
 
 - **First experience.** The share tutorial (build 9), the success card (build 13) and the location primer (build 24) are in. Still open: when the list starts to feel like *yours*. Two ideas, not decided (2026-10-14):
