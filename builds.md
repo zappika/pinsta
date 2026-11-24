@@ -14,6 +14,8 @@ How it stays true:
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
 ## Next build (since `ios-38`)
+- **A cleaner map screen:** the map now fills the whole screen, top to bottom. Where and What sit together in one glass pill at the top, with the menu button on its own beside it. At the bottom, the locate button moved to the left end, the Map / List / Tiles switch stays in the middle and + on the right.
+- *(internal)* 2026-11-24: `PlacesListView.page` (map `ignoresSafeArea()`, header + Been filter floating over it), `FilterPillLook`, `BuddyLook` (48 pt glass), locate as its own bottom-leading overlay (48 pt). Seen in the Simulator: Map and List. **Not seen:** accessibility text sizes (old two-line header inside no pill), a long city name in the pill, framing of pins under the pill.
 - **Check in opens faster:** the places around you are looked up ahead of time (when you open Vicolo, come back to it, or tap +), so Check in usually shows the list straight away instead of "Finding where you are…".
 - *(internal)* 2026-11-24: `Views/Around.swift`. One Apple search covers 200 m around a fix and stays good while you're within 50 m of it (so everything within the list's 150 m was fetched), at most an hour; empty answers aren't kept. Every fix `NearMe` gets prefetches; + and foreground ask for one (`NearMe.recent`, the phone's last fix ≤2 min old and ≤100 m accurate, else a precise fix). Check in opens on the cached list at the recent fix, then swaps it only if the precise fix is 25 m+ away. Seen in the Simulator (Gràcia): the list was up as the + menu faded. **Not seen:** walking with the phone (the swap, the 50 m rule).
 

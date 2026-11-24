@@ -60,11 +60,23 @@ struct BuddyMenu: View {
                 .scaledToFit()
                 .frame(width: 22, height: 22)
                 .foregroundStyle(Color(.label))
-                .frame(width: 44, height: 44)
-                .background(Color(.tertiarySystemFill), in: Circle())
+                .frame(width: 48, height: 48)
+                .modifier(BuddyLook())
                 .contentShape(Circle())
         }
         .accessibilityLabel("Menu")
+    }
+}
+
+/// A glass circle on iOS 26+, standing alone over the map like the + (Sarp, 2026-11-24); a grey fill below.
+private struct BuddyLook: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content.glassEffect(.regular.interactive(), in: .circle)
+        } else {
+            content.background(Color(.tertiarySystemFill), in: Circle())
+        }
     }
 }
 

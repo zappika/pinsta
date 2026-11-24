@@ -291,6 +291,14 @@ private struct PlacesContent: View {
             // The empty list has its own "Paste a link", so no + there, only the ×.
             plusLayer
         }
+        .overlay(alignment: .bottomLeading) {
+            // The locator alone at the left end of the bottom row (Sarp, 2026-11-24), level with the
+            // pill and the +. Not over a toast: it covered Undo (2026-10-17).
+            if view == .map, !shown.isEmpty, !adding, !fan, editing == nil, peek == nil, toast == nil, notice == nil,
+               screen.askingVisit == nil, screen.checkingIn == nil {
+                locateButton.transition(.opacity)
+            }
+        }
         .overlay { picker }
         .animation(.snappy(duration: 0.25), value: picking)
         .animation(.snappy, value: notice)
@@ -540,12 +548,27 @@ private struct PlacesContent: View {
 
     // MARK: - Content: map, list, or tiles
 
+    /// The map runs under the status bar and the home indicator, the bars float on it (Sarp,
+    /// 2026-11-24): no background band at the top, the filters one glass pill, the buddy alone.
+    @ViewBuilder
     private func page(_ v: PlacesView) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header
-                .padding(.horizontal, 20)
-                .padding(.bottom, 12)
-            content(v)
+        Group {
+            if v == .map, !shown.isEmpty {
+                ZStack(alignment: .top) {
+                    content(v).ignoresSafeArea()
+                    VStack(spacing: 10) {
+                        header.padding(.horizontal, 16)
+                        beenSwitch
+                    }
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    header
+                        .padding(.horizontal, shown.isEmpty ? 20 : 16)
+                        .padding(.bottom, 12)
+                    content(v)
+                }
+            }
         }
         .background(shown.isEmpty ? Tutorial.background : Color(.systemGroupedBackground))
         .onChange(of: shown.isEmpty, initial: true) { _, empty in screen.tutorial = empty }
@@ -567,8 +590,6 @@ private struct PlacesContent: View {
                 .ignoresSafeArea(.keyboard)
         } else if v == .map {
             PlacesMapView(places: visible, selected: $peek, focus: framed?.places ?? (been == .all ? nil : selection), here: here, goHere: goHere)
-                .ignoresSafeArea(edges: .bottom)
-                .overlay(alignment: .top) { beenSwitch }
         } else if visible.isEmpty {
             ScrollView { noMatchState }
         } else if v == .list {
@@ -698,15 +719,18 @@ private struct PlacesContent: View {
             }
             .padding(.top, 12)
         } else {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                whereButton
-                    .layoutPriority(1)
-                whatButton
-                Spacer(minLength: 0)
+            HStack(spacing: 10) {
+                HStack(spacing: 14) {
+                    whereButton.layoutPriority(1)
+                    whatButton
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 18)
+                .frame(height: 48)
+                .modifier(FilterPillLook())
                 BuddyMenu()
-                    .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 8 }
             }
-            .padding(.top, 12)
+            .padding(.top, 4)
         }
     }
 
@@ -768,6 +792,12 @@ private struct PlacesContent: View {
     }
 
     private func headerLabel(_ text: String, muted: Bool) -> some View {
+        // In the glass pill: smaller than the old title; the big type stays for accessibility sizes.
+        let pill = !shown.isEmpty && !dynamicTypeSize.isAccessibilitySize
+        return headerText(text, muted: muted, font: pill ? .title3.weight(.semibold) : .title.weight(.semibold))
+    }
+
+    private func headerText(_ text: String, muted: Bool, font: Font) -> some View {
         HStack(spacing: 4) {
             Text(text).lineLimit(1)
             Image(systemName: "chevron.down")
@@ -775,7 +805,7 @@ private struct PlacesContent: View {
                 .opacity(0.6)
         }
         // Scales down a little before truncating, so the buddy button fits beside it.
-        .font(.title.weight(.semibold))
+        .font(font)
         .minimumScaleFactor(dynamicTypeSize.isAccessibilitySize ? 0.6 : 0.8)
         .foregroundStyle(muted ? Color.secondary : Color.primary)
         .layoutPriority(muted ? 0 : 1)
@@ -852,14 +882,12 @@ private struct PlacesContent: View {
         ZStack(alignment: .bottomTrailing) {
             addMenu
             VStack(alignment: .trailing, spacing: 12) {
-                // Not over a toast: it covered Undo (2026-10-17).
-                if view == .map, !shown.isEmpty, !adding, !fan, editing == nil, peek == nil, toast == nil, notice == nil, screen.askingVisit == nil, screen.checkingIn == nil { locateButton }
                 if peek == nil && (adding || editing != nil || !shown.isEmpty) { plusButton }
             }
         }
     }
 
-    /// Round arrow above the +, like Google Maps: frames you and your surroundings. Location not
+    /// Round arrow at the bottom left, like Google Maps: frames you and your surroundings. Location not
     /// asked yet → this tap is the ask, at any list size (the person asked for it).
     private var locateButton: some View {
         Button {
@@ -879,12 +907,13 @@ private struct PlacesContent: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Color(red: 0.10, green: 0.45, blue: 0.91))
                 .symbolEffect(.pulse, isActive: locating)
-                .frame(width: 44, height: 44)
+                .frame(width: 48, height: 48)
                 .modifier(LocateLook())
         }
         .buttonStyle(PressSpring())
         .accessibilityLabel("Show where I am")
-        .padding(.trailing, 26)
+        .padding(.leading, 20)
+        .padding(.bottom, 12)
     }
 
 
@@ -899,7 +928,6 @@ private struct PlacesContent: View {
         .padding(4)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
-        .padding(.top, 8)
         .opacity(shown.isEmpty || adding ? 0 : 1)
     }
 
@@ -1009,6 +1037,18 @@ private struct PlusLook: ViewModifier {
                 .frame(width: 56, height: 56)
                 .background(Color.primary, in: Circle())
                 .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
+        }
+    }
+}
+
+/// The Where · What filters as one long pill: Liquid Glass on iOS 26+, a material below.
+private struct FilterPillLook: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content.glassEffect(.regular.interactive(), in: .capsule)
+        } else {
+            content.background(.regularMaterial, in: Capsule()).shadow(color: .black.opacity(0.08), radius: 8, y: 2)
         }
     }
 }
