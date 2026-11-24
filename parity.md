@@ -52,7 +52,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-26 (build 31 in TestFlight
 - Locate button above the + on the map (hidden while a place card, the save sheet or a notice is open), and no frame tighter than 4.5 km (iOS build 27).
 - Town and region names in English (web: Google; iOS: asked again in English, `EnglishNames`, build 26).
 - Place finding: the same rules on both (`lib/google-places.ts` ↔ `PlaceSearch.swift`), incl. handle cities and the Nordic caption lift (`lib/language.ts` ↔ `PlaceSearch.languageCountries`, 2026-10-17). Age-restricted posts are read from their preview by the server, for both.
-- Views: Map, List, Cards, Tiles (iOS: Map, List, Tiles; Cards went 2026-11-24, and the floating card swipes sideways to the next place); the view pill with the round + apart from it (Liquid Glass on iOS 26+).
+- Views: Map, List, Cards, Tiles (iOS: Map, List, Tiles; Cards went 2026-11-24, and the floating card swipes sideways to the next place; a photo-less tile is a map snippet with the name, the web keeps the icon on its tint); the view pill with the round + apart from it (Liquid Glass on iOS 26+).
 - Category icons: Sarp's 3D set (web `public/types`, iOS `Type*` assets).
 - The post button opens the post; no embedded posts.
 - Where/What pickers, both in the header (a web experiment with only What there was dropped, 2026-10-29), grouping (`lib/grouping.ts` ↔ `Grouping.swift`), metros, same-place merging.

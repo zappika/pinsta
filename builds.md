@@ -21,6 +21,8 @@ How it stays true:
 - On a place's card, swipe left or right for the next or previous place, in the list's order (newest saved first); the map follows.
 - The Cards view is gone: Map, List and Tiles stay.
 - The + menu says "Social post" instead of "Instagram post".
+- In Tiles, a place without a photo shows a small map of its street with its type icon on it and its name at the top, instead of a plain coloured tile.
+- *(internal)* 2026-11-24: `Views/MapTile.swift`, an `MKMapSnapshotter` (~700 m across, muted, no POIs, light/dark) cached in memory and Caches/MapTiles; name at the top because the Apple Maps mark at the bottom must stay visible. Seen in the Simulator on The Blue Moon (forced for a photo place, then reverted).
 - *(internal)* 2026-11-24: the city framing bug wasn't reproduced (the Simulator has one place); the fix is the likeliest cause, `focus` = the selection before the been filter. Pulsing: quiet dots now group at `quietSize + 2` (touching), and `FadeIn` fades a pin id in once per launch (MapKit re-mounting overlapping annotations re-ran it). `PeekCardView` `onStep`/`arrive`, `PlacesMapView.show` on `selected` change. `SwipeCard.swift` deleted. Built; card swipe and the Timeline sheet not seen in the Simulator (one place, menu taps didn't register).
 
 ## In TestFlight: 1.0 (37) · 2026-11-22 · `ios-37` · phone ☐

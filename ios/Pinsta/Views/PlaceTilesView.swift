@@ -2,7 +2,7 @@ import SwiftUI
 
 /// The Instagram profile grid: three across, edge to edge, portrait crops,
 /// hairline gaps, no words. The name lives in the PeekCard a tap opens.
-/// No photo → the type icon on its tint. Fewer than six places → quiet
+/// No photo → `MapTile`, its street with its name. Fewer than six places → quiet
 /// placeholder tiles fill two rows, the first nudging to share more.
 struct PlaceTilesView: View {
     let places: [Place]
@@ -48,9 +48,8 @@ struct PlaceTilesView: View {
         if place.imageData != nil {
             PlacePhoto(place: place, points: 200)
         } else {
-            place.category.tint.overlay {
-                place.icon.resizable().scaledToFit().frame(width: 48, height: 48)
-            }
+            // A map of its street with its name (Sarp, 2026-11-24), not just the icon on its tint.
+            MapTile(place: place)
         }
     }
 }
