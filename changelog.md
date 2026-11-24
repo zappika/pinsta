@@ -8,6 +8,18 @@ backoffice, web-only changes). Headings read "## Build N · D Month".
 
 # What's new in Vicolo
 
+## Build 38 · 24 November
+
+- **A hello when you arrive somewhere.** Once a city (not your home) has 3 or more of your places, Vicolo asks if it may tell you when you get there. Then, arriving, you get "🇮🇹 Benvenuti a Milano! 20 places you saved are here." Tap it for that city's map. Two notifications a week at most; Settings → Notifications turns it off.
+- **Timeline** replaces Been there in the menu: your check-ins day by day, and under Places everywhere you've been.
+- On a place's card, swipe left or right for the next or previous place; the map follows.
+- The Cards view is gone: Map, List and Tiles stay.
+- In Tiles, a place without a photo shows a little map of its street with its name.
+- Picking a town in the Where menu always flies the map there, even with a filter on.
+- Two coloured dots right next to each other on the map no longer pulse: they become one dot.
+- The + menu says "Social post" instead of "Instagram post".
+- No more red dot on the menu button for a new build.
+
 ## Build 37 · 22 November
 
 - A place's card now tells you where it came from: who posted it and what they said. Tap that to open the post. (The round Instagram button is gone; it looked like the place's own account.)

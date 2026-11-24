@@ -13,7 +13,9 @@ How it stays true:
 - `git log ios-N..HEAD -- ios lib app/api` is the check: anything there that isn't listed under Next build was forgotten.
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
-## Next build (since `ios-37`)
+## Next build (since `ios-38`)
+
+## In TestFlight: 1.0 (38) · 2026-11-24 · `ios-38` · phone ☐
 - **Welcome to a city:** once a city other than your home has 3 or more of your places, Vicolo asks if it may say hello when you arrive. Then, arriving there, a notification says "🇮🇹 Benvenuti a Milano! 20 places you saved are here." (in the country's own language, with its flag); tapping it opens that city's map. Settings → Notifications turns it off. Two notifications a week at most.
 - *(internal)* 2026-11-24: `Views/Nudges.swift` (`Nudges`, `HomeTown`, `Welcome`, `Flags`, `NotifyPrimer`). Local notifications with `UNLocationNotificationTrigger` ("While Using" is enough), rewritten on open, after a save and on background. Seen in the Simulator: the primer after the third Milan save, "Milan" → "Milano", the permission question, the welcome written (3.8 km area), its banner via `-welcomeNow`. **Not seen:** the location trigger firing (this Simulator's locationd "couldn't get fences" for notifications) and a tap opening the Milan map (Lock Screen taps didn't open the app). Both need the phone. A notification arriving with the app open now also stays in Notification Center.
 - Picking a town in the Where menu flies the map there even with the Want to go / Been there filter on (before, a town with nothing under the filter left the map where it was).
@@ -27,7 +29,9 @@ How it stays true:
 - *(internal)* 2026-11-24: `Views/MapTile.swift`, an `MKMapSnapshotter` (~700 m across, muted, no POIs, light/dark) cached in memory and Caches/MapTiles; name at the top because the Apple Maps mark at the bottom must stay visible. Seen in the Simulator on The Blue Moon (forced for a photo place, then reverted).
 - *(internal)* 2026-11-24: the city framing bug wasn't reproduced (the Simulator has one place); the fix is the likeliest cause, `focus` = the selection before the been filter. Pulsing: quiet dots now group at `quietSize + 2` (touching), and `FadeIn` fades a pin id in once per launch (MapKit re-mounting overlapping annotations re-ran it). `PeekCardView` `onStep`/`arrive`, `PlacesMapView.show` on `selected` change. `SwipeCard.swift` deleted. Built; card swipe and the Timeline sheet not seen in the Simulator (one place, menu taps didn't register).
 
-## In TestFlight: 1.0 (37) · 2026-11-22 · `ios-37` · phone ☐
+## Earlier builds
+
+### 1.0 (37) · 2026-11-22 · `ios-37` · phone ☐
 - Your blue dot really stays on top now: in build 36 a place just below you on the map could still cover it.
 - *(internal)* 2026-11-20: MapKit stacks annotations by latitude, so drawing `YouDot` last as an `Annotation` didn't help (Barcelona, Hotel Seventy's dot). It is now an overlay over the `Map`, placed with `MapProxy.convert` on every camera change and fix. Checked in the Simulator just north of Al Covo, and while panning.
 - *(internal)* 2026-11-22: `VisitPhotos` and the visit methods that delete or add photo files moved from `Models/Visit.swift` to `Services/VisitPhotos.swift`, so `Models` is Foundation-only again and the search replay (`npm run review:replay`) compiles on macOS. No behaviour change.
@@ -38,8 +42,6 @@ How it stays true:
 - A place you saved by checking in says "Saved when you were here" on its card, not "Saved by name".
 - A place's card tells where it came from in one block: who posted it and what they said, in quotes. Tap it to open the post. The round Instagram button is gone from the card; a place with more posts shows "+1 more post".
 - *(internal)* 2026-11-22: `PlaceCardView` `source` (WhyHere sentence + `WhyHere.captionSnippet`, ported word for word from `lib/why-here.ts`, address lines skipped), round post button only off the floating card, `visitsRow` only when folded or with visits, the venue's Instagram hidden when it is the poster's. Designed on backoffice `/card`. Checked in the Simulator on The Blue Moon; the snippet rules checked side by side with the web on six captions.
-
-## Earlier builds
 
 ### 1.0 (36) · 2026-11-20 · `ios-36` · phone ☐
 - **Check in** is in the + menu now, not a button on the map; everything that said "I'm here" says Check in (also Siri: "Check in with Vicolo", and the Control Center button).
