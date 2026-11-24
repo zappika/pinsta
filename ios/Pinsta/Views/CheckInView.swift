@@ -11,6 +11,8 @@ import CoreLocation
 struct CheckInView: View {
     var arrived: Place? = nil
     let locate: () async -> CLLocation?
+    /// The phone's last fix when it's recent (`NearMe.recent`): the list opens on it at once.
+    var quick: () -> CLLocation? = { nil }
     let onClose: () -> Void
 
     @Environment(\.modelContext) private var context
@@ -158,12 +160,35 @@ struct CheckInView: View {
 
     private func start() async {
         if let arrived { phase = .arrived(arrived); return }
+        // Instant: the last fix and the places fetched around it ahead of time (`Around`). Without a
+        // cached list, the search still starts now, while the precise fix is on its way.
+        if let q = quick() {
+            if let hit = Around.cached(for: q) {
+                fix = q
+                phase = .list(rows(Array(hit.prefix(8))))
+            } else {
+                Around.prefetch(q)
+            }
+        }
         guard let here = await locate() else {
+            if case .list = phase { return }
             phase = .failed("Location is off for Vicolo. Turn it on in Settings → Vicolo → Location.")
             return
         }
+        // The precise fix says the same street: keep the list that's up (no rows moving under a finger).
+        if case .list = phase, let fix, here.distance(from: fix) < 25 { return }
+        let around = await Around.places(at: here)
+        switch phase {
+        case .locating, .list: break
+        default: return  // checked in meanwhile
+        }
+        guard !busy else { return }
         fix = here
-        let around = await PlaceSearch.around(here.coordinate, meters: 150, limit: 8)
+        phase = .list(rows(around))
+    }
+
+    /// Yours first, then Apple's, nearest first.
+    private func rows(_ around: [PlaceCandidate]) -> [Row] {
         let mine = places
             .map { (p: $0, m: distance($0.latitude, $0.longitude)) }
             .filter { $0.m <= 150 }
@@ -179,7 +204,7 @@ struct CheckInView: View {
             let mb = b.saved != nil ? b.meters - 40 : b.meters
             return ma < mb
         }
-        phase = .list(rows)
+        return rows
     }
 
     private func search() async {

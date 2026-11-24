@@ -61,6 +61,14 @@ final class NearMe: NSObject, CLLocationManagerDelegate {
         }
     }
 
+    /// The phone's last fix, if it is recent and good enough for the street: no wait at all.
+    /// Check in opens on it while a precise fix is on its way.
+    func recent(maxAge: TimeInterval = 120) -> CLLocation? {
+        guard let l = manager.location, l.horizontalAccuracy >= 0, l.horizontalAccuracy <= Around.roughest,
+              Date.now.timeIntervalSince(l.timestamp) <= maxAge else { return nil }
+        return l
+    }
+
     /// To the street, for "Where I am" (the opening town needs only a kilometre).
     func locatePrecisely() async -> CLLocation? {
         manager.desiredAccuracy = kCLLocationAccuracyBest
@@ -106,6 +114,8 @@ final class NearMe: NSObject, CLLocationManagerDelegate {
     }
 
     private func finish(_ l: CLLocation?) {
+        // Every fix the app gets also fetches the places around it, for Check in (`Around`).
+        if let l { Around.prefetch(l) }
         let all = waiting
         waiting = []
         for c in all { c.resume(returning: l) }

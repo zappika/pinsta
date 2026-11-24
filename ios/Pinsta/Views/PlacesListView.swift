@@ -263,6 +263,7 @@ private struct PlacesContent: View {
                 FloatingSheet(onClose: { screen.checkingIn = nil }) {
                     CheckInView(arrived: { if case .arrived(let p) = checking { return p } else { return nil } }(),
                                 locate: { await nearMe.locatePrecisely() },
+                                quick: { nearMe.recent() },
                                 onClose: { screen.checkingIn = nil })
                 }
             }
@@ -392,7 +393,7 @@ private struct PlacesContent: View {
             }
             // A list import started here or from the share sheet: follow it again.
             if phase == .active { ListImport.shared.resume(context: context); checkInIfAsked() }
-            if phase == .active, old == .background { askVisitIfDue() }
+            if phase == .active, old == .background { askVisitIfDue(); prefetchAround() }
         }
     }
 
@@ -502,6 +503,14 @@ private struct PlacesContent: View {
         }
         guard close(rough, 1500) != nil, let fine = await nearMe.locatePrecisely() else { return nil }
         return close(fine, Arrived.meters + min(fine.horizontalAccuracy, 50))
+    }
+
+    /// The places around you, fetched ahead of Check in (`Around`): from the phone's last fix when it's
+    /// fresh, else a new one. Only with location already allowed; never asks.
+    private func prefetchAround() {
+        guard nearMe.onOpen(placeCount: places.count) == .locate else { return }
+        if let l = nearMe.recent() { return Around.prefetch(l) }
+        Task { _ = await nearMe.locatePrecisely() }  // the fix prefetches by itself (`NearMe.finish`)
     }
 
     /// The Lock Screen / Control Center button and the Shortcuts action open the app on I'm here.
@@ -922,7 +931,11 @@ private struct PlacesContent: View {
     /// Round +, springs on press, turns into × while the save sheet is open and closes it.
     private var plusButton: some View {
         Button {
-            if adding || editing != nil { adding = false; editing = nil } else { fan.toggle() }
+            if adding || editing != nil { adding = false; editing = nil } else {
+                fan.toggle()
+                // Check in is one tap away now: have the places around ready (`Around`).
+                if fan { prefetchAround() }
+            }
         } label: {
             Image(systemName: "plus")
                 .font(.system(size: 22, weight: .semibold))

@@ -14,6 +14,8 @@ How it stays true:
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
 ## Next build (since `ios-38`)
+- **Check in opens faster:** the places around you are looked up ahead of time (when you open Vicolo, come back to it, or tap +), so Check in usually shows the list straight away instead of "Finding where you are…".
+- *(internal)* 2026-11-24: `Views/Around.swift`. One Apple search covers 200 m around a fix and stays good while you're within 50 m of it (so everything within the list's 150 m was fetched), at most an hour; empty answers aren't kept. Every fix `NearMe` gets prefetches; + and foreground ask for one (`NearMe.recent`, the phone's last fix ≤2 min old and ≤100 m accurate, else a precise fix). Check in opens on the cached list at the recent fix, then swaps it only if the precise fix is 25 m+ away. Seen in the Simulator (Gràcia): the list was up as the + menu faded. **Not seen:** walking with the phone (the swap, the 50 m rule).
 
 ## In TestFlight: 1.0 (38) · 2026-11-24 · `ios-38` · phone ☐
 - **Welcome to a city:** once a city other than your home has 3 or more of your places, Vicolo asks if it may say hello when you arrive. Then, arriving there, a notification says "🇮🇹 Benvenuti a Milano! 20 places you saved are here." (in the country's own language, with its flag); tapping it opens that city's map. Settings → Notifications turns it off. Two notifications a week at most.
