@@ -14,6 +14,13 @@ How it stays true:
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
 ## Next build (since `ios-39`)
+- **Want to go / Been there moved:** the switch at the top of the map is gone. Long-press the map icon at the bottom to pick All, Want to go or Been there; while one is on, the map icon has a small badge.
+- The top pill is only as wide as its words: no empty stretch after "Everything".
+- Zoomed right in, places you've been to have a small green check on their pin.
+- Small dots on the map are much easier to tap.
+- Place names on the map are darker, easier to read.
+- Moving the map from the chosen town to another one (Paris picked, scrolled to Barcelona) switches Where to that town, so its places show, instead of an empty map.
+- *(internal)* 2026-11-24: `ViewSwitch` takes `been` (context menu, inline picker, badge); `beenSwitch` deleted. `PlacesMapView`: `checksFrom` 15, `minTap` 40 (even padding + `contentShape`), quiet names semibold ink at 0.78, `onSettle` → `PlacesListView.follow` (only when none of the chosen town's places are in view; the town most in view wins, What kept when it has some there, else Everything; `stayPut` stops the map flying). Seen in the Simulator: the menu, the badge, the snug pill. **Not seen** (one place in the Simulator): the checks, tap areas among many dots, the town switch.
 
 ## In TestFlight: 1.0 (39) · 2026-11-24 · `ios-39` · phone ☐
 - **A cleaner map screen:** the map now fills the whole screen, top to bottom. Where and What sit together in one glass pill at the top, with the menu button on its own beside it. At the bottom, the locate button moved to the left end, the Map / List / Tiles switch stays in the middle and + on the right.

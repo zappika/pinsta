@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import CoreLocation
+import MapKit
 
 /// What the screen shows, kept outside the content so a refresh (which rebuilds
 /// it) changes nothing you can see: filters, the open sheet, the location fix.
@@ -153,6 +154,8 @@ private struct PlacesContent: View {
     @State private var locating = false
     /// The map's Been there filter; the list views always show everything (cleared on leaving the map).
     @State private var been: BeenFilter = .all
+    /// Where was changed by moving the map (`follow`): the map stays where it is.
+    @State private var stayPut = false
 
     private var labels: [UUID: String] { Grouping.destinationLabels(places) }
     private var shown: [Place] { places.filter { !hidden.contains($0.id) } }
@@ -223,7 +226,7 @@ private struct PlacesContent: View {
                 // in an overlay above the save sheet, so it can turn into its ×).
                 ZStack {
                     if !shown.isEmpty {
-                        ViewSwitch(view: $view)
+                        ViewSwitch(view: $view, been: $been)
                             .opacity(pillHidden ? 0 : 1)
                     }
                 }
@@ -556,10 +559,7 @@ private struct PlacesContent: View {
             if v == .map, !shown.isEmpty {
                 ZStack(alignment: .top) {
                     content(v).ignoresSafeArea()
-                    VStack(spacing: 10) {
-                        header.padding(.horizontal, 16)
-                        beenSwitch
-                    }
+                    header.padding(.horizontal, 16)
                 }
             } else {
                 VStack(alignment: .leading, spacing: 0) {
@@ -589,7 +589,8 @@ private struct PlacesContent: View {
             )
                 .ignoresSafeArea(.keyboard)
         } else if v == .map {
-            PlacesMapView(places: visible, selected: $peek, focus: framed?.places ?? (been == .all ? nil : selection), here: here, goHere: goHere)
+            PlacesMapView(places: visible, selected: $peek, focus: framed?.places ?? (been == .all ? nil : selection), here: here, goHere: goHere,
+                          stayPut: stayPut, onSettle: follow)
         } else if visible.isEmpty {
             ScrollView { noMatchState }
         } else if v == .list {
@@ -720,14 +721,17 @@ private struct PlacesContent: View {
             .padding(.top, 12)
         } else {
             HStack(spacing: 10) {
+                // The pill fits its words: an empty stretch after "Bars" read as missing something (Sarp, 2026-11-24).
                 HStack(spacing: 14) {
                     whereButton.layoutPriority(1)
                     whatButton
-                    Spacer(minLength: 0)
                 }
                 .padding(.horizontal, 18)
                 .frame(height: 48)
                 .modifier(FilterPillLook())
+                .animation(.snappy, value: city)
+                .animation(.snappy, value: whatLabel)
+                Spacer(minLength: 0)
                 BuddyMenu()
             }
             .padding(.top, 4)
@@ -917,18 +921,24 @@ private struct PlacesContent: View {
     }
 
 
-    /// The map's Want to go / Been there filter (Sarp, 2026-11-20): the system's segmented control at
-    /// the top of the map, a pattern everyone knows (a round icon with a menu read as a button).
-    private var beenSwitch: some View {
-        Picker("Show", selection: $been.animation(.snappy)) {
-            ForEach(BeenFilter.allCases, id: \.self) { Text($0.label).tag($0) }
+    /// The map was moved off the chosen town (Sarp, 2026-11-24: Paris picked, scrolled to Barcelona,
+    /// nothing showed): once none of its places are in view, Where becomes the town most of what's in
+    /// view belongs to, without moving the map. Keeps What when that town has some; else Everything.
+    private func follow(_ region: MKCoordinateRegion) {
+        guard let city, view == .map, framed == nil, !selection.contains(where: { PlacesMapView.contains(region, $0.coordinate) }) else { return }
+        let labels = labels
+        let inView = shown.filter { PlacesMapView.contains(region, $0.coordinate) }
+        let fits = inView.filter { (category == nil || $0.category == category) && (subtype == nil || $0.subtypeRaw == subtype) }
+        let pool = fits.isEmpty ? inView : fits
+        guard let town = Dictionary(grouping: pool, by: { labels[$0.id] ?? "" })
+            .filter({ !$0.key.isEmpty && $0.key != city })
+            .max(by: { $0.value.count < $1.value.count })?.key else { return }
+        stayPut = true
+        withAnimation(.snappy) {
+            screen.city = town
+            if fits.isEmpty { category = nil; subtype = nil }
         }
-        .pickerStyle(.segmented)
-        .frame(maxWidth: 300)
-        .padding(4)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
-        .opacity(shown.isEmpty || adding ? 0 : 1)
+        Task { try? await Task.sleep(for: .seconds(0.3)); stayPut = false }
     }
 
     private var addMenu: AddMenu {
@@ -1065,7 +1075,8 @@ private struct LocateLook: ViewModifier {
     }
 }
 
-/// The map's Want to go / Been there filter: not remembered, every launch shows all.
+/// The map's Want to go / Been there filter: a long press on the map icon (`ViewSwitch`); not
+/// remembered, every launch shows all.
 enum BeenFilter: CaseIterable {
     case all, want, been
     var label: String {
@@ -1075,6 +1086,22 @@ enum BeenFilter: CaseIterable {
         case .been: "Been there"
         }
     }
+    var symbol: String {
+        switch self {
+        case .all: "map"
+        case .want: "bookmark"
+        case .been: "checkmark.circle"
+        }
+    }
+    /// The small mark on the map icon while a filter is on.
+    var badge: String? {
+        switch self {
+        case .all: nil
+        case .want: "bookmark.fill"
+        case .been: "checkmark"
+        }
+    }
+    var tint: Color { self == .been ? PlacesMapView.beenGreen : Color(red: 0.85, green: 0.35, blue: 0.19) }
     func keeps(_ p: Place) -> Bool {
         switch self {
         case .all: true

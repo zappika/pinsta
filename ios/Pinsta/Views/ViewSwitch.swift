@@ -22,6 +22,9 @@ enum PlacesView: String, CaseIterable {
 /// pill with a solid lozenge.
 struct ViewSwitch: View {
     @Binding var view: PlacesView
+    /// The map's Want to go / Been there filter, on a long press of the map icon (Sarp, 2026-11-24:
+    /// the segmented row at the top of the map was boring and took a band of the map).
+    @Binding var been: BeenFilter
     @Namespace private var ns
 
     private var glass: Bool {
@@ -55,11 +58,35 @@ struct ViewSwitch: View {
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(v.title)
+                .overlay(alignment: .topTrailing) {
+                    if v == .map, let badge = been.badge {
+                        Image(systemName: badge)
+                            .font(.system(size: 8, weight: .heavy))
+                            .foregroundStyle(.white)
+                            .frame(width: 16, height: 16)
+                            .background(Circle().fill(been.tint))
+                            .offset(x: -6, y: 6)
+                            .allowsHitTesting(false)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .contextMenu {
+                    if v == .map {
+                        Picker("Show on the map", selection: Binding(get: { been }, set: { b in
+                            withAnimation(.snappy) { been = b }
+                            view = .map
+                        })) {
+                            ForEach(BeenFilter.allCases, id: \.self) { Label($0.label, systemImage: $0.symbol).tag($0) }
+                        }
+                        .pickerStyle(.inline)
+                    }
+                }
+                .accessibilityLabel(v == .map && been != .all ? "Map, \(been.label)" : v.title)
                 .accessibilityAddTraits(active ? .isSelected : [])
             }
         }
         .animation(.snappy(duration: 0.25), value: view)
+        .animation(.snappy, value: been)
         .padding(4)
         .modifier(GlassPill())
     }

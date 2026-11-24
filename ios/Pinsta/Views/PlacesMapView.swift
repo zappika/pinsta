@@ -17,6 +17,17 @@ struct PlacesMapView: View {
     var here: CLLocation? = nil
     /// Bumped by the locate button: frame you (`here`) at town size, whatever the selection.
     var goHere = 0
+    /// Where·What was just changed by moving the map: don't fly to the new selection.
+    var stayPut = false
+    /// The map came to rest (PlacesListView.follow).
+    var onSettle: ((MKCoordinateRegion) -> Void)? = nil
+
+    /// Been there's green: the check on a pin, the badge on the map icon.
+    static let beenGreen = Color(red: 0.11, green: 0.62, blue: 0.46)
+    /// From here a place you've been to has a check (Sarp, 2026-11-24: only really close in).
+    static let checksFrom = 15.0
+    /// Small dots are hard to hit: their tap area is at least this wide (Sarp, 2026-11-24).
+    static let minTap: CGFloat = 40
 
     /// No frame tighter than this, across: one place or a few on one street show their
     /// neighbourhood, not a street map (Sarp, 2026-10-15, as the web's MIN_FRAME_KM).
@@ -68,6 +79,8 @@ struct PlacesMapView: View {
         /// At street level (or few places): quiet places show their type icon.
         let street: Bool
         var named = false
+        /// Close in: places you've been to show a check.
+        var checks = false
         /// The name sits on the left: the right was taken (Sarp, 2026-11-01, a Copenhagen dot lost its name).
         var nameLeft = false
         /// The look is part of the id, so a new look makes new views, which fade in.
@@ -106,7 +119,7 @@ struct PlacesMapView: View {
             .onTapGesture { withAnimation(.snappy) { selected = nil } }
             .onAppear { frame(animated: false) }
             .task { await followYou() }
-            .onChange(of: focus?.map(\.id)) { _, _ in frame(animated: true) }
+            .onChange(of: focus?.map(\.id)) { _, _ in if !stayPut { frame(animated: true) } }
             .onChange(of: here != nil) { _, _ in frame(animated: true) }
             .onChange(of: goHere) { _, _ in
                 guard let here else { return }
@@ -116,12 +129,13 @@ struct PlacesMapView: View {
                 // Pins follow the selection at once; the camera may not move at all
                 // (a pin removed from the middle), so don't wait for it to settle.
                 if let lastRegion { regroup(proxy: proxy, region: lastRegion) } else { groups = [] }
-                frame(animated: true)
+                if !stayPut { frame(animated: true) }
             }
             .onMapCameraChange(frequency: .onEnd) { ctx in
                 lastRegion = ctx.region
                 placeYou(proxy)
                 regroup(proxy: proxy, region: ctx.region)
+                onSettle?(ctx.region)
             }
             // Live (Sarp, 2026-10-29): mid-pinch, only when a zoom step is crossed, not every frame.
             .onMapCameraChange(frequency: .continuous) { ctx in
@@ -152,7 +166,7 @@ struct PlacesMapView: View {
     private static func isMosaic(_ g: PinGroup) -> Bool { g.loud && g.look == .far && g.members.count > fanMax }
     private static func key(at z: Double) -> String { z < cityZoom ? "cities" : look(at: z).rawValue }
 
-    private static func contains(_ r: MKCoordinateRegion, _ c: CLLocationCoordinate2D) -> Bool {
+    static func contains(_ r: MKCoordinateRegion, _ c: CLLocationCoordinate2D) -> Bool {
         abs(c.latitude - r.center.latitude) <= r.span.latitudeDelta / 2
             && abs(c.longitude - r.center.longitude) <= r.span.longitudeDelta / 2
     }
@@ -197,7 +211,8 @@ struct PlacesMapView: View {
             let mosaic = b.loud && look == .far && b.members.count > Self.fanMax
             let size: CGFloat = b.loud ? (mosaic ? max(loudSize, 40) : loudSize) : (many ? 16 : quietSize)
             let coord = many ? (proxy.convert(b.point, from: .local) ?? b.members[0].coordinate) : b.members[0].coordinate
-            let g = PinGroup(members: b.members, coordinate: coord, loud: b.loud, look: look, size: size, street: street)
+            var g = PinGroup(members: b.members, coordinate: coord, loud: b.loud, look: look, size: size, street: street)
+            g.checks = z >= Self.checksFrom
             if b.loud {
                 let reach = CGFloat(Self.behind(g)) * 8
                 // A mosaic's "N places" always shows: it takes its room too.
@@ -347,9 +362,23 @@ struct PlacesMapView: View {
         .overlay(alignment: g.nameLeft ? .trailing : .leading) {
             pinLabel(g).fixedSize().offset(x: g.nameLeft ? -(g.size + 5) : g.size + 5 + CGFloat(behind) * 8)
         }
+        .overlay(alignment: .topTrailing) {
+            if g.checks, n == 1, first.visitedAt != nil {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 7, weight: .heavy))
+                    .foregroundStyle(.white)
+                    .frame(width: 14, height: 14)
+                    .background(Circle().fill(Self.beenGreen))
+                    .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 1.5))
+                    .offset(x: 4, y: -4)
+            }
+        }
+        // Even padding keeps the pin centred on its place; the padding takes taps.
+        .padding(max(0, (Self.minTap - g.size) / 2))
+        .contentShape(Circle())
         .modifier(FadeIn(id: g.id))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(n == 1 ? first.name : "\(first.name) and \(n - 1) more")
+        .accessibilityLabel((n == 1 ? first.name : "\(first.name) and \(n - 1) more") + (n == 1 && first.visitedAt != nil ? ", been there" : ""))
         .accessibilityAddTraits(.isButton)
     }
 
@@ -398,10 +427,11 @@ struct PlacesMapView: View {
         } else if g.named {
             VStack(alignment: g.nameLeft ? .trailing : .leading, spacing: 0) {
                 Text(g.members[0].name)
-                    .font(.system(size: g.loud ? 13 : 11.5, weight: g.loud ? .semibold : .medium))
-                    .foregroundStyle(g.loud ? Color.primary : Color.secondary)
+                    // Quiet names were grey and faded into the map (Sarp, 2026-11-24): ink, a little lighter.
+                    .font(.system(size: g.loud ? 13 : 12, weight: .semibold))
+                    .foregroundStyle(g.loud ? Color.primary : Color.primary.opacity(0.78))
                 if n > 1 {
-                    Text("+\(n - 1) more").font(.system(size: 12, weight: .medium)).foregroundStyle(.secondary)
+                    Text("+\(n - 1) more").font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.primary.opacity(0.6))
                 }
             }
             .lineLimit(1)
@@ -490,6 +520,7 @@ private extension View {
     /// A label on the map: a soft outline in the background colour, so it reads on any tile.
     func halo() -> some View {
         shadow(color: Color(.systemBackground), radius: 1.5).shadow(color: Color(.systemBackground), radius: 1.5)
+            .shadow(color: Color(.systemBackground), radius: 1)
     }
 }
 
