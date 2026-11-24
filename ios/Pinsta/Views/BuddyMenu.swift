@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// The round elephant button, top right: a short menu, like the web's. Settings,
-/// Been there, Import from Google, What's new, Help and Privacy open as their own sheets; a red dot
-/// on the button means a build whose What's new hasn't been opened. Accounts belong to the Social package.
+/// Timeline (Been there), Import from Google, What's new, Help and Privacy open as their own sheets. No red
+/// dot for a new build any more (Sarp, 2026-11-24): the menu row still says which build is new. Accounts belong to the Social package.
 struct BuddyMenu: View {
     private let settings = Settings.shared
 
@@ -16,7 +16,7 @@ struct BuddyMenu: View {
             Button {
                 settings.showingBeenThere = true
             } label: {
-                Label("Been there", systemImage: "checkmark.circle")
+                Label("Timeline", systemImage: "checkmark.circle")
             }
             Button {
                 settings.showingTutorial = true
@@ -62,12 +62,6 @@ struct BuddyMenu: View {
                 .foregroundStyle(Color(.label))
                 .frame(width: 44, height: 44)
                 .background(Color(.tertiarySystemFill), in: Circle())
-                // A build the tester hasn't read What's new for.
-                .overlay(alignment: .topTrailing) {
-                    if settings.changelogIsNew {
-                        Circle().fill(.red).frame(width: 10, height: 10).offset(x: -2, y: 2)
-                    }
-                }
                 .contentShape(Circle())
         }
         .accessibilityLabel("Menu")

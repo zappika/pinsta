@@ -64,7 +64,7 @@ struct VisitAskSheet: View {
                     Button {
                         yes.insert(place.id)
                         // Saved where you stood: you were there that day, a visit on the save day. Otherwise the day is
-                        // unknown: Been there without a visit, shown undated on the Been there page.
+                        // unknown: Been there without a visit, listed under Timeline → Places, not on the timeline.
                         if place.visitedAt == nil {
                             if place.savedNearby { place.checkIn(at: place.createdAt) } else { place.visitedAt = .now }
                             Uses.count("visited")

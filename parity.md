@@ -34,7 +34,7 @@ closes a difference (CLAUDE.md). Last updated 2026-10-26 (build 31 in TestFlight
 | Usage sheet and `/usage` | Yes | No: the costs are Sarp's to watch |
 | Save reports (`/api/saves`, backoffice `/saves`) | No: the web list is Sarp's own | Every save sheet reports how it ended (`SaveReport.swift`) |
 | Use counts (`/api/uses`, on backoffice `/pulse`) | No: the web list is Sarp's own | Opens, view picks, seconds per screen (`Uses.swift`); from build 31 also a place opened, Directions, the post button, Been there |
-| What's new (menu → `/changelog`) | Opens in a new tab, no dot (the changelog is about iOS builds) | In-app Safari sheet; red dot on the menu button until a new build's What's new is opened |
+| What's new (menu → `/changelog`) | Opens in a new tab, no dot (the changelog is about iOS builds) | In-app Safari sheet; the menu row names the new build (the red dot on the button went 2026-11-24) |
 | Help and Privacy (menu → `/support`, `/privacy`) | No (the web list is Sarp's alone; the marketing page links both) | Buddy menu, below What's new, in the same in-app Safari sheet (`WebPageView`); the App Store asks for both in the app (2026-10-16) |
 | Help improve Vicolo (Settings switch) | No (the web sends no save reports or usage counts) | Settings sheet; off stops `SaveReport` and `Uses` in the app and the extension (2026-10-16) |
 | Share from Instagram | Paste a link | Share sheet → Vicolo, or paste |
@@ -45,14 +45,14 @@ closes a difference (CLAUDE.md). Last updated 2026-10-26 (build 31 in TestFlight
 ## The same on both
 
 - Place card: floating, one size, "why it's here" block (the sentence, the caption's first lines in quotes, tap to open the post; no round post button on it; "+1 more post"; 2026-11-22, designed on backoffice `/card`), the venue's website ("@handle" for an Instagram one). iOS takes the website from MapKit, web from Google; Imported places say whose list they came from on both ("From Emilie’s “Paris” list"; iOS from build 31).
-- Want to go / Been there: the place card's segmented switch, 😞 🙂 😃 after Been there, then folded into the face (tap to change or undo); buddy menu → Been there list, latest first. Date kept, not shown; on iOS Been there from the card has no date, only Check in records one (2026-11-22). The map has a tucked-away filter (2026-11-20, see the table). Web stores it in Neon (`visited_at`, `rating`), iOS on the phone (`visitedAt`, `rating`).
+- Want to go / Been there: the place card's segmented switch, 😞 🙂 😃 after Been there, then folded into the face (tap to change or undo); buddy menu → Been there list, latest first (iOS: Timeline, check-ins with a day only; Places lists all, 2026-11-24). Date kept, not shown; on iOS Been there from the card has no date, only Check in records one (2026-11-22). The map has a tucked-away filter (2026-11-20, see the table). Web stores it in Neon (`visited_at`, `rating`), iOS on the phone (`visitedAt`, `rating`).
 - Map, Everywhere: every place framed; only places worlds apart (over 4,000 km) get one country, the one with most places. No country chips. iOS names countries in English from the ISO code (`CountryName` folds older local names like "日本").
 
-- The + menu: fans out Instagram post / Google Maps (a place, or a list → import); Paste on both screens; a share-sheet tip on the first 3 pasted saves. iOS keeps an "Import" row in the buddy menu while an import runs or waits for its review (build 31; "Google list" since 26).
+- The + menu: fans out Instagram post (iOS: "Social post", 2026-11-24) / Google Maps (a place, or a list → import); Paste on both screens; a share-sheet tip on the first 3 pasted saves. iOS keeps an "Import" row in the buddy menu while an import runs or waits for its review (build 31; "Google list" since 26).
 - Locate button above the + on the map (hidden while a place card, the save sheet or a notice is open), and no frame tighter than 4.5 km (iOS build 27).
 - Town and region names in English (web: Google; iOS: asked again in English, `EnglishNames`, build 26).
 - Place finding: the same rules on both (`lib/google-places.ts` ↔ `PlaceSearch.swift`), incl. handle cities and the Nordic caption lift (`lib/language.ts` ↔ `PlaceSearch.languageCountries`, 2026-10-17). Age-restricted posts are read from their preview by the server, for both.
-- Views: Map, List, Cards, Tiles; the view pill with the round + apart from it (Liquid Glass on iOS 26+).
+- Views: Map, List, Cards, Tiles (iOS: Map, List, Tiles; Cards went 2026-11-24, and the floating card swipes sideways to the next place); the view pill with the round + apart from it (Liquid Glass on iOS 26+).
 - Category icons: Sarp's 3D set (web `public/types`, iOS `Type*` assets).
 - The post button opens the post; no embedded posts.
 - Where/What pickers, both in the header (a web experiment with only What there was dropped, 2026-10-29), grouping (`lib/grouping.ts` ↔ `Grouping.swift`), metros, same-place merging.

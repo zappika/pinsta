@@ -14,6 +14,14 @@ How it stays true:
 - **Phone:** ☐ until Sarp says the build is fine on the phone, then ☑ (one word from Sarp is enough).
 
 ## Next build (since `ios-37`)
+- Picking a town in the Where menu flies the map there even with the Want to go / Been there filter on (before, a town with nothing under the filter left the map where it was).
+- Two coloured dots right next to each other on the map no longer pulse: they become one dot.
+- No more red dot on the menu button for a new build; What's new still says which build is new.
+- The menu's Been there is now Timeline, and the timeline shows only check-ins with a day. Places you marked Been there without checking in are under Timeline → Places (swipe one for Not been).
+- On a place's card, swipe left or right for the next or previous place, in the list's order (newest saved first); the map follows.
+- The Cards view is gone: Map, List and Tiles stay.
+- The + menu says "Social post" instead of "Instagram post".
+- *(internal)* 2026-11-24: the city framing bug wasn't reproduced (the Simulator has one place); the fix is the likeliest cause, `focus` = the selection before the been filter. Pulsing: quiet dots now group at `quietSize + 2` (touching), and `FadeIn` fades a pin id in once per launch (MapKit re-mounting overlapping annotations re-ran it). `PeekCardView` `onStep`/`arrive`, `PlacesMapView.show` on `selected` change. `SwipeCard.swift` deleted. Built; card swipe and the Timeline sheet not seen in the Simulator (one place, menu taps didn't register).
 
 ## In TestFlight: 1.0 (37) · 2026-11-22 · `ios-37` · phone ☐
 - Your blue dot really stays on top now: in build 36 a place just below you on the map could still cover it.

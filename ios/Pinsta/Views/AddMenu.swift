@@ -21,7 +21,7 @@ struct AddMenu: View {
         // One way in to the places around you: Check in (Sarp, 2026-11-20), not a save for later. Only here: no button on the map.
         Item(mode: .here, label: "Check in", hint: "At the place you're at", icon: "hand.wave"),
         Item(mode: .google, label: "Google Maps", hint: "A place or a shared list", icon: "mappin.and.ellipse"),
-        Item(mode: .post, label: "Instagram post", hint: "Paste its link", icon: "camera"),
+        Item(mode: .post, label: "Social post", hint: "Paste its link", icon: "camera"),
     ]
 
     var body: some View {

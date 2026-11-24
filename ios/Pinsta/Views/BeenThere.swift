@@ -135,7 +135,8 @@ struct FaceView: View {
 /// Buddy menu → Been there: your check-ins as a timeline, or the places with how often (Sarp,
 /// 2026-11-20, with I'm here). Grouped by day with the day's town, so "where did you go in Italy?"
 /// is a scroll. Places marked Been there before check-ins existed have only the day they were
-/// marked, not the day of the visit: they sit at the end, undated (as the old list had no dates).
+/// marked, not the day of the visit: the timeline leaves them out (Sarp, 2026-11-24); Places lists them.
+/// Called Timeline in the menu and title (Sarp, 2026-11-24), Places mode included.
 struct BeenThereSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
@@ -215,7 +216,7 @@ struct BeenThereSheet: View {
                     .listStyle(.plain)
                 }
             }
-            .navigationTitle("Been there")
+            .navigationTitle("Timeline")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
@@ -245,23 +246,11 @@ struct BeenThereSheet: View {
                 dayHeader(day.date, town: day.town)
             }
         }
-        if !undated.isEmpty {
-            Section {
-                ForEach(undated) { p in
-                    open(p) { placeRow(p) }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button("Not been", role: .destructive) {
-                                // With dated check-ins too, only the undated one goes.
-                                withAnimation {
-                                    if let u = p.visits.first(where: { !$0.dated }), p.visits.count > 1 { p.removeVisit(u.id) } else { p.unvisit() }
-                                }
-                                try? context.save()
-                            }
-                        }
-                }
-            } header: {
-                Text("No date").font(.subheadline.weight(.semibold)).foregroundStyle(.secondary).textCase(nil)
-            }
+        if days.isEmpty {
+            Text("No check-ins yet. Tap + → Check in when you're at a place; Places lists everywhere you've been.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .listRowSeparator(.hidden)
         }
     }
 
@@ -319,7 +308,21 @@ struct BeenThereSheet: View {
     private var placesList: some View {
         // Most visited first, then the latest.
         let sorted = been.sorted { ($0.visitCount, $0.lastVisit ?? .distantPast) > ($1.visitCount, $1.lastVisit ?? .distantPast) }
-        ForEach(sorted) { p in open(p) { placeRow(p) } }
+        ForEach(sorted) { p in
+            open(p) { placeRow(p) }
+                // Been there with no check-in (the timeline doesn't show it): undone here.
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    if undated.contains(where: { $0.id == p.id }) {
+                        Button("Not been", role: .destructive) {
+                            // With dated check-ins too, only the undated one goes.
+                            withAnimation {
+                                if let u = p.visits.first(where: { !$0.dated }), p.visits.count > 1 { p.removeVisit(u.id) } else { p.unvisit() }
+                            }
+                            try? context.save()
+                        }
+                    }
+                }
+        }
     }
 
     private func placeRow(_ p: Place) -> some View {

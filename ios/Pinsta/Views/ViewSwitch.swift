@@ -2,7 +2,8 @@ import SwiftUI
 
 /// How the current Where·What selection is shown. Remembered across launches.
 enum PlacesView: String, CaseIterable {
-    case map, list, cards, tiles
+    /// Cards went 2026-11-24 (Sarp): the map card and the list cover it.
+    case map, list, tiles
 
     var title: String { rawValue.capitalized }
     /// Simple glyphs, not words (same set as the web pill).
@@ -10,7 +11,6 @@ enum PlacesView: String, CaseIterable {
         switch self {
         case .map: return "map"
         case .list: return "list.bullet"
-        case .cards: return "rectangle.portrait"
         case .tiles: return "square.grid.2x2"
         }
     }

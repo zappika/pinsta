@@ -121,7 +121,6 @@ private struct PlacesContent: View {
             withAnimation(.snappy) { notice = nil }
         }
     }
-    @State private var openSwipe: UUID?
     /// Which header picker is open: the web's sheet, not a system Menu.
     @State private var picking: Picking?
     private enum Picking { case city, category }
@@ -140,8 +139,6 @@ private struct PlacesContent: View {
     // Removal is deferred behind an "Undo" toast; the row hides at once and
     // is deleted for real when the toast expires.
     @State private var hidden: Set<UUID> = []
-    // Bumped on undo so the card comes back as a fresh view, not the one that flew off.
-    @State private var generation: [UUID: Int] = [:]
     @State private var toast: Place?
     @State private var toastTask: Task<Void, Never>?
     /// The + fans out its choices first; the save sheet opens on one (Sarp, 2026-10-16).
@@ -149,6 +146,8 @@ private struct PlacesContent: View {
     @State private var addMode: AddPlaceView.AddMode = .post
     /// The locate button (Sarp, 2026-10-15, as the web): you at town size.
     @State private var goHere = 0
+    /// The side the open card came in from: a sideways swipe (+1 next), else 0.
+    @State private var arrive = 0
     @State private var locating = false
     /// The map's Been there filter; the list views always show everything (cleared on leaving the map).
     @State private var been: BeenFilter = .all
@@ -173,6 +172,16 @@ private struct PlacesContent: View {
         guard NearMe.spread(visible.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }) > NearMe.spreadKm else { return nil }
         let groups = countries
         return groups.count > 1 ? groups.first : nil
+    }
+
+    /// The Where·What selection before the map's Been there filter: what the map frames, so a city
+    /// with nothing under the filter is still flown to (Sarp, 2026-11-24: picking Amsterdam or
+    /// Honolulu left the map where it was).
+    private var selection: [Place] {
+        let labels = labels
+        return shown.filter { p in
+            (city == nil || labels[p.id] == city) && (category == nil || p.category == category) && (subtype == nil || p.subtypeRaw == subtype)
+        }
     }
 
     private var visible: [Place] {
@@ -258,12 +267,14 @@ private struct PlacesContent: View {
         }
         .animation(.snappy(duration: 0.3), value: screen.checkingIn)
         .overlay(alignment: .bottom) {
-            if let peek, view != .cards {
+            if let peek {
                 PeekCardView(
                     place: peek,
                     onClose: { withAnimation(.snappy) { self.peek = nil } },
                     onEdit: { self.peek = nil; editing = peek },
-                    onDelete: { self.peek = nil; remove(peek) }
+                    onDelete: { self.peek = nil; remove(peek) },
+                    onStep: visible.count > 1 ? { step(from: peek, by: $0) } : nil,
+                    arrive: arrive
                 )
                 .id(peek.id)
                 // Pulse's "come back to find something": a place opened from the map, list or tiles.
@@ -341,11 +352,10 @@ private struct PlacesContent: View {
             if v != .map { been = .all }
         }
         .onReceive(NotificationCenter.default.publisher(for: CheckInRequest.notification)) { _ in checkInIfAsked() }
-        // A row on the Been there page: its card, once the sheet has gone (Cards has no floating card: the map).
+        // A row on the Timeline page: its card, once the sheet has gone.
         .onChange(of: settings.openPlace) { _, p in
             guard let p else { return }
             settings.openPlace = nil
-            if view == .cards { view = .map }
             Task {
                 try? await Task.sleep(for: .seconds(0.35))
                 withAnimation(.snappy) { peek = p }
@@ -463,7 +473,7 @@ private struct PlacesContent: View {
         }
     }
 
-    // MARK: - Content: map, cards, or tiles
+    // MARK: - Content: map, list, or tiles
 
     private func page(_ v: PlacesView) -> some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -491,7 +501,7 @@ private struct PlacesContent: View {
             )
                 .ignoresSafeArea(.keyboard)
         } else if v == .map {
-            PlacesMapView(places: visible, selected: $peek, focus: framed?.places, here: here, goHere: goHere)
+            PlacesMapView(places: visible, selected: $peek, focus: framed?.places ?? (been == .all ? nil : selection), here: here, goHere: goHere)
                 .ignoresSafeArea(edges: .bottom)
                 .overlay(alignment: .top) { beenSwitch }
         } else if visible.isEmpty {
@@ -507,41 +517,25 @@ private struct PlacesContent: View {
                 )
                 .padding(.bottom, 160)
             }
-        } else if v == .tiles {
+        } else {
             ScrollView {
                 PlaceTilesView(places: visible, selected: $peek)
                     .padding(.bottom, 160)
             }
-        } else {
-            cards
         }
     }
 
-    private var cards: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 12) {
-                ForEach(visible) { place in
-                    SwipeCard(
-                        isOpen: openSwipe == place.id,
-                        onOpen: { openSwipe = place.id },
-                        onClose: { if openSwipe == place.id { openSwipe = nil } },
-                        onEdit: { openSwipe = nil; editing = place },
-                        onDelete: { remove(place) }
-                    ) {
-                        PlaceCardView(
-                            place: place,
-                            hideCategory: category != nil,
-                            // A region row ("Halland") still wants the town on the card.
-                            hideCity: city != nil && place.city == city
-                        )
-                    }
-                    .id("\(place.id)-\(generation[place.id] ?? 0)")
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 160)
-        }
-        .scrollDismissesKeyboard(.interactively)
+    /// The card's sideways swipe: the next or previous place of what's shown, newest saved first
+    /// like the list, round from the last to the first. The map follows it (PlacesMapView).
+    private func step(from place: Place, by dir: Int) {
+        let order = visible
+        guard order.count > 1 else { return }
+        let i = order.firstIndex(where: { $0.id == place.id }) ?? 0
+        let next = order[(i + dir + order.count) % order.count]
+        arrive = dir
+        withAnimation(.snappy) { peek = next }
+        // Only its arrival comes from the side: a card opened later rises from below again.
+        Task { try? await Task.sleep(for: .seconds(0.5)); if peek?.id == next.id { arrive = 0 } }
     }
 
     // MARK: - Remove / undo
@@ -549,7 +543,6 @@ private struct PlacesContent: View {
     private func remove(_ place: Place) {
         commitPending()
         hidden.insert(place.id)
-        openSwipe = nil
         toast = place
         toastTask = Task {
             try? await Task.sleep(for: .seconds(5))
@@ -563,7 +556,6 @@ private struct PlacesContent: View {
         toastTask?.cancel()
         toastTask = nil
         hidden.remove(place.id)
-        generation[place.id, default: 0] += 1
         toast = nil
     }
 
@@ -797,7 +789,7 @@ private struct PlacesContent: View {
             VStack(alignment: .trailing, spacing: 12) {
                 // Not over a toast: it covered Undo (2026-10-17).
                 if view == .map, !shown.isEmpty, !adding, !fan, editing == nil, peek == nil, toast == nil, notice == nil, screen.askingVisit == nil, screen.checkingIn == nil { locateButton }
-                if (peek == nil || view == .cards) && (adding || editing != nil || !shown.isEmpty) { plusButton }
+                if peek == nil && (adding || editing != nil || !shown.isEmpty) { plusButton }
             }
         }
     }

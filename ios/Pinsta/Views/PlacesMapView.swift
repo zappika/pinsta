@@ -132,6 +132,7 @@ struct PlacesMapView: View {
             .onChange(of: (live ?? here)?.coordinate.latitude) { _, _ in placeYou(proxy) }
             .onChange(of: (live ?? here)?.coordinate.longitude) { _, _ in placeYou(proxy) }
         }
+        .onChange(of: selected?.id) { _, id in if id != nil, let selected { show(selected) } }
     }
 
     // MARK: Grouping
@@ -179,7 +180,9 @@ struct PlacesMapView: View {
             guard let pt = proxy.convert(p.coordinate, to: .local) else { continue }
             let loud = Self.fromPost(p)
             // Past the mosaic, places whose names would collide become one "Name +N more".
-            let near: CGFloat = !loud ? max(quietSize - 2, 8) : look == .far ? loudSize * Self.overlap : loudSize * 1.3
+            // Quiet dots that would touch are one dot: two overlapping annotations made MapKit hide and
+            // show them by turns, and each return faded in again, so a pair pulsed (Sarp, 2026-11-24).
+            let near: CGFloat = !loud ? quietSize + 2 : look == .far ? loudSize * Self.overlap : loudSize * 1.3
             if z < Self.noClusterZoom,
                let i = buckets.firstIndex(where: { $0.loud == loud && hypot($0.point.x - pt.x, $0.point.y - pt.y) < near }) {
                 buckets[i].members.append(p)
@@ -253,13 +256,15 @@ struct PlacesMapView: View {
     }
 
     private func select(_ place: Place) {
-        withAnimation(.snappy) {
-            selected = place
-            // Sit the pin in the upper part so the place sheet doesn't cover it.
-            let span = currentSpan ?? MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-            let center = CLLocationCoordinate2D(latitude: place.latitude - span.latitudeDelta * 0.22, longitude: place.longitude)
-            camera = .region(MKCoordinateRegion(center: center, span: span))
-        }
+        withAnimation(.snappy) { selected = place }
+    }
+
+    /// The open place, tapped or swiped to on its card: the pin sits in the upper part so the card
+    /// doesn't cover it, at the same zoom.
+    private func show(_ place: Place) {
+        let span = currentSpan ?? MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+        let center = CLLocationCoordinate2D(latitude: place.latitude - span.latitudeDelta * 0.22, longitude: place.longitude)
+        withAnimation(reduceMotion ? nil : .snappy) { camera = .region(MKCoordinateRegion(center: center, span: span)) }
     }
 
     private var currentSpan: MKCoordinateSpan? { lastRegion?.span ?? camera.region?.span }
@@ -342,7 +347,7 @@ struct PlacesMapView: View {
         .overlay(alignment: g.nameLeft ? .trailing : .leading) {
             pinLabel(g).fixedSize().offset(x: g.nameLeft ? -(g.size + 5) : g.size + 5 + CGFloat(behind) * 8)
         }
-        .modifier(FadeIn())
+        .modifier(FadeIn(id: g.id))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(n == 1 ? first.name : "\(first.name) and \(n - 1) more")
         .accessibilityAddTraits(.isButton)
@@ -461,14 +466,23 @@ struct PlacesMapView: View {
 }
 
 /// New pins (a new look, a new group) fade in instead of popping (web: .pinsta-appear).
+/// Once per pin: MapKit may take an annotation view away and bring it back (overlaps, scrolling
+/// off and on), and fading in again each time looked like pulsing.
 private struct FadeIn: ViewModifier {
+    let id: String
+    @MainActor static var seen: Set<String> = []
     @State private var shown = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content
             .opacity(shown || reduceMotion ? 1 : 0)
-            .onAppear { withAnimation(.easeOut(duration: 0.22)) { shown = true } }
+            .onAppear {
+                if Self.seen.contains(id) { shown = true; return }
+                if Self.seen.count > 2000 { Self.seen.removeAll() }
+                Self.seen.insert(id)
+                withAnimation(.easeOut(duration: 0.22)) { shown = true }
+            }
     }
 }
 
